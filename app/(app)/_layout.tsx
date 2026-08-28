@@ -1,0 +1,2 @@
+import {Tabs} from 'expo-router'; import {useSession} from '@/lib/session';
+export default function AppLayout(){const {profile}=useSession();return <Tabs screenOptions={{headerStyle:{backgroundColor:'#07111f'},headerTintColor:'#fff',tabBarStyle:{backgroundColor:'#07111f'},tabBarActiveTintColor:'#38bdf8'}}><Tabs.Screen name="deliveries" options={{title:'Pulse'}}/>{profile?.role==='fsm'&&<Tabs.Screen name="new-delivery" options={{title:'New Delivery'}}/>}</Tabs>}
