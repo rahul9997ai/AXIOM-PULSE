@@ -1,0 +1,75 @@
+name: AXIOM PULSE Master Access Fix
+on:
+  push:
+    paths:
+      - '.github/workflows/axiom-pulse-master-access-fix.yml'
+permissions:
+  contents: write
+jobs:
+  patch:
+    if: "!contains(github.event.head_commit.message, '[skip ci]')"
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Patch PWA access and testing controls
+        shell: python
+        run: |
+          from pathlib import Path
+          import re
+          p = Path('pwa/index.html')
+          s = p.read_text(encoding='utf-8')
+          # Effective role supports Master test-mode switching without changing the real DB role.
+          s = s.replace(
+              "const state={profile:null,deliveries:[],templates:[],notifications:[],team:[],active:'home',channel:null,notificationChannel:null};",
+              "const state={profile:null,deliveries:[],templates:[],notifications:[],team:[],active:'home',channel:null,notificationChannel:null,testRole:null};"
+          )
+          s = s.replace(
+              "const isMaster=()=>state.profile?.role==='master', isFSM=()=>state.profile?.role==='fsm', isSales=()=>state.profile?.role==='salesperson';",
+              "const effectiveRole=()=>state.testRole||state.profile?.role; const isMaster=()=>effectiveRole()==='master', isFSM=()=>effectiveRole()==='fsm', isSales=()=>effectiveRole()==='salesperson';"
+          )
+          # Restore Master login: never block the real Master account.
+          old = "if(profile.role==='master'){await sb.auth.signOut();document.getElementById('authMessage').textContent='Master administration is protected separately. Operational login is for FSM and Salesperson users.';return;}"
+          if old in s:
+              s = s.replace(old, "")
+          old2 = "window.AXIOM_SESSION=session;window.AXIOM_PROFILE=profile;"
+          if old2 in s and "state.testRole=null" not in s[s.find(old2):s.find(old2)+300]:
+              s = s.replace(old2, old2+" state.testRole=null;")
+          # Remove accidental application-shell visibility while logged out.
+          s = s.replace(".app{min-height:100dvh", ".app{display:none;min-height:100dvh", 1)
+          s = s.replace(".content{padding:", ".app.ready{display:block}.content{padding:", 1)
+          # Master landing control: add real account + simulated role testing.
+          anchor = "function homeScreen(){"
+          if "function enterMasterTestRole" not in s:
+              inject = r'''function enterMasterTestRole(r){ if(state.profile?.role!=='master') return; state.testRole=r; loadDemoData(); state.active='home'; render(); }
+function exitMasterTestRole(){ state.testRole=null; state.active='home'; loadAll().then(render); }
+function masterTestControls(){ return effectiveRole()==='master' ? '<div class="card"><div class="eyebrow">MASTER CONTROL</div><h2>Role Testing</h2><p class="muted" style="margin:6px 0 12px">Your Master account remains unrestricted. Test each operational authority without changing your real Master role.</p><div style="display:grid;gap:9px"><button class="btn" onclick="enterMasterTestRole(\'fsm\')">TEST AS FSM</button><button class="btn secondary" onclick="enterMasterTestRole(\'salesperson\')">TEST AS SALESPERSON</button></div></div>' : '<div class="test-banner">TEST ROLE · '+String(effectiveRole()).toUpperCase()+' · Master session preserved</div>'; }
+'''
+              s = s.replace(anchor, inject+anchor)
+          # Insert controls into Master home, retaining the existing dashboard.
+          if "masterTestControls()" not in s:
+              pass
+          # More reliable: append controls immediately before the homeScreen closing using the existing return expression.
+          pattern = re.compile(r"(function homeScreen\(\)\{.*?return .*?;\})", re.S)
+          m = pattern.search(s)
+          if m and "masterTestControls()" not in m.group(1):
+              body=m.group(1)
+              body=body[:-1] + "+(state.profile?.role==='master'?masterTestControls():'') + ';}'
+              s=s[:m.start()]+body+s[m.end():]
+          # Local test behavior for salesperson actions; never send Master auth as a fake role to RLS.
+          s=s.replace(
+              "async function completeRequirement(id){const {error}=await sb.from('delivery_requirements').update({completed:true,completed_at:new Date().toISOString(),completed_by:state.profile.id,exception_reason:null,exception_at:null,exception_by:null}).eq('id',id);if(error)return toast('Unable to complete requirement',error.message);await refresh(true)}",
+              "async function completeRequirement(id){if(state.testRole){const d=state.deliveries.find(x=>(x.delivery_requirements||[]).some(r=>r.id===id));const r=d?.delivery_requirements?.find(x=>x.id===id);if(!r)return;r.completed=true;r.exception_reason=null;toast('Requirement completed','TEST MODE — simulated FSM notification.');render();return;}const {error}=await sb.from('delivery_requirements').update({completed:true,completed_at:new Date().toISOString(),completed_by:state.profile.id,exception_reason:null,exception_at:null,exception_by:null}).eq('id',id);if(error)return toast('Unable to complete requirement',error.message);await refresh(true)}"
+          )
+          # Fix demo/test completion to treat exceptions as resolved.
+          s=s.replace("const {error}=await sb.rpc('complete_delivery',{p_delivery_id:id});if(error)return toast('Delivery not completed',error.message);toast('Delivery completed','The delivery record has been finalized.');await refresh();openDelivery(id)", "if(state.testRole){const d=state.deliveries.find(x=>x.id===id);const bad=(d?.delivery_requirements||[]).filter(r=>!r.completed&&!r.exception_reason);if(bad.length)return toast('Delivery not completed',bad.length+' requirement(s) remain unresolved.');d.status='delivered';render();return;}const {error}=await sb.rpc('complete_delivery',{p_delivery_id:id});if(error)return toast('Delivery not completed',error.message);toast('Delivery completed','The delivery record has been finalized.');await refresh();openDelivery(id)")
+          # Sign-out always clears test role.
+          s=s.replace("function signOut(){showScreen('signin');", "function signOut(){state.testRole=null;showScreen('signin');")
+          p.write_text(s, encoding='utf-8')
+      - name: Commit patch
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add pwa/index.html
+          git diff --cached --quiet && exit 0
+          git commit -m "fix: restore master access and add role testing [skip ci]"
+          git push
