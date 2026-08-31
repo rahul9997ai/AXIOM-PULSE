@@ -108,7 +108,7 @@ saveUserV3=async function(id){
   try{
     let roleValue=ur.value;
     await teamCall({op:"update",user_id:id,full_name:un.value.trim(),role:roleValue,active:ua.value==="true",password:up.value||undefined});
-    if(roleValue==="fsm")await q("/rpc/set_fsm_requirement_library_permission",{method:"POST",body:JSON.stringify({p_user_id:id,p_allowed:!!ulp?.checked})});
+    if(roleValue==="fsm")await q("/rpc/set_fsm_requirement_library_permission",{method:"POST",body:JSON.stringify({p_user_id:id,p_allowed:!!document.getElementById("ulp")?.checked})});
     await load(S.p.id);close();app();note("User updated","Role and permissions are active.");
   }catch(e){msg.textContent=e.message}
 };
