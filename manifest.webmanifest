@@ -1,0 +1,19 @@
+{
+  "name": "AXIOM PULSE",
+  "short_name": "AXIOM PULSE",
+  "description": "AI Executive Intelligence & Operations Management",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "orientation": "any",
+  "background_color": "#06101b",
+  "theme_color": "#06101b",
+  "icons": [
+    {
+      "src": "/icons/axiom-pulse-icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}
