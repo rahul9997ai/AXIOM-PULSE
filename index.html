@@ -1,1 +1,86 @@
-<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><meta name="theme-color" content="#07101c"><meta http-equiv="Cache-Control" content="no-store"><meta http-equiv="Pragma" content="no-cache"><title>AXIOM Pulse</title></head><body style="margin:0;background:#07101c"><script>location.replace('/pwa/test.html?v=20260831-09')</script><noscript>AXIOM PULSE requires JavaScript.</noscript></body></html>
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#07101c">
+<meta http-equiv="Cache-Control" content="no-store">
+<meta http-equiv="Pragma" content="no-cache">
+<title>AXIOM Pulse</title>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<style>
+:root{--bg:#06101c;--panel:#12263d;--line:#2f4d6d;--text:#f5f7fb;--muted:#9fb4cc;--blue:#4d9df7}
+*{box-sizing:border-box}html,body{margin:0;min-height:100%;background:var(--bg);color:var(--text);font-family:Inter,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif}
+body{min-height:100dvh}.page{min-height:100dvh;display:flex;flex-direction:column;justify-content:center;align-items:center;padding:20px;background:radial-gradient(circle at 50% 25%,#12304f 0,#081624 45%,#040a12 100%)}
+.wrap{width:min(930px,100%);margin:auto}.brand{text-align:center;position:relative;min-height:350px;display:grid;place-items:center;overflow:hidden}.ecg{position:absolute;left:0;right:0;top:41%;height:105px}.ecg svg{width:100%;height:100%}.ecg path{fill:none;stroke:#3d95e7;stroke-width:2.8;filter:drop-shadow(0 0 7px #4aa7ff)}
+.logo{position:relative;z-index:2;display:flex;justify-content:center;align-items:baseline;gap:14px}.axiom{font-size:70px;font-weight:950;letter-spacing:.1em}.pulse{font-size:62px;font-weight:850;font-style:italic;color:#59a6fb;text-shadow:0 0 20px #3488f077}
+.meaning{position:relative;z-index:2;margin-top:34px;color:#7cafdb;text-transform:uppercase;letter-spacing:.14em;font-size:10px;font-weight:700}.by{position:relative;z-index:2;margin-top:7px;font:italic 22px "Segoe Script","Brush Script MT",cursive}.tag{position:relative;z-index:2;margin-top:8px;color:#cad4df;font-size:16px}
+.card{background:linear-gradient(145deg,#12263d,#0d1c2d);border:1px solid var(--line);border-radius:22px;padding:20px;box-shadow:0 20px 60px #0007;width:min(520px,100%);margin:-2px auto 0}.card h2{margin:0;font-size:28px}.muted{color:var(--muted)}.field{margin-top:12px}.field label{display:block;font-size:12px;color:#a8bad0}.input{width:100%;margin-top:6px;padding:14px;border-radius:13px;border:1px solid #315372;background:#081624;color:#fff;font-size:16px}.input:focus{outline:2px solid #4d9df744}.btn{border:0;border-radius:14px;padding:14px 16px;background:var(--blue);color:#06111c;font-weight:900;width:100%;margin-top:10px;font-size:15px}.btn.secondary{background:#152c44;color:#eef5ff;border:1px solid #385a79}.msg{min-height:20px;margin-top:9px;color:var(--muted);font-size:13px;line-height:1.4}
+.app{min-height:100dvh;background:#07111e}.head{padding:14px 17px;border-bottom:1px solid var(--line);background:#102238}.headrow{display:flex;align-items:baseline;gap:8px}.headrow b{font-size:24px;letter-spacing:.18em}.headrow i{font-size:22px;font-style:italic;color:#5fa9ff}.headmeta{font-size:8px;letter-spacing:.13em;text-transform:uppercase;color:#79aadb;margin-top:5px}.headby{font:italic 14px "Segoe Script","Brush Script MT",cursive}.headtag{font-size:10px;color:#bdcad9}.main{padding:18px 15px 92px;max-width:1120px;margin:auto}.grid{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}.stat{background:#0a1725;border:1px solid var(--line);border-radius:17px;padding:13px}.stat b{display:block;font-size:24px}.panel{background:linear-gradient(145deg,#12263d,#0d1c2d);border:1px solid var(--line);border-radius:20px;padding:16px;margin:12px 0}.row{display:flex;align-items:center;justify-content:space-between;gap:10px}.bar{padding:9px;border-radius:12px;border:1px solid #806b38;background:#3c301b;color:#ffe0a0;text-align:center;font-size:12px;margin-bottom:12px}.nav{position:fixed;left:0;right:0;bottom:0;height:72px;background:#101f32f5;border-top:1px solid var(--line);display:flex;justify-content:space-around}.nav button{background:none;border:0;color:#92a8c0;font-size:10px}.hidden{display:none!important}
+@media(max-width:560px){.page{padding:12px}.brand{min-height:290px}.axiom{font-size:43px}.pulse{font-size:39px}.meaning{font-size:8px;letter-spacing:.08em}.by{font-size:17px}.tag{font-size:13px}.ecg{top:38%}.card{padding:18px}.grid{gap:7px}.stat{padding:10px}}
+</style>
+</head>
+<body>
+<div id="root">
+<main class="page">
+<section class="wrap">
+<div class="brand">
+<div class="ecg"><svg viewBox="0 0 900 150" preserveAspectRatio="none"><path d="M0 76H90L102 49 119 108 133 25 147 76H240L254 76 269 54 284 101 299 76H620L635 76 650 55 665 112 680 31 696 76H728L743 55 758 99 772 68 787 87 801 76H900"/></svg></div>
+<div>
+<div class="logo"><span class="axiom">AXIOM</span><span class="pulse">Pulse</span></div>
+<div class="meaning">AI eXecutive Intelligence &amp; Operations Management</div>
+<div class="by">by Rahul Champaneri</div>
+<div class="tag">The Pulse of Every Delivery</div>
+</div>
+</div>
+<section class="card" id="authCard">
+<h2>Secure Sign In</h2>
+<p class="muted">Authorized AXIOM PULSE access.</p>
+<div id="msg" class="msg"></div>
+<div class="field"><label>Email<input id="email" class="input" type="email" autocomplete="username" placeholder="you@dealership.ca"></label></div>
+<div class="field"><label>Password<input id="password" class="input" type="password" autocomplete="current-password" placeholder="••••••••"></label></div>
+<button class="btn" onclick="signIn()">ENTER AXIOM PULSE</button>
+<button class="btn secondary" onclick="showJoin()">JOIN WITH INVITATION</button>
+</section>
+</section>
+</main>
+</div>
+<script>
+const SUPABASE_URL='https://xjahoajimgdyuwxdjakw.supabase.co';
+const SUPABASE_KEY='sb_publishable_ive--VvFJA_P8YJBbyN0Gw_LV0YbCPD';
+const db=window.supabase.createClient(SUPABASE_URL,SUPABASE_KEY,{auth:{persistSession:true,autoRefreshToken:true}});
+const root=document.getElementById('root');
+const esc=s=>String(s??'').replace(/[&<>\"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','\"':'&quot;'}[c]));
+async function signIn(){
+ const email=document.getElementById('email').value.trim(),password=document.getElementById('password').value;
+ if(!email||!password)return document.getElementById('msg').textContent='Enter your email address and password.';
+ const {data,error}=await db.auth.signInWithPassword({email,password});
+ if(error)return document.getElementById('msg').textContent=error.message;
+ const {data:profile,error:pErr}=await db.from('profiles').select('*').eq('id',data.user.id).maybeSingle();
+ if(pErr||!profile){await db.auth.signOut();return document.getElementById('msg').textContent='This account is not authorized for AXIOM PULSE.'}
+ if(!profile.active){await db.auth.signOut();return document.getElementById('msg').textContent='This AXIOM PULSE account is inactive.'}
+ sessionStorage.setItem('axiomProfile',JSON.stringify(profile));
+ location.href='/pwa/test.html?from=login';
+}
+function showJoin(){
+ document.getElementById('authCard').innerHTML='<h2>Join AXIOM PULSE</h2><p class="muted">Your Finance Manager will provide a single-use invitation code for your authorized AXIOM PULSE access.</p><div class="field"><label>Full name<input id="jn" class="input"></label></div><div class="field"><label>Invitation code<input id="jc" class="input" style="text-transform:uppercase"></label></div><div class="field"><label>Email<input id="je" class="input" type="email"></label></div><div class="field"><label>Create password<input id="jp" class="input" type="password"></label></div><button class="btn" onclick="join()">CREATE ACCOUNT</button><button class="btn secondary" onclick="location.reload()">BACK TO SIGN IN</button><div id="joinmsg" class="msg"></div>';
+}
+async function join(){
+ const n=document.getElementById('jn').value.trim(),c=document.getElementById('jc').value.trim().toUpperCase(),e=document.getElementById('je').value.trim(),p=document.getElementById('jp').value;
+ if(!n||!c||!e||p.length<6)return document.getElementById('joinmsg').textContent='Complete every field. Password must be at least 6 characters.';
+ const r=await db.functions.invoke('create-invited-user',{body:{full_name:n,email:e,password:p,invite_code:c}});
+ if(r.error)return document.getElementById('joinmsg').textContent=r.error.message;
+ if(r.data?.error)return document.getElementById('joinmsg').textContent=r.data.error;
+ const s=await db.auth.signInWithPassword({email:e,password:p});
+ if(s.error)return document.getElementById('joinmsg').textContent='Account created. Sign in with your new credentials.';
+ const {data:profile}=await db.from('profiles').select('*').eq('id',s.data.user.id).maybeSingle();
+ if(!profile)return document.getElementById('joinmsg').textContent='Account created, but profile activation failed.';
+ location.href='/pwa/test.html?from=join';
+}
+async function boot(){
+ const {data:{session}}=await db.auth.getSession();
+ if(session){const {data:profile}=await db.from('profiles').select('*').eq('id',session.user.id).maybeSingle();if(profile?.active){location.href='/pwa/test.html?from=session';}}
+}
+boot();
+</script>
+</body></html>
