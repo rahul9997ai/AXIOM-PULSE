@@ -8,8 +8,16 @@
   const parseTime = t => { let [h,m] = String(t || '12:00').split(':').map(Number); return { h, m, ap: h >= 12 ? 'PM' : 'AM', dh: h % 12 || 12 }; };
   const timeLabel = t => { const p = parseTime(t); return `${pad(p.dh)}:${pad(p.m)} ${p.ap}`; };
 
-  window.openCreateDatePicker = function () {
-    const pop = document.getElementById('createDatePop'), hidden = document.getElementById('dd'), display = document.getElementById('ddDisplay');
+  function styleDisplay(el) {
+    el.className = 'input';
+    el.readOnly = true;
+    el.type = 'text';
+    el.style.cursor = 'pointer';
+    el.style.caretColor = 'transparent';
+    el.autocomplete = 'off';
+  }
+
+  function makeDatePicker(pop, hidden, display) {
     if (!pop || !hidden || !display) return;
     if (pop.style.display === 'block') { pop.style.display = 'none'; return; }
     let base = hidden.value ? new Date(hidden.value + 'T12:00:00') : new Date();
@@ -31,17 +39,22 @@
         h += `<button type="button" data-create-date="${value}" style="height:34px;border:0;border-radius:7px;background:${selected?'#4f88c7':'transparent'};color:${muted?'#9ca3af':'#1f2937'};font-weight:${selected?'700':'500'}">${day}</button>`;
       }
       h += '</div>';
-      pop.innerHTML=h; pop.style.display='block';
-      document.getElementById('cdm').onchange=e=>{view.setMonth(+e.target.value);render();};
-      document.getElementById('cdy').onchange=e=>{view.setFullYear(+e.target.value);render();};
-      pop.querySelectorAll('[data-create-date]').forEach(btn=>btn.onclick=()=>{hidden.value=btn.dataset.createDate;display.value=pretty(hidden.value);pop.style.display='none';});
+      pop.innerHTML=h;
+      pop.style.display='block';
+      pop.querySelector('#cdm').onchange=e=>{view.setMonth(+e.target.value);render();};
+      pop.querySelector('#cdy').onchange=e=>{view.setFullYear(+e.target.value);render();};
+      pop.querySelectorAll('[data-create-date]').forEach(btn=>btn.onclick=()=>{
+        hidden.value=btn.dataset.createDate;
+        display.value=pretty(hidden.value);
+        pop.style.display='none';
+        hidden.dispatchEvent(new Event('change',{bubbles:true}));
+      });
     };
     render();
-  };
+  }
 
-  window.openCreateTimePicker = function () {
-    const pop=document.getElementById('createTimePop'), hidden=document.getElementById('dt'), display=document.getElementById('dtDisplay');
-    if(!pop||!hidden||!display)return;
+  function makeTimePicker(pop, hidden, display) {
+    if(!pop || !hidden || !display)return;
     if(pop.style.display==='block'){pop.style.display='none';return;}
     const p=parseTime(hidden.value||'12:00');
     pop.innerHTML='<div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px">'+
@@ -50,7 +63,7 @@
       '<select id="cta" style="background:#081624;color:#fff;border:1px solid #426886;border-radius:8px;padding:10px"><option '+(p.ap==='AM'?'selected':'')+'>AM</option><option '+(p.ap==='PM'?'selected':'')+'>PM</option></select></div>'+ 
       '<button type="button" class="btn" style="margin-top:10px" onclick="setCreateTimePicker()">SET TIME</button>';
     pop.style.display='block';
-  };
+  }
 
   window.setCreateTimePicker = function () {
     const h=+document.getElementById('cth').value, m=document.getElementById('ctm').value, ap=document.getElementById('cta').value;
@@ -58,17 +71,74 @@
     document.getElementById('dt').value=t;
     document.getElementById('dtDisplay').value=timeLabel(t);
     document.getElementById('createTimePop').style.display='none';
+    document.getElementById('dt').dispatchEvent(new Event('change',{bubbles:true}));
   };
 
   function decorateCreateForm(){
-    const dd=document.getElementById('dd'),dt=document.getElementById('dt'),ddDisplay=document.getElementById('ddDisplay'),dtDisplay=document.getElementById('dtDisplay');
-    if(!dd||!dt||!ddDisplay||!dtDisplay)return;
-    dd.type='hidden';dt.type='hidden';
-    ddDisplay.readOnly=true;ddDisplay.type='text';ddDisplay.placeholder='Select date';ddDisplay.style.cursor='pointer';ddDisplay.onclick=window.openCreateDatePicker;
-    dtDisplay.readOnly=true;dtDisplay.type='text';dtDisplay.placeholder='Select time';dtDisplay.style.cursor='pointer';dtDisplay.onclick=window.openCreateTimePicker;
+    const dd=document.getElementById('dd'), dt=document.getElementById('dt');
+    if(!dd || !dt) return false;
+
+    // Convert the existing native controls into the approved picker UI.
+    if(!document.getElementById('ddDisplay')) {
+      const holder=dd.parentElement;
+      if(!holder) return false;
+      holder.style.position='relative';
+      const display=document.createElement('input');
+      display.id='ddDisplay';
+      styleDisplay(display);
+      display.placeholder='Select date';
+      display.value=dd.value?pretty(dd.value):'';
+      const pop=document.createElement('div');
+      pop.id='createDatePop';
+      pop.style.cssText='display:none;position:absolute;z-index:100;left:0;right:0;top:100%;margin-top:6px;background:#f3f4f6;color:#1f2937;border:1px solid #cbd5e1;border-radius:7px;padding:12px;box-shadow:0 12px 28px rgba(0,0,0,.35);min-width:300px;max-width:100%;touch-action:auto;';
+      dd.type='hidden';
+      holder.insertBefore(display,dd);
+      holder.appendChild(pop);
+      display.onclick=()=>makeDatePicker(pop,dd,display);
+    }
+
+    if(!document.getElementById('dtDisplay')) {
+      const holder=dt.parentElement;
+      if(!holder) return false;
+      holder.style.position='relative';
+      const display=document.createElement('input');
+      display.id='dtDisplay';
+      styleDisplay(display);
+      display.placeholder='Select time';
+      display.value=dt.value?timeLabel(dt.value):'';
+      const pop=document.createElement('div');
+      pop.id='createTimePop';
+      pop.style.cssText='display:none;position:absolute;z-index:100;left:0;right:0;top:100%;margin-top:6px;background:#1d2f42;color:#fff;border:1px solid #426886;border-radius:8px;padding:12px;box-shadow:0 12px 28px rgba(0,0,0,.35);min-width:260px;touch-action:auto;';
+      dt.type='hidden';
+      holder.insertBefore(display,dt);
+      holder.appendChild(pop);
+      display.onclick=()=>makeTimePicker(pop,dt,display);
+    }
+
+    const dateDisplay=document.getElementById('ddDisplay');
+    const timeDisplay=document.getElementById('dtDisplay');
+    if(dateDisplay && dd.value) dateDisplay.value=pretty(dd.value);
+    if(timeDisplay && dt.value) timeDisplay.value=timeLabel(dt.value);
+    return true;
   }
-  const originalNewDelivery=window.newDelivery;
-  if(typeof originalNewDelivery==='function'){
-    window.newDelivery=function(){originalNewDelivery();setTimeout(decorateCreateForm,0);};
-  }
+
+  function tryDecorate(){ decorateCreateForm(); }
+
+  // newDelivery is defined after this external script is injected by the service worker.
+  // Wrap it when available and retry briefly to handle initialization order.
+  let attempts=0;
+  const timer=setInterval(()=>{
+    attempts++;
+    if(typeof window.newDelivery==='function'){
+      clearInterval(timer);
+      const originalNewDelivery=window.newDelivery;
+      window.newDelivery=function(){
+        originalNewDelivery();
+        setTimeout(tryDecorate,0);
+        setTimeout(tryDecorate,50);
+        setTimeout(tryDecorate,150);
+      };
+    }
+    if(attempts>100) clearInterval(timer);
+  },100);
 })();
