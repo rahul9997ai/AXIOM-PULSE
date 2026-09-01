@@ -1,3 +1,50 @@
-const CACHE="axiom-pulse-v5";const ASSETS=["/","/index.html","/manifest.webmanifest","/icons/axiom-pulse-icon.svg"];self.addEventListener("install",e=>{self.skipWaiting();e.waitUntil(caches.open(CACHE).then(c=>c.addAll(ASSETS)))});self.addEventListener("activate",e=>{e.waitUntil(Promise.all([caches.keys().then(keys=>Promise.all(keys.filter(k=>k!==CACHE).map(k=>caches.delete(k)))),self.clients.claim()]))});self.addEventListener("fetch",e=>{if(e.request.method!=="GET")return;const u=new URL(e.request.url);if(u.origin!==location.origin)return;e.respondWith(caches.match(e.request).then(hit=>hit||fetch(e.request).then(res=>{const copy=res.clone();caches.open(CACHE).then(c=>c.put(e.request,copy));return res}).catch(()=>caches.match("/index.html"))))});
-self.addEventListener("push",event=>{let data={};try{data=event.data?event.data.json():{}}catch(e){data={title:"AXIOM PULSE",body:event.data?event.data.text():""}};const title=data.title||"AXIOM PULSE";const options={body:data.body||"",icon:data.icon||"/icons/axiom-pulse-icon.svg",badge:data.badge||"/icons/axiom-pulse-icon.svg",data:data.data||{url:"/"},tag:data.data?.deliveryId||undefined,renotify:true,requireInteraction:data.data?.type==="delivery_time"};event.waitUntil(self.registration.showNotification(title,options))});
-self.addEventListener("notificationclick",event=>{event.notification.close();const url=event.notification.data?.url||"/";event.waitUntil(clients.matchAll({type:"window",includeUncontrolled:true}).then(list=>{for(const c of list){if("focus" in c){c.focus();return}}return clients.openWindow(url)}))});
+const CACHE="axiom-pulse-v6";
+const ASSETS=["/","/index.html","/manifest.webmanifest","/icons/axiom-pulse-icon.svg"];
+
+self.addEventListener("install",event=>{
+  self.skipWaiting();
+  event.waitUntil(caches.open(CACHE).then(cache=>cache.addAll(ASSETS)));
+});
+self.addEventListener("activate",event=>{
+  event.waitUntil(Promise.all([
+    caches.keys().then(keys=>Promise.all(keys.filter(k=>k!==CACHE).map(k=>caches.delete(k)))),
+    self.clients.claim()
+  ]));
+});
+self.addEventListener("fetch",event=>{
+  if(event.request.method!=="GET")return;
+  const url=new URL(event.request.url);
+  if(url.origin!==location.origin)return;
+  event.respondWith(
+    caches.match(event.request).then(hit=>hit||fetch(event.request).then(response=>{
+      const copy=response.clone();
+      caches.open(CACHE).then(cache=>cache.put(event.request,copy));
+      return response;
+    }).catch(()=>caches.match("/index.html")))
+  );
+});
+self.addEventListener("push",event=>{
+  let data={};
+  try{data=event.data?event.data.json():{}}
+  catch{data={title:"AXIOM PULSE",body:event.data?event.data.text():""}}
+  const title=data.title||"AXIOM PULSE";
+  const options={
+    body:data.body||"",
+    icon:data.icon||"/icons/axiom-pulse-icon.svg",
+    badge:data.badge||"/icons/axiom-pulse-icon.svg",
+    data:{...(data.data||{}),url:data.data?.url||"/"},
+    tag:data.data?.deliveryId?String(data.data.deliveryId):undefined,
+    renotify:true,
+    requireInteraction:data.data?.type==="delivery_time"
+  };
+  event.waitUntil(self.registration.showNotification(title,options));
+});
+self.addEventListener("notificationclick",event=>{
+  event.notification.close();
+  const url=event.notification.data?.url||"/";
+  event.waitUntil(clients.matchAll({type:"window",includeUncontrolled:true}).then(list=>{
+    const existing=list.find(client=>"focus" in client);
+    if(existing)return existing.focus();
+    return clients.openWindow(url);
+  }));
+});
