@@ -1,5 +1,5 @@
-const CACHE="axiom-pulse-v9";
-const ASSETS=["/manifest.webmanifest","/icons/axiom-pulse-icon.svg","/create-date-time-pickers.js"];
+const CACHE="axiom-pulse-v10";
+const ASSETS=["/manifest.webmanifest","/icons/axiom-pulse-icon.svg","/create-date-time-pickers.js","/webpush.js"];
 
 async function appShellResponse(request){
   let response;
@@ -9,8 +9,10 @@ async function appShellResponse(request){
   const type=response.headers.get("content-type")||"";
   if(!type.includes("text/html")) return response;
   const html=await response.text();
-  if(html.includes("/create-date-time-pickers.js")) return new Response(html,{status:response.status,statusText:response.statusText,headers:response.headers});
-  const patched=html.replace(/<\/body>/i,'<script src="/create-date-time-pickers.js"></script></body>');
+  if(html.includes("/create-date-time-pickers.js") && html.includes("/webpush.js")) return new Response(html,{status:response.status,statusText:response.statusText,headers:response.headers});
+  let patched=html;
+  if(!patched.includes("/create-date-time-pickers.js")) patched=patched.replace(/<\/body>/i,'<script src="/create-date-time-pickers.js"></script></body>');
+  if(!patched.includes("/webpush.js")) patched=patched.replace(/<\/body>/i,'<script src="/webpush.js"></script></body>');
   const headers=new Headers(response.headers);headers.set("content-type","text/html; charset=UTF-8");headers.set("cache-control","no-store");
   return new Response(patched,{status:response.status,statusText:response.statusText,headers});
 }
