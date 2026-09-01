@@ -123,25 +123,49 @@ function v3LenderScreen(m){
 }
 editL=function(id){
   let x=id?S.lenders.find(z=>z.id===id):{};
-  modal('<h2>'+ (id?"Edit":"Add") +' Lender / Lessor</h2><label>Name<input id="ln" class="input" value="'+esc(x?.name||"")+'"></label><label>Address<input id="la" class="input" value="'+esc(x?.address_line1||"")+'"></label><label>Address line 2<input id="la2" class="input" value="'+esc(x?.address_line2||"")+'"></label><div class="grid"><label>City<input id="lc" class="input" value="'+esc(x?.city||"")+'"></label><label>Province<input id="lp" class="input" value="'+esc(x?.province||"")+'"></label></div><div class="grid"><label>Postal Code<input id="lz" class="input" value="'+esc(x?.postal_code||"")+'"></label><label>Country<input id="lco" class="input" value="'+esc(x?.country||"Canada")+'"></label></div><label>Status<select id="lx"><option value="true" '+(x?.active!==false?"selected":"")+'>Active</option><option value="false" '+(x?.active===false?"selected":"")+'>Inactive</option></select></label><div id="msg"></div><button class="btn" onclick="saveLV3('+JSON.stringify(id)+')">SAVE LENDER / LESSOR</button>');
+  const lenderId=id||"";
+  modal('<h2>'+ (lenderId?"Edit":"Add") +' Lender / Lessor</h2><label>Name<input id="ln" class="input" value="'+esc(x?.name||"")+'"></label><label>Address<input id="la" class="input" value="'+esc(x?.address_line1||"")+'"></label><label>Address line 2<input id="la2" class="input" value="'+esc(x?.address_line2||"")+'"></label><div class="grid"><label>City<input id="lc" class="input" value="'+esc(x?.city||"")+'"></label><label>Province<input id="lp" class="input" value="'+esc(x?.province||"")+'"></label></div><div class="grid"><label>Postal Code<input id="lz" class="input" value="'+esc(x?.postal_code||"")+'"></label><label>Country<input id="lco" class="input" value="'+esc(x?.country||"Canada")+'"></label></div><label>Status<select id="lx"><option value="true" '+(x?.active!==false?"selected":"")+'>Active</option><option value="false" '+(x?.active===false?"selected":"")+'>Inactive</option></select></label><div id="msg"></div><button id="saveLBtn" class="btn" onclick="saveLV3(\''+lenderId+'\')">SAVE LENDER / LESSOR</button>' +(lenderId?'<button class="btn danger" onclick="deleteLV3(\''+lenderId+'\')">DELETE LENDER / LESSOR</button>':'') );
 };
 saveLV3=async function(id){
+  const lenderId=(id||"").trim();
   const messageBox=()=>document.getElementById("msg");
+  const saveButton=()=>document.getElementById("saveLBtn");
   try{
-    if(!ln.value.trim())throw Error("Name is required");
-    let b={dealership_id:S.p.dealership_id,name:ln.value.trim(),address_line1:la.value.trim()||null,address_line2:la2.value.trim()||null,city:lc.value.trim()||null,province:lp.value.trim()||null,postal_code:lz.value.trim()||null,country:lco.value.trim()||"Canada",active:lx.value==="true",updated_at:new Date().toISOString()};
-    if(!id)b.created_by=S.p.id;
-    let endpoint=id?"/lenders_lessors?id=eq."+E(id)+"&dealership_id=eq."+E(S.p.dealership_id)+"&select=*":"/lenders_lessors?select=*";
-    let result=await rest(endpoint,{method:id?"PATCH":"POST",headers:{Prefer:"return=representation"},body:JSON.stringify(b)});
-    if(!Array.isArray(result)||result.length!==1)throw Error(id?"Lender update was not confirmed. No record was changed.":"Lender creation was not confirmed.");
+    const name=ln.value.trim();
+    if(!name)throw Error("Name is required");
+    const b={dealership_id:S.p.dealership_id,name,address_line1:la.value.trim()||null,address_line2:la2.value.trim()||null,city:lc.value.trim()||null,province:lp.value.trim()||null,postal_code:lz.value.trim()||null,country:lco.value.trim()||"Canada",active:lx.value==="true",updated_at:new Date().toISOString()};
+    if(!lenderId)b.created_by=S.p.id;
+    const btn=saveButton(); if(btn){btn.disabled=true;btn.textContent="SAVING...";}
+    const endpoint=lenderId?"/lenders_lessors?id=eq."+E(lenderId)+"&dealership_id=eq."+E(S.p.dealership_id)+"&select=*":"/lenders_lessors?select=*";
+    const result=await rest(endpoint,{method:lenderId?"PATCH":"POST",headers:{Prefer:"return=representation"},body:JSON.stringify(b)});
+    if(!Array.isArray(result)||result.length!==1)throw Error(lenderId?"Lender update was not confirmed.":"Lender creation was not confirmed.");
     await load(S.p.id);
     close();
     go("lenders");
-    note("Directory updated","Saved details are available in delivery dropdowns.");
+    note("Directory updated","Lender / Lessor saved successfully.");
   }catch(e){
     const box=messageBox();
     if(box)box.textContent=e.message;
     else note("Unable to save lender",e.message);
+    const btn=saveButton(); if(btn){btn.disabled=false;btn.textContent="SAVE LENDER / LESSOR";}
+  }
+};
+deleteLV3=async function(id){
+  if(!id)return;
+  if(!confirm("Delete this lender / lessor? This cannot be undone."))return;
+  try{
+    const refs=await rest("/deliveries?lender_id=eq."+E(id)+"&select=id&limit=1");
+    if(Array.isArray(refs)&&refs.length)throw Error("This lender cannot be permanently deleted because it is used by historical deliveries. Set it to Inactive instead so delivery history is preserved.");
+    const result=await rest("/lenders_lessors?id=eq."+E(id)+"&dealership_id=eq."+E(S.p.dealership_id)+"&select=id",{method:"DELETE",headers:{Prefer:"return=representation"}});
+    if(!Array.isArray(result)||result.length!==1)throw Error("Lender deletion was not confirmed.");
+    await load(S.p.id);
+    close();
+    go("lenders");
+    note("Lender deleted","The lender / lessor has been removed from the directory.");
+  }catch(e){
+    const box=document.getElementById("msg");
+    if(box)box.textContent=e.message;
+    else note("Unable to delete lender",e.message);
   }
 };
 
