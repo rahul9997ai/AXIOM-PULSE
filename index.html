@@ -126,12 +126,23 @@ editL=function(id){
   modal('<h2>'+ (id?"Edit":"Add") +' Lender / Lessor</h2><label>Name<input id="ln" class="input" value="'+esc(x?.name||"")+'"></label><label>Address<input id="la" class="input" value="'+esc(x?.address_line1||"")+'"></label><label>Address line 2<input id="la2" class="input" value="'+esc(x?.address_line2||"")+'"></label><div class="grid"><label>City<input id="lc" class="input" value="'+esc(x?.city||"")+'"></label><label>Province<input id="lp" class="input" value="'+esc(x?.province||"")+'"></label></div><div class="grid"><label>Postal Code<input id="lz" class="input" value="'+esc(x?.postal_code||"")+'"></label><label>Country<input id="lco" class="input" value="'+esc(x?.country||"Canada")+'"></label></div><label>Status<select id="lx"><option value="true" '+(x?.active!==false?"selected":"")+'>Active</option><option value="false" '+(x?.active===false?"selected":"")+'>Inactive</option></select></label><div id="msg"></div><button class="btn" onclick="saveLV3('+JSON.stringify(id)+')">SAVE LENDER / LESSOR</button>');
 };
 saveLV3=async function(id){
+  const messageBox=()=>document.getElementById("msg");
   try{
     if(!ln.value.trim())throw Error("Name is required");
-    let b={dealership_id:S.p.dealership_id,name:ln.value.trim(),address_line1:la.value.trim()||null,address_line2:la2.value.trim()||null,city:lc.value.trim()||null,province:lp.value.trim()||null,postal_code:lz.value.trim()||null,country:lco.value.trim()||"Canada",active:lx.value==="true",created_by:S.p.id,updated_at:new Date().toISOString()};
-    await rest(id?"/lenders_lessors?id=eq."+E(id):"/lenders_lessors",{method:id?"PATCH":"POST",body:JSON.stringify(b)});
-    await load(S.p.id);close();go("lenders");note("Directory updated","Saved details are available in delivery dropdowns.");
-  }catch(e){msg.textContent=e.message}
+    let b={dealership_id:S.p.dealership_id,name:ln.value.trim(),address_line1:la.value.trim()||null,address_line2:la2.value.trim()||null,city:lc.value.trim()||null,province:lp.value.trim()||null,postal_code:lz.value.trim()||null,country:lco.value.trim()||"Canada",active:lx.value==="true",updated_at:new Date().toISOString()};
+    if(!id)b.created_by=S.p.id;
+    let endpoint=id?"/lenders_lessors?id=eq."+E(id)+"&dealership_id=eq."+E(S.p.dealership_id)+"&select=*":"/lenders_lessors?select=*";
+    let result=await rest(endpoint,{method:id?"PATCH":"POST",headers:{Prefer:"return=representation"},body:JSON.stringify(b)});
+    if(!Array.isArray(result)||result.length!==1)throw Error(id?"Lender update was not confirmed. No record was changed.":"Lender creation was not confirmed.");
+    await load(S.p.id);
+    close();
+    go("lenders");
+    note("Directory updated","Saved details are available in delivery dropdowns.");
+  }catch(e){
+    const box=messageBox();
+    if(box)box.textContent=e.message;
+    else note("Unable to save lender",e.message);
+  }
 };
 
 function v3RequirementScreen(m){
