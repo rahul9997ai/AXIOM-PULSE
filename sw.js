@@ -1,5 +1,5 @@
-const CACHE="axiom-pulse-v6";
-const ASSETS=["/","/index.html","/manifest.webmanifest","/icons/axiom-pulse-icon.svg"];
+const CACHE="axiom-pulse-v7";
+const ASSETS=["/manifest.webmanifest","/icons/axiom-pulse-icon.svg"];
 
 self.addEventListener("install",event=>{
   self.skipWaiting();
@@ -15,12 +15,21 @@ self.addEventListener("fetch",event=>{
   if(event.request.method!=="GET")return;
   const url=new URL(event.request.url);
   if(url.origin!==location.origin)return;
+
+  if(event.request.mode==="navigate"||url.pathname==="/"||url.pathname==="/index.html"){
+    event.respondWith(
+      fetch(event.request,{cache:"no-store"})
+        .catch(()=>caches.match("/index.html"))
+    );
+    return;
+  }
+
   event.respondWith(
     caches.match(event.request).then(hit=>hit||fetch(event.request).then(response=>{
       const copy=response.clone();
       caches.open(CACHE).then(cache=>cache.put(event.request,copy));
       return response;
-    }).catch(()=>caches.match("/index.html")))
+    }))
   );
 });
 self.addEventListener("push",event=>{
