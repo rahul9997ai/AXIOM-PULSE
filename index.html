@@ -267,4 +267,62 @@ window.saveDeliveryV4=async function(id){
     await load(S.p.id);window.axpCloseModal();go("deliveries");note("Delivery updated","Changes and requirements are now active.");
   }catch(e){if(box)box.textContent=e.message||"Unable to save delivery";else note("Unable to save delivery",e.message||"Please try again.")}
 };
+</script><script>
+/* AXIOM PULSE v5 calendar-style delivery pickers */
+(function(){
+  const pad=n=>String(n).padStart(2,"0");
+  const monthNames=["January","February","March","April","May","June","July","August","September","October","November","December"];
+  const shortMonths=["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
+  function isoDate(d){return d.getFullYear()+"-"+pad(d.getMonth()+1)+"-"+pad(d.getDate())}
+  function prettyDate(s){const [y,m,d]=s.split("-").map(Number);return shortMonths[m-1]+" "+d+", "+y}
+  function timeParts(t){let [h,m]=String(t||"00:00").split(":").map(Number),ap=h>=12?"PM":"AM";h=h%12||12;return {h,m,ap}}
+  function timeLabel(t){const p=timeParts(t);return pad(p.h)+":"+pad(p.m)+" "+p.ap}
+  window.v5DatePicker=function(){
+    const pop=document.getElementById("v5datepop"),hidden=document.getElementById("edd"),display=document.getElementById("v5dateDisplay");
+    if(!pop||!hidden)return;
+    pop.style.display=pop.style.display==="block"?"none":"block";
+    if(pop.style.display!=="block")return;
+    let chosen=hidden.value?new Date(hidden.value+"T12:00:00"):new Date();
+    let view=new Date(chosen.getFullYear(),chosen.getMonth(),1);
+    const render=()=>{
+      const first=new Date(view.getFullYear(),view.getMonth(),1).getDay();
+      const last=new Date(view.getFullYear(),view.getMonth()+1,0).getDate();
+      const prevLast=new Date(view.getFullYear(),view.getMonth(),0).getDate();
+      const years=Array.from({length:17},(_,i)=>view.getFullYear()-5+i);
+      let html='<div style="display:flex;gap:8px;margin-bottom:10px"><select id="v5month" style="flex:1">'+monthNames.map((m,i)=>'<option value="'+i+'" '+(i===view.getMonth()?"selected":"")+'>'+m+'</option>').join("")+'</select><select id="v5year" style="flex:1">'+years.map(y=>'<option value="'+y+'" '+(y===view.getFullYear()?"selected":"")+'>'+y+'</option>').join("")+'</select></div><div style="display:grid;grid-template-columns:repeat(7,1fr);gap:4px;text-align:center;font-size:12px;color:#aab7c6;margin-bottom:4px">'+["Su","Mo","Tu","We","Th","Fr","Sa"].map(x=>'<div>'+x+'</div>').join("")+'</div><div style="display:grid;grid-template-columns:repeat(7,1fr);gap:4px">';
+      for(let i=0;i<42;i++){let day=i-first+1,month=view.getMonth(),year=view.getFullYear(),muted=false;if(day<1){day=prevLast+day;month--;muted=true}else if(day>last){day-=last;month++;muted=true}const cell=new Date(year,month,day),selected=isoDate(cell)===hidden.value;html+='<button type="button" data-v5date="'+isoDate(cell)+'" style="height:34px;border:0;border-radius:6px;background:'+(selected?"#4f88c7":"transparent")+';color:'+(muted?"#7f8b98":"#e7edf4")+';font-size:14px">'+day+'</button>'}
+      html+='</div>';
+      pop.innerHTML=html;
+      document.getElementById("v5month").onchange=e=>{view.setMonth(+e.target.value);render()};
+      document.getElementById("v5year").onchange=e=>{view.setFullYear(+e.target.value);render()};
+      pop.querySelectorAll("[data-v5date]").forEach(b=>b.onclick=()=>{hidden.value=b.dataset.v5date;display.value=prettyDate(hidden.value);pop.style.display="none"});
+    };
+    render();
+  };
+  window.v5TimePicker=function(){
+    const pop=document.getElementById("v5timepop"),hidden=document.getElementById("edt"),display=document.getElementById("v5timeDisplay");
+    if(!pop||!hidden)return;
+    pop.style.display=pop.style.display==="block"?"none":"block";
+    if(pop.style.display!=="block")return;
+    const p=timeParts(hidden.value);
+    pop.innerHTML='<div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px"><select id="v5hour">'+Array.from({length:12},(_,i)=>i+1).map(h=>'<option '+(h===p.h?"selected":"")+'>'+pad(h)+'</option>').join("")+'</select><select id="v5minute">'+Array.from({length:60},(_,i)=>i).map(m=>'<option value="'+pad(m)+'" '+(m===p.m?"selected":"")+'>'+pad(m)+'</option>').join("")+'</select><select id="v5ampm"><option '+(p.ap==="AM"?"selected":"")+'>AM</option><option '+(p.ap==="PM"?"selected":"")+'>PM</option></select></div><button type="button" class="btn small" style="margin-top:10px;width:100%" onclick="v5SetTime()">SET TIME</button>';
+  };
+  window.v5SetTime=function(){
+    const h=+document.getElementById("v5hour").value,m=document.getElementById("v5minute").value,ap=document.getElementById("v5ampm").value;
+    let h24=h%12+(ap==="PM"?12:0);const t=pad(h24)+":"+m;
+    document.getElementById("edt").value=t;document.getElementById("v5timeDisplay").value=timeLabel(t);document.getElementById("v5timepop").style.display="none";
+  };
+  const previousOpen=openD;
+  openD=function(id){
+    const d=S.d.find(x=>x.id===id);
+    if(!d||S.p.role!=="fsm")return previousOpen(id);
+    window.EDR=(d.delivery_requirements||[]).map(r=>({id:r.id,kind:r.kind,label:r.label,amount:r.amount??null}));
+    const sales=S.team.filter(x=>x.role==="salesperson"&&x.active);
+    const lenders=S.lenders.filter(x=>x.active||x.id===d.lender_id);
+    const templates=S.templates.filter(x=>x.active);
+    const date=v4Date(d.delivery_at),time=v4Time(d.delivery_at);
+    modal('<div class="row"><h2>Edit Delivery</h2><button class="btn small secondary" onclick="axpCloseModal()">CLOSE</button></div><div id="edmsg"></div><div class="field"><label>Customer<input id="edc" class="input" value="'+esc(d.customer_name||"")+'"></label></div><div class="field"><label>Vehicle<input id="edv" class="input" value="'+esc(d.vehicle||"")+'"></label></div><div class="field"><label>Lender / Lessor<select id="edl"><option value="">No lender selected</option>'+lenders.map(x=>'<option value="'+x.id+'" '+(x.id===d.lender_id?"selected":"")+'>'+esc(x.name)+'</option>').join("")+'</select></label></div><div class="grid"><div class="field" style="position:relative"><label>Date<input id="v5dateDisplay" class="input" readonly value="'+prettyDate(date)+'" onclick="v5DatePicker()" style="cursor:pointer"><input id="edd" type="hidden" value="'+date+'"></label><div id="v5datepop" style="display:none;position:absolute;z-index:20;left:0;right:0;top:100%;margin-top:6px;background:#f3f4f6;color:#1f2933;border-radius:6px;padding:12px;box-shadow:0 12px 28px rgba(0,0,0,.35);min-width:300px"></div></div><div class="field" style="position:relative"><label>Time<input id="v5timeDisplay" class="input" readonly value="'+timeLabel(time)+'" onclick="v5TimePicker()" style="cursor:pointer"><input id="edt" type="hidden" value="'+time+'"></label><div id="v5timepop" style="display:none;position:absolute;z-index:20;left:0;right:0;top:100%;margin-top:6px;background:#1d2f42;border:1px solid #426886;border-radius:8px;padding:12px;box-shadow:0 12px 28px rgba(0,0,0,.35)"></div></div></div><div class="field"><label>Salesperson<select id="eds">'+sales.map(x=>'<option value="'+x.id+'" '+(x.id===d.salesperson_id?"selected":"")+'>'+esc(x.full_name)+'</option>').join("")+'</select></label></div><div class="field"><label>FSM Notes<textarea id="edn" class="input">'+esc(d.fsm_notes||"")+'</textarea></label></div><div class="field"><label>Requirements</label><div id="edreqs"></div></div><div class="field"><label>Add from Requirement Library<select id="edtemplate"><option value="">Select requirement</option>'+templates.map(t=>'<option value="'+t.id+'">'+esc(t.label)+'</option>').join("")+'</select></label><button type="button" class="btn small secondary" onclick="v4AddReq()">+ ADD REQUIREMENT</button></div><div class="field"><label>Add Custom Requirement<input id="edcustom" class="input" placeholder="Type custom requirement"></label><button type="button" class="btn small secondary" onclick="v4AddCustomReq()">+ ADD CUSTOM REQUIREMENT</button></div><button class="btn" onclick="saveDeliveryV4(\''+d.id+'\')">SAVE DELIVERY</button>');
+    v4RenderReqs();
+  };
+})();
 </script></body></html>
