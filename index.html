@@ -214,4 +214,57 @@ deleteReqV3=async function(id){
 logout=function(){close();clearReminderTimers();localStorage.removeItem("axp");S.a=null;S.p=null;S.d=[];S.team=[];S.lenders=[];S.n=[];S.templates=[];S.screen="home";login()};
 
 if(S.p){load(S.p.id).then(()=>app()).catch(()=>{localStorage.removeItem("axp");login()})}
-</script><script>if("serviceWorker" in navigator){window.addEventListener("load",()=>navigator.serviceWorker.register("/sw.js").catch(e=>console.warn("AXIOM PULSE offline support unavailable",e)))}</script></body></html>
+</script><script>if("serviceWorker" in navigator){window.addEventListener("load",()=>navigator.serviceWorker.register("/sw.js").catch(e=>console.warn("AXIOM PULSE offline support unavailable",e)))}</script><script>
+/* AXIOM PULSE v4 delivery-open and FSM editor hardening */
+window.axpCloseModal=function(){document.getElementById("modal")?.remove()};
+close=window.axpCloseModal;
+modal=function(html){
+  window.axpCloseModal();
+  const m=document.createElement("div");m.className="modal";m.id="modal";
+  const s=document.createElement("section");s.className="sheet";s.innerHTML=html;
+  m.appendChild(s);
+  m.addEventListener("click",e=>{if(e.target===m)window.axpCloseModal()});
+  document.body.appendChild(m);
+};
+function v4Date(iso){const d=new Date(iso),p=n=>String(n).padStart(2,"0");return d.getFullYear()+"-"+p(d.getMonth()+1)+"-"+p(d.getDate())}
+function v4Time(iso){const d=new Date(iso),p=n=>String(n).padStart(2,"0");return p(d.getHours())+":"+p(d.getMinutes())}
+function v4RenderReqs(){
+  const box=document.getElementById("edreqs");if(!box)return;
+  box.innerHTML=window.EDR.length?window.EDR.map((r,n)=>'<div class="req" style="display:flex;align-items:center;justify-content:space-between;gap:12px"><span>'+esc(r.label)+'</span><button type="button" class="btn small danger" onclick="v4RemoveReq('+n+')">REMOVE</button></div>').join(""):'<div class="mini">No requirements selected yet.</div>';
+}
+window.v4RemoveReq=function(n){window.EDR.splice(n,1);v4RenderReqs()};
+window.v4AddReq=function(){
+  const sel=document.getElementById("edtemplate"),t=S.templates.find(x=>x.id===sel?.value);
+  if(!t)return;
+  if(!window.EDR.some(r=>r.kind===t.kind&&r.label===t.label))window.EDR.push({kind:t.kind,label:t.label});
+  sel.value="";v4RenderReqs();
+};
+window.v4AddCustomReq=function(){
+  const el=document.getElementById("edcustom"),label=el?.value.trim();
+  if(!label)return;
+  window.EDR.push({kind:"custom",label});el.value="";v4RenderReqs();
+};
+openD=function(id){
+  const d=S.d.find(x=>x.id===id);if(!d){note("Unable to open","Delivery was not found.");return}
+  if(S.p.role!=="fsm"){
+    modal('<div class="row"><h2>'+esc(d.customer_name)+'</h2><button class="btn small secondary" onclick="axpCloseModal()">CLOSE</button></div><p class="muted">'+esc(d.vehicle)+' • '+esc(d.lender_name||"No lender selected")+'</p>'+(d.delivery_requirements||[]).map(r=>'<div class="req"><b>'+esc(r.label)+'</b>'+(r.exception_reason?'<div class="mini" style="color:#ffb8c0">Exception: '+esc(r.exception_reason)+'</div>':'')+(!r.completed?'<div><button class="btn small" onclick="complete(\''+r.id+'\',\''+d.id+'\')">COMPLETE</button> <button class="btn small danger" onclick="exceptionUI(\''+r.id+'\',\''+d.id+'\')">EXCEPTION</button></div>':'<div class="mini">Completed</div>')+'</div>').join(""));
+    return;
+  }
+  window.EDR=(d.delivery_requirements||[]).map(r=>({id:r.id,kind:r.kind,label:r.label,amount:r.amount??null}));
+  const sales=S.team.filter(x=>x.role==="salesperson"&&x.active);
+  const lenders=S.lenders.filter(x=>x.active||x.id===d.lender_id);
+  const templates=S.templates.filter(x=>x.active);
+  modal('<div class="row"><h2>Edit Delivery</h2><button class="btn small secondary" onclick="axpCloseModal()">CLOSE</button></div><div id="edmsg"></div><div class="field"><label>Customer<input id="edc" class="input" value="'+esc(d.customer_name||"")+'"></label></div><div class="field"><label>Vehicle<input id="edv" class="input" value="'+esc(d.vehicle||"")+'"></label></div><div class="field"><label>Lender / Lessor<select id="edl"><option value="">No lender selected</option>'+lenders.map(x=>'<option value="'+x.id+'" '+(x.id===d.lender_id?"selected":"")+'>'+esc(x.name)+'</option>').join("")+'</select></label></div><div class="grid"><div class="field"><label>Date<input id="edd" class="input" type="date" value="'+v4Date(d.delivery_at)+'"></label></div><div class="field"><label>Time<input id="edt" class="input" type="time" value="'+v4Time(d.delivery_at)+'"></label></div></div><div class="field"><label>Salesperson<select id="eds">'+sales.map(x=>'<option value="'+x.id+'" '+(x.id===d.salesperson_id?"selected":"")+'>'+esc(x.full_name)+'</option>').join("")+'</select></label></div><div class="field"><label>FSM Notes<textarea id="edn" class="input">'+esc(d.fsm_notes||"")+'</textarea></label></div><div class="field"><label>Requirements</label><div id="edreqs"></div></div><div class="field"><label>Add from Requirement Library<select id="edtemplate"><option value="">Select requirement</option>'+templates.map(t=>'<option value="'+t.id+'">'+esc(t.label)+'</option>').join("")+'</select></label><button type="button" class="btn small secondary" onclick="v4AddReq()">+ ADD REQUIREMENT</button></div><div class="field"><label>Add Custom Requirement<input id="edcustom" class="input" placeholder="Type custom requirement"></label><button type="button" class="btn small secondary" onclick="v4AddCustomReq()">+ ADD CUSTOM REQUIREMENT</button></div><button class="btn" onclick="saveDeliveryV4(\''+d.id+'\')">SAVE DELIVERY</button>');
+  v4RenderReqs();
+};
+window.saveDeliveryV4=async function(id){
+  const box=document.getElementById("edmsg");
+  try{
+    const customer=document.getElementById("edc").value.trim(),vehicle=document.getElementById("edv").value.trim(),date=document.getElementById("edd").value,time=document.getElementById("edt").value,salesperson_id=document.getElementById("eds").value;
+    if(!customer||!vehicle||!date||!time||!salesperson_id)throw Error("Complete all required delivery fields");
+    const r=await fetch(C.url+"/functions/v1/update-delivery",{method:"POST",headers:{"Content-Type":"application/json",apikey:C.key,Authorization:"Bearer "+S.a},body:JSON.stringify({delivery_id:id,customer_name:customer,vehicle,salesperson_id,lender_id:document.getElementById("edl").value||null,delivery_at:new Date(date+"T"+time).toISOString(),fsm_notes:document.getElementById("edn").value.trim(),requirements:window.EDR})});
+    const x=await r.json();if(!r.ok||x.error)throw Error(x.error||"Unable to save delivery");
+    await load(S.p.id);window.axpCloseModal();go("deliveries");note("Delivery updated","Changes and requirements are now active.");
+  }catch(e){if(box)box.textContent=e.message||"Unable to save delivery";else note("Unable to save delivery",e.message||"Please try again.")}
+};
+</script></body></html>
