@@ -114,11 +114,26 @@ editUser=function(id){
 };
 saveUserV3=async function(id){
   try{
-    let roleValue=ur.value;
-    await teamCall({op:"update",user_id:id,full_name:un.value.trim(),role:roleValue,active:ua.value==="true",password:up.value||undefined});
-    if(roleValue==="fsm")await q("/rpc/set_fsm_requirement_library_permission",{method:"POST",body:JSON.stringify({p_user_id:id,p_allowed:!!document.getElementById("ulp")?.checked})});
-    await load(S.p.id);close();app();note("User updated","Role and permissions are active.");
-  }catch(e){msg.textContent=e.message}
+    const roleValue=ur.value;
+    const permission=roleValue==="fsm"&&!!document.getElementById("ulp")?.checked;
+    await teamCall({
+      op:"update",
+      user_id:id,
+      full_name:un.value.trim(),
+      role:roleValue,
+      active:ua.value==="true",
+      password:up.value||undefined,
+      can_manage_requirement_library:permission
+    });
+    await load(S.p.id);
+    close();
+    app();
+    note("User updated",permission?"Designated FSM access is active.":"Role and permissions are active.");
+  }catch(e){
+    const box=document.getElementById("msg");
+    if(box)box.textContent=e.message||"Unable to save user";
+    else note("Unable to save user",e.message||"Please try again.");
+  }
 };
 
 newDelivery=function(){
