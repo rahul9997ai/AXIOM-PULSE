@@ -1,4 +1,4 @@
-const CACHE="axiom-pulse-v10";
+const CACHE="axiom-pulse-v11";
 const ASSETS=["/manifest.webmanifest","/icons/axiom-pulse-icon.svg","/create-date-time-pickers.js","/webpush.js"];
 
 async function appShellResponse(request){
