@@ -5,6 +5,8 @@ import type { Lender, RequirementTemplate } from '@/lib/types';
 
 interface Dealership { id: string; name: string; }
 
+const FK_IN_USE = '23503';
+
 export default function Settings() {
   const { profile } = useSession();
   const isMaster = profile?.role === 'Master Administrator';
@@ -15,7 +17,9 @@ export default function Settings() {
 
   const [lenders, setLenders] = useState<Lender[]>([]);
   const [templates, setTemplates] = useState<RequirementTemplate[]>([]);
+  const [nameDrafts, setNameDrafts] = useState<Record<string, string>>({});
   const [addressDrafts, setAddressDrafts] = useState<Record<string, string>>({});
+  const [labelDrafts, setLabelDrafts] = useState<Record<string, string>>({});
   const [newLender, setNewLender] = useState('');
   const [newLenderAddress, setNewLenderAddress] = useState('');
   const [newTemplate, setNewTemplate] = useState('');
@@ -38,9 +42,12 @@ export default function Settings() {
       supabase.from('requirement_templates').select('*').eq('dealership_id', dealershipId).order('sort_order'),
     ]);
     const lenderList = (l as Lender[]) || [];
+    const templateList = (t as RequirementTemplate[]) || [];
     setLenders(lenderList);
     setAddressDrafts(Object.fromEntries(lenderList.map((x) => [x.id, x.address ?? ''])));
-    setTemplates((t as RequirementTemplate[]) || []);
+    setNameDrafts(Object.fromEntries(lenderList.map((x) => [x.id, x.name])));
+    setTemplates(templateList);
+    setLabelDrafts(Object.fromEntries(templateList.map((x) => [x.id, x.label])));
   };
 
   useEffect(() => { load(); }, [dealershipId]);
@@ -60,12 +67,30 @@ export default function Settings() {
     else load();
   };
 
+  const saveLenderName = async (l: Lender) => {
+    const name = (nameDrafts[l.id] ?? '').trim();
+    if (!name || name === l.name) { setNameDrafts((prev) => ({ ...prev, [l.id]: l.name })); return; }
+    const { error } = await supabase.from('lenders').update({ name }).eq('id', l.id);
+    if (error) setError(error.message);
+    else load();
+  };
+
   const saveLenderAddress = async (l: Lender) => {
     const address = (addressDrafts[l.id] ?? '').trim();
     if (address === (l.address ?? '')) return;
     const { error } = await supabase.from('lenders').update({ address: address || null }).eq('id', l.id);
     if (error) setError(error.message);
     else load();
+  };
+
+  const deleteLender = async (l: Lender) => {
+    if (!window.confirm(`Delete "${l.name}"? This can't be undone.`)) return;
+    const { error } = await supabase.from('lenders').delete().eq('id', l.id);
+    if (error) {
+      setError(error.code === FK_IN_USE
+        ? `"${l.name}" is used on an existing delivery — deactivate it instead of deleting.`
+        : error.message);
+    } else { setError(null); load(); }
   };
 
   const addTemplate = async () => {
@@ -83,6 +108,24 @@ export default function Settings() {
     const { error } = await supabase.from('requirement_templates').update({ active: !t.active }).eq('id', t.id);
     if (error) setError(error.message);
     else load();
+  };
+
+  const saveTemplateLabel = async (t: RequirementTemplate) => {
+    const label = (labelDrafts[t.id] ?? '').trim();
+    if (!label || label === t.label) { setLabelDrafts((prev) => ({ ...prev, [t.id]: t.label })); return; }
+    const { error } = await supabase.from('requirement_templates').update({ label }).eq('id', t.id);
+    if (error) setError(error.message);
+    else load();
+  };
+
+  const deleteTemplate = async (t: RequirementTemplate) => {
+    if (!window.confirm(`Delete "${t.label}"? This can't be undone.`)) return;
+    const { error } = await supabase.from('requirement_templates').delete().eq('id', t.id);
+    if (error) {
+      setError(error.code === FK_IN_USE
+        ? `"${t.label}" is used on an existing delivery — deactivate it instead of deleting.`
+        : error.message);
+    } else { setError(null); load(); }
   };
 
   return (
@@ -105,16 +148,25 @@ export default function Settings() {
         <h3 style={{ marginTop: 0 }}>Collection requirements</h3>
         <p style={{ color: 'var(--muted)', fontSize: 13, marginTop: -4 }}>
           The master checklist offered when creating a delivery. Salespeople still see a free-form field
-          for anything one-off.
+          for anything one-off. Uncheck to retire without deleting; Remove deletes it outright (blocked if
+          it's already used on a delivery).
         </p>
-        <div style={{ display: 'grid', gap: 6, marginBottom: 12 }}>
+        <div style={{ display: 'grid', gap: 8, marginBottom: 12 }}>
           {templates.map((t) => (
-            <label key={t.id} style={{ display: 'flex', alignItems: 'center', gap: 10, fontSize: 14 }}>
+            <div key={t.id} style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
               <input type="checkbox" checked={t.active} onChange={() => toggleTemplate(t)} style={{ width: 'auto' }} />
-              <span style={{ textDecoration: t.active ? 'none' : 'line-through', color: t.active ? 'var(--ink)' : 'var(--muted)' }}>
-                {t.label}
-              </span>
-            </label>
+              <input
+                value={labelDrafts[t.id] ?? ''}
+                onChange={(e) => setLabelDrafts((prev) => ({ ...prev, [t.id]: e.target.value }))}
+                onBlur={() => saveTemplateLabel(t)}
+                style={{
+                  flex: 1, fontSize: 14, padding: '6px 10px',
+                  textDecoration: t.active ? 'none' : 'line-through',
+                  color: t.active ? 'var(--ink)' : 'var(--muted)',
+                }}
+              />
+              <button type="button" className="btn secondary" style={{ padding: '4px 10px', fontSize: 12 }} onClick={() => deleteTemplate(t)}>Remove</button>
+            </div>
           ))}
         </div>
         <div style={{ display: 'flex', gap: 8 }}>
@@ -131,12 +183,20 @@ export default function Settings() {
         <div style={{ display: 'grid', gap: 12, marginBottom: 14 }}>
           {lenders.map((l) => (
             <div key={l.id} style={{ borderBottom: '1px solid var(--line)', paddingBottom: 10 }}>
-              <label style={{ display: 'flex', alignItems: 'center', gap: 10, fontSize: 14, marginBottom: 6 }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 6 }}>
                 <input type="checkbox" checked={l.active} onChange={() => toggleLender(l)} style={{ width: 'auto' }} />
-                <span style={{ fontWeight: 700, textDecoration: l.active ? 'none' : 'line-through', color: l.active ? 'var(--ink)' : 'var(--muted)' }}>
-                  {l.name}
-                </span>
-              </label>
+                <input
+                  value={nameDrafts[l.id] ?? ''}
+                  onChange={(e) => setNameDrafts((prev) => ({ ...prev, [l.id]: e.target.value }))}
+                  onBlur={() => saveLenderName(l)}
+                  style={{
+                    flex: 1, fontSize: 14, fontWeight: 700, padding: '6px 10px',
+                    textDecoration: l.active ? 'none' : 'line-through',
+                    color: l.active ? 'var(--ink)' : 'var(--muted)',
+                  }}
+                />
+                <button type="button" className="btn secondary" style={{ padding: '4px 10px', fontSize: 12 }} onClick={() => deleteLender(l)}>Remove</button>
+              </div>
               <input
                 placeholder="Address (shown to the salesperson)"
                 value={addressDrafts[l.id] ?? ''}
