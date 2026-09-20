@@ -80,8 +80,12 @@ export default function Deliveries() {
 
   return (
     <div style={{ display: 'grid', gap: 14, maxWidth: 640, margin: '0 auto' }}>
-      <h1 style={{ letterSpacing: 2, fontSize: 20 }}>DELIVERY PULSE</h1>
-      <div style={{ color: 'var(--accent)', fontWeight: 700 }}>{isManager ? 'MANAGER VIEW' : 'SALESPERSON VIEW'}</div>
+      <div>
+        <h1 style={{ fontSize: 22, fontWeight: 700, letterSpacing: '-0.02em', margin: 0 }}>Deliveries</h1>
+        <div style={{ color: 'var(--accent)', fontWeight: 700, fontSize: 12, letterSpacing: '0.08em', textTransform: 'uppercase', marginTop: 2 }}>
+          {isManager ? 'Manager view' : 'Salesperson view'}
+        </div>
+      </div>
 
       {!isManager && pushState === 'offer' && (
         <div className="card">
@@ -100,7 +104,7 @@ export default function Deliveries() {
       )}
       {!isManager && pushState === 'enabled' && (
         <div className="card">
-          <div style={{ color: '#4ade80', fontWeight: 700, fontSize: 13 }}>Background push enabled on this device.</div>
+          <div style={{ color: '#15803d', fontWeight: 700, fontSize: 13 }}>Background push enabled on this device.</div>
           <button className="btn secondary" style={{ marginTop: 10 }} onClick={onTestPush}>Send test notification</button>
         </div>
       )}
@@ -146,7 +150,7 @@ export default function Deliveries() {
                   <div key={r.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 8 }}>
                     <span style={{
                       fontSize: 13,
-                      color: r.status === 'completed' ? '#4ade80' : r.status === 'exception' ? '#fbbf24' : 'var(--accent)',
+                      color: r.status === 'completed' ? '#15803d' : r.status === 'exception' ? '#b45309' : 'var(--accent)',
                       fontWeight: 700,
                     }}>
                       {r.status === 'completed' ? '✓' : r.status === 'exception' ? '!' : '•'} {r.label}

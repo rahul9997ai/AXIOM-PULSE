@@ -89,7 +89,7 @@ export default function NewDelivery() {
 
   return (
     <div style={{ display: 'grid', gap: 12, maxWidth: 480, margin: '0 auto' }}>
-      <h1 style={{ letterSpacing: 2, fontSize: 20 }}>NEW DELIVERY</h1>
+      <h1 style={{ fontSize: 22, fontWeight: 700, letterSpacing: '-0.02em', margin: 0 }}>New Delivery</h1>
       <input placeholder="Customer name" value={customer} onChange={(e) => setCustomer(e.target.value)} />
       <input placeholder="Vehicle" value={vehicle} onChange={(e) => setVehicle(e.target.value)} />
       <input placeholder="VIN" value={vin} onChange={(e) => setVin(e.target.value)} />

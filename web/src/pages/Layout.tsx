@@ -2,6 +2,7 @@ import type { ReactNode } from 'react';
 import { Link } from 'react-router-dom';
 import { useSession } from '@/lib/session';
 import { supabase } from '@/lib/supabase';
+import { AxiomLockup } from '@/components/AxiomMark';
 
 const MANAGER_ROLES = ['FSM', 'General Manager', 'Master Administrator'];
 
@@ -11,10 +12,17 @@ export default function Layout({ children }: { children: ReactNode }) {
 
   return (
     <div style={{ minHeight: '100dvh', display: 'flex', flexDirection: 'column' }}>
-      <header style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '14px 18px' }}>
-        <div className="brand" style={{ fontSize: 18 }}>
-          AXIOM <span className="pulse">Pulse</span>
-        </div>
+      <header
+        style={{
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          padding: '14px 18px',
+          background: '#fff',
+          borderBottom: '1px solid var(--line)',
+        }}
+      >
+        <AxiomLockup size={26} />
         <div style={{ display: 'flex', gap: 10, alignItems: 'center' }}>
           {canCreate && (
             <Link to="/new" className="btn secondary" style={{ textDecoration: 'none', padding: '8px 12px', fontSize: 13 }}>
@@ -30,7 +38,7 @@ export default function Layout({ children }: { children: ReactNode }) {
           </button>
         </div>
       </header>
-      <main style={{ flex: 1, padding: '0 18px 24px' }}>{children}</main>
+      <main style={{ flex: 1, padding: '18px 18px 24px' }}>{children}</main>
     </div>
   );
 }
