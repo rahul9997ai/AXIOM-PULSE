@@ -1,12 +1,11 @@
 import { useEffect, useState, useCallback } from 'react';
+import { Link } from 'react-router-dom';
 import { supabase } from '@/lib/supabase';
 import { useSession } from '@/lib/session';
 import type { Delivery } from '@/lib/types';
-import { STATUS_LABEL } from '@/lib/types';
+import { STATUS_LABEL, MANAGER_ROLES } from '@/lib/types';
 import { formatCents } from '@/lib/money';
 import { enablePush, isStandaloneDisplay, isIOS, pushSupported, sendTestPush } from '@/lib/push';
-
-const MANAGER_ROLES = ['FSM', 'General Manager', 'Master Administrator'];
 
 export default function Deliveries() {
   const { profile, session } = useSession();
@@ -23,7 +22,7 @@ export default function Deliveries() {
     if (!profile) return;
     let query = supabase
       .from('deliveries')
-      .select('*, delivery_requirements(*)')
+      .select('*, delivery_requirements(*), lenders(name)')
       .order('delivery_at', { ascending: true });
     if (!isManager) query = query.eq('salesperson_id', session?.user.id);
     const { data, error } = await query;
@@ -125,19 +124,25 @@ export default function Deliveries() {
                 <div style={{ fontWeight: 800, fontSize: 17 }}>{d.customer_name}</div>
                 <div style={{ color: 'var(--muted)', marginTop: 4 }}>{d.vehicle}{d.vin ? ` · VIN ${d.vin}` : ''}</div>
               </div>
-              <span style={{ fontSize: 11, fontWeight: 800, color: 'var(--accent)', textTransform: 'uppercase', letterSpacing: 0.5 }}>
-                {STATUS_LABEL[d.status]}
-              </span>
+              <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 6 }}>
+                <span style={{ fontSize: 11, fontWeight: 800, color: 'var(--accent)', textTransform: 'uppercase', letterSpacing: 0.5 }}>
+                  {STATUS_LABEL[d.status]}
+                </span>
+                {isManager && d.status !== 'delivered' && d.status !== 'cancelled' && (
+                  <Link to={`/edit/${d.id}`} className="btn secondary" style={{ textDecoration: 'none', padding: '3px 10px', fontSize: 11 }}>
+                    Edit
+                  </Link>
+                )}
+              </div>
             </div>
             <div style={{ color: 'var(--muted)', marginTop: 8 }}>{new Date(d.delivery_at).toLocaleString()}</div>
-            <div style={{ marginTop: 6 }}>{d.lender_name || 'Lender / lessor not selected'}</div>
+            <div style={{ marginTop: 6 }}>{d.lenders?.name || 'Lender / lessor not selected'}</div>
             <div style={{ marginTop: 6, fontSize: 13, color: 'var(--muted)' }}>
               Approval: <strong style={{ color: 'var(--text)' }}>{d.approval_status}</strong>
             </div>
-            {(d.money_due_cents > 0 || d.refund_cents > 0) && (
-              <div style={{ marginTop: 8, display: 'flex', gap: 16 }}>
-                {d.money_due_cents > 0 && <div style={{ fontSize: 13 }}>Money due: <strong>{formatCents(d.money_due_cents)}</strong></div>}
-                {d.refund_cents > 0 && <div style={{ fontSize: 13 }}>Refund: <strong>{formatCents(d.refund_cents)}</strong></div>}
+            {d.due_on_delivery && d.due_on_delivery_amount_cents != null && (
+              <div style={{ marginTop: 8, fontSize: 13 }}>
+                {d.due_on_delivery_type === 'refund' ? 'Refund to customer' : 'Collect from customer'}: <strong>{formatCents(d.due_on_delivery_amount_cents)}</strong>
               </div>
             )}
             {d.fsm_notes && (

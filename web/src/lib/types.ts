@@ -20,10 +20,27 @@ export interface DeliveryRequirement {
   exception_reason: string | null;
   completed_by: string | null;
   completed_at: string | null;
+  template_id: string | null;
 }
 
 export type DeliveryStatus = 'new' | 'requirements_outstanding' | 'ready' | 'delivered' | 'cancelled';
 export type ApprovalStatus = 'pending' | 'approved' | 'conditional' | 'declined';
+export type DueOnDeliveryType = 'collection' | 'refund';
+
+export interface Lender {
+  id: string;
+  dealership_id: string;
+  name: string;
+  active: boolean;
+}
+
+export interface RequirementTemplate {
+  id: string;
+  dealership_id: string;
+  label: string;
+  active: boolean;
+  sort_order: number;
+}
 
 export interface Delivery {
   id: string;
@@ -33,14 +50,17 @@ export interface Delivery {
   customer_name: string;
   vehicle: string;
   vin: string | null;
+  lender_id: string | null;
   lender_name: string | null;
   approval_status: ApprovalStatus;
   delivery_at: string;
   status: DeliveryStatus;
   fsm_notes: string | null;
-  money_due_cents: number;
-  refund_cents: number;
+  due_on_delivery: boolean;
+  due_on_delivery_type: DueOnDeliveryType | null;
+  due_on_delivery_amount_cents: number | null;
   delivered_at: string | null;
+  lenders?: Lender | null;
   delivery_requirements?: DeliveryRequirement[];
 }
 
@@ -60,3 +80,5 @@ export const STATUS_LABEL: Record<DeliveryStatus, string> = {
   delivered: 'Delivery Complete',
   cancelled: 'Cancelled',
 };
+
+export const MANAGER_ROLES: Role[] = ['FSM', 'General Manager', 'Master Administrator'];
