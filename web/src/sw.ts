@@ -22,17 +22,17 @@ self.addEventListener('push', (event: PushEvent) => {
   try { payload = event.data ? event.data.json() : {}; }
   catch { payload = { title: 'AXIOM PULSE', body: event.data ? event.data.text() : '' }; }
 
-  event.waitUntil(
-    self.registration.showNotification(payload.title || 'AXIOM PULSE', {
-      body: payload.body || '',
-      icon: payload.icon || '/icons/icon.svg',
-      badge: payload.badge || '/icons/icon.svg',
-      data: { url: payload.data?.url || '/', ...payload.data },
-      tag: payload.data?.deliveryId,
-      renotify: true,
-      requireInteraction: payload.data?.type === 'delivery_time',
-    }),
-  );
+  const options: NotificationOptions & { renotify?: boolean } = {
+    body: payload.body || '',
+    icon: payload.icon || '/icons/icon.svg',
+    badge: payload.badge || '/icons/icon.svg',
+    data: { url: payload.data?.url || '/', ...payload.data },
+    tag: payload.data?.deliveryId,
+    renotify: true,
+    requireInteraction: payload.data?.type === 'delivery_time',
+  };
+
+  event.waitUntil(self.registration.showNotification(payload.title || 'AXIOM PULSE', options));
 });
 
 self.addEventListener('notificationclick', (event: NotificationEvent) => {
