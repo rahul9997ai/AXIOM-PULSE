@@ -7,6 +7,7 @@ import type { ApprovalStatus, Delivery, DueOnDeliveryType, Lender, RequirementTe
 
 interface Salesperson { id: string; name: string; }
 interface CustomRequirement { id?: string; label: string; }
+interface Dealership { id: string; name: string; }
 
 const APPROVAL_OPTIONS: ApprovalStatus[] = ['pending', 'approved', 'conditional', 'declined'];
 
@@ -14,6 +15,13 @@ export default function DeliveryForm({ existing, onSaved }: { existing?: Deliver
   const { profile, session } = useSession();
   const navigate = useNavigate();
   const isEdit = !!existing;
+  const isMaster = profile?.role === 'Master Administrator';
+
+  const [dealerships, setDealerships] = useState<Dealership[]>([]);
+  const [selectedDealershipId, setSelectedDealershipId] = useState(existing?.dealership_id ?? '');
+  // Master Administrator has no dealership_id of their own (oversees every
+  // dealership), so they pick one explicitly; everyone else is locked to theirs.
+  const effectiveDealershipId = isMaster ? selectedDealershipId : (profile?.dealership_id ?? '');
 
   const [customer, setCustomer] = useState(existing?.customer_name ?? '');
   const [vehicle, setVehicle] = useState(existing?.vehicle ?? '');
@@ -38,14 +46,24 @@ export default function DeliveryForm({ existing, onSaved }: { existing?: Deliver
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    if (!profile?.dealership_id) return;
-    supabase.from('lenders').select('*').eq('dealership_id', profile.dealership_id).eq('active', true).order('name')
+    if (!isMaster) return;
+    supabase.from('dealerships').select('id,name').order('name')
+      .then(({ data }) => {
+        const list = (data as Dealership[]) || [];
+        setDealerships(list);
+        setSelectedDealershipId((prev) => prev || list[0]?.id || '');
+      });
+  }, [isMaster]);
+
+  useEffect(() => {
+    if (!effectiveDealershipId) { setLenders([]); setTemplates([]); setSalespeople([]); return; }
+    supabase.from('lenders').select('*').eq('dealership_id', effectiveDealershipId).eq('active', true).order('name')
       .then(({ data }) => setLenders((data as Lender[]) || []));
-    supabase.from('requirement_templates').select('*').eq('dealership_id', profile.dealership_id).eq('active', true).order('sort_order')
+    supabase.from('requirement_templates').select('*').eq('dealership_id', effectiveDealershipId).eq('active', true).order('sort_order')
       .then(({ data }) => setTemplates((data as RequirementTemplate[]) || []));
-    supabase.from('profiles').select('id,name').eq('dealership_id', profile.dealership_id).eq('role', 'Salesperson').eq('active', true)
+    supabase.from('profiles').select('id,name').eq('dealership_id', effectiveDealershipId).eq('role', 'Salesperson').eq('active', true)
       .then(({ data }) => setSalespeople((data as Salesperson[]) || []));
-  }, [profile?.dealership_id]);
+  }, [effectiveDealershipId]);
 
   useEffect(() => {
     if (!existing) return;
@@ -74,6 +92,10 @@ export default function DeliveryForm({ existing, onSaved }: { existing?: Deliver
   };
 
   const save = async () => {
+    if (!effectiveDealershipId) {
+      setError(isMaster ? 'Select a dealership first.' : 'Your account has no dealership assigned.');
+      return;
+    }
     if (!customer || !vehicle || !salesperson || !deliveryAt) {
       setError('Customer, vehicle, delivery time and salesperson are required.');
       return;
@@ -86,7 +108,7 @@ export default function DeliveryForm({ existing, onSaved }: { existing?: Deliver
     setError(null);
 
     const payload = {
-      dealership_id: profile!.dealership_id,
+      dealership_id: effectiveDealershipId,
       salesperson_id: salesperson,
       customer_name: customer.trim(),
       vehicle: vehicle.trim(),
@@ -151,6 +173,16 @@ export default function DeliveryForm({ existing, onSaved }: { existing?: Deliver
   return (
     <div style={{ display: 'grid', gap: 12, maxWidth: 480, margin: '0 auto' }}>
       <h1 style={{ fontSize: 22, fontWeight: 700, letterSpacing: '-0.02em', margin: 0 }}>{isEdit ? 'Edit Delivery' : 'New Delivery'}</h1>
+
+      {isMaster && !isEdit && (
+        <>
+          <div style={fieldLabel}>DEALERSHIP</div>
+          <select value={selectedDealershipId} onChange={(e) => setSelectedDealershipId(e.target.value)}>
+            {dealerships.length === 0 && <option value="">No dealerships yet</option>}
+            {dealerships.map((d) => <option key={d.id} value={d.id}>{d.name}</option>)}
+          </select>
+        </>
+      )}
 
       <input placeholder="Customer name" value={customer} onChange={(e) => setCustomer(e.target.value)} />
       <input placeholder="Vehicle" value={vehicle} onChange={(e) => setVehicle(e.target.value)} />
