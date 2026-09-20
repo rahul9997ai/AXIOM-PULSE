@@ -37,6 +37,13 @@ jobs:
           VITE_SUPABASE_ANON_KEY: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRicHRscmV3d3hoZ2d4eGZkaWtzIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODk2OTYzMTksImV4cCI6MjEwNTI3MjMxOX0.lYDOQbBWj4ZEHD2VkBfKtl1mTnSXlIGmkPb2dt6B4lU
           VITE_VAPID_PUBLIC_KEY: BNCvdPvlP_M9lwrG2T-jTifo4r0xhDxPQfYUFtzP4y6oArm7d6e7T0P2v_wb4UaD0FXmfZJvJNOXUErFShlcaDw
         run: npm run build
+      - name: SPA fallback for client-side routes
+        # GitHub Pages is a static file host with no knowledge of React
+        # Router's routes (/settings, /new, /edit/:id) — it 404s any path
+        # that isn't a literal file. Serving a copy of index.html as
+        # 404.html makes Pages fall back to it for any unmatched path, and
+        # React Router then reads the real URL and renders correctly.
+        run: cp web/dist/index.html web/dist/404.html
       - uses: actions/upload-pages-artifact@v3
         with:
           path: web/dist
