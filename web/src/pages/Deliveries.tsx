@@ -22,7 +22,7 @@ export default function Deliveries() {
     if (!profile) return;
     let query = supabase
       .from('deliveries')
-      .select('*, delivery_requirements(*), lenders(name)')
+      .select('*, delivery_requirements(*), lenders(name, address)')
       .order('delivery_at', { ascending: true });
     if (!isManager) query = query.eq('salesperson_id', session?.user.id);
     const { data, error } = await query;
@@ -136,7 +136,19 @@ export default function Deliveries() {
               </div>
             </div>
             <div style={{ color: 'var(--muted)', marginTop: 8 }}>{new Date(d.delivery_at).toLocaleString()}</div>
-            <div style={{ marginTop: 6 }}>{d.lenders?.name || 'Lender / lessor not selected'}</div>
+            <div style={{ marginTop: 6 }}>
+              {d.lenders?.name || 'Lender / lessor not selected'}
+              {d.lenders?.address && (
+                <a
+                  href={`https://maps.google.com/?q=${encodeURIComponent(d.lenders.address)}`}
+                  target="_blank"
+                  rel="noreferrer"
+                  style={{ display: 'block', color: 'var(--accent)', fontSize: 13, marginTop: 2, textDecoration: 'none' }}
+                >
+                  {d.lenders.address}
+                </a>
+              )}
+            </div>
             <div style={{ marginTop: 6, fontSize: 13, color: 'var(--muted)' }}>
               Approval: <strong style={{ color: 'var(--text)' }}>{d.approval_status}</strong>
             </div>

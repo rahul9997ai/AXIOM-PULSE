@@ -31,6 +31,7 @@ export interface Lender {
   id: string;
   dealership_id: string;
   name: string;
+  address: string | null;
   active: boolean;
 }
 
