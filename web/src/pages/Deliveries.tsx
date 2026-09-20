@@ -1,7 +1,9 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import { supabase } from '@/lib/supabase';
 import { useSession } from '@/lib/session';
 import type { Delivery } from '@/lib/types';
+import { STATUS_LABEL } from '@/lib/types';
+import { formatCents } from '@/lib/money';
 import { enablePush, isStandaloneDisplay, isIOS, pushSupported, sendTestPush } from '@/lib/push';
 
 const MANAGER_ROLES = ['FSM', 'General Manager', 'Master Administrator'];
@@ -12,22 +14,36 @@ export default function Deliveries() {
   const [loading, setLoading] = useState(true);
   const [pushState, setPushState] = useState<'unsupported' | 'ios-install' | 'offer' | 'enabled'>('offer');
   const [notice, setNotice] = useState<string | null>(null);
+  const [exceptionFor, setExceptionFor] = useState<string | null>(null);
+  const [exceptionReason, setExceptionReason] = useState('');
 
-  const load = async () => {
+  const isManager = profile ? MANAGER_ROLES.includes(profile.role) : false;
+
+  const load = useCallback(async () => {
     if (!profile) return;
     let query = supabase
       .from('deliveries')
       .select('*, delivery_requirements(*)')
       .order('delivery_at', { ascending: true });
-    if (!MANAGER_ROLES.includes(profile.role)) {
-      query = query.eq('salesperson_id', session?.user.id);
-    }
+    if (!isManager) query = query.eq('salesperson_id', session?.user.id);
     const { data, error } = await query;
     if (!error) setRows((data as Delivery[]) || []);
     setLoading(false);
-  };
+  }, [profile, isManager, session?.user.id]);
 
-  useEffect(() => { load(); }, [profile?.role]);
+  useEffect(() => { load(); }, [load]);
+
+  // Realtime: any change to deliveries or their requirements refreshes the list,
+  // so the FSM sees salesperson progress and the salesperson sees FSM edits live.
+  useEffect(() => {
+    if (!profile) return;
+    const channel = supabase
+      .channel('pulse-deliveries')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'deliveries' }, () => load())
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'delivery_requirements' }, () => load())
+      .subscribe();
+    return () => { supabase.removeChannel(channel); };
+  }, [profile, load]);
 
   useEffect(() => {
     if (!pushSupported()) { setPushState('unsupported'); return; }
@@ -36,6 +52,16 @@ export default function Deliveries() {
     setPushState('offer');
   }, []);
 
+  const resolveRequirement = async (id: string, status: 'completed' | 'exception', reason?: string) => {
+    const { error } = await supabase.rpc('set_requirement_status', {
+      p_requirement_id: id,
+      p_status: status,
+      p_exception_reason: reason ?? null,
+    });
+    if (error) setNotice(error.message);
+    else { setExceptionFor(null); setExceptionReason(''); load(); }
+  };
+
   const complete = async (id: string) => {
     const { error } = await supabase.rpc('complete_delivery', { p_delivery_id: id });
     if (error) setNotice(error.message);
@@ -43,25 +69,14 @@ export default function Deliveries() {
   };
 
   const onEnablePush = async () => {
-    try {
-      await enablePush();
-      setPushState('enabled');
-      setNotice('Notifications enabled. Delivery reminders arrive even when Pulse is closed.');
-    } catch (e) {
-      setNotice((e as Error).message);
-    }
+    try { await enablePush(); setPushState('enabled'); setNotice('Notifications enabled. Delivery reminders arrive even when Pulse is closed.'); }
+    catch (e) { setNotice((e as Error).message); }
   };
 
   const onTestPush = async () => {
-    try {
-      const { sent } = await sendTestPush();
-      setNotice(`Test notification sent to ${sent} device(s). Close the app to verify background delivery.`);
-    } catch (e) {
-      setNotice((e as Error).message);
-    }
+    try { const { sent } = await sendTestPush(); setNotice(`Test notification sent to ${sent} device(s). Close the app to verify background delivery.`); }
+    catch (e) { setNotice((e as Error).message); }
   };
-
-  const isManager = profile ? MANAGER_ROLES.includes(profile.role) : false;
 
   return (
     <div style={{ display: 'grid', gap: 14, maxWidth: 640, margin: '0 auto' }}>
@@ -95,17 +110,82 @@ export default function Deliveries() {
       {!loading && rows.length === 0 && <div style={{ color: 'var(--muted)', textAlign: 'center', marginTop: 40 }}>No deliveries scheduled yet.</div>}
 
       {rows.map((d) => {
-        const open = (d.delivery_requirements || []).filter((r) => !r.completed);
+        const requirements = d.delivery_requirements || [];
+        const open = requirements.filter((r) => r.status === 'outstanding');
+        const canComplete = !isManager && d.status !== 'delivered' && d.status !== 'cancelled';
+
         return (
           <div key={d.id} className="card">
-            <div style={{ fontWeight: 800, fontSize: 17 }}>{d.customer_name}</div>
-            <div style={{ color: 'var(--muted)', marginTop: 4 }}>{d.vehicle}</div>
-            <div style={{ color: 'var(--muted)', marginTop: 4 }}>{new Date(d.delivery_at).toLocaleString()}</div>
-            <div style={{ marginTop: 8 }}>{d.lender_name || 'Lender / lessor not selected'}</div>
-            <div style={{ color: 'var(--accent)', marginTop: 10, fontWeight: 700, whiteSpace: 'pre-line' }}>
-              {open.length ? open.map((r) => `• ${r.label}`).join('\n') : '✓ Nothing outstanding'}
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+              <div>
+                <div style={{ fontWeight: 800, fontSize: 17 }}>{d.customer_name}</div>
+                <div style={{ color: 'var(--muted)', marginTop: 4 }}>{d.vehicle}{d.vin ? ` · VIN ${d.vin}` : ''}</div>
+              </div>
+              <span style={{ fontSize: 11, fontWeight: 800, color: 'var(--accent)', textTransform: 'uppercase', letterSpacing: 0.5 }}>
+                {STATUS_LABEL[d.status]}
+              </span>
             </div>
-            {!isManager && d.status !== 'delivered' && (
+            <div style={{ color: 'var(--muted)', marginTop: 8 }}>{new Date(d.delivery_at).toLocaleString()}</div>
+            <div style={{ marginTop: 6 }}>{d.lender_name || 'Lender / lessor not selected'}</div>
+            <div style={{ marginTop: 6, fontSize: 13, color: 'var(--muted)' }}>
+              Approval: <strong style={{ color: 'var(--text)' }}>{d.approval_status}</strong>
+            </div>
+            {(d.money_due_cents > 0 || d.refund_cents > 0) && (
+              <div style={{ marginTop: 8, display: 'flex', gap: 16 }}>
+                {d.money_due_cents > 0 && <div style={{ fontSize: 13 }}>Money due: <strong>{formatCents(d.money_due_cents)}</strong></div>}
+                {d.refund_cents > 0 && <div style={{ fontSize: 13 }}>Refund: <strong>{formatCents(d.refund_cents)}</strong></div>}
+              </div>
+            )}
+            {d.fsm_notes && (
+              <div style={{ marginTop: 10, fontSize: 13, fontStyle: 'italic', color: 'var(--muted)' }}>“{d.fsm_notes}”</div>
+            )}
+
+            {requirements.length > 0 && (
+              <div style={{ marginTop: 12, display: 'grid', gap: 6 }}>
+                {requirements.map((r) => (
+                  <div key={r.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 8 }}>
+                    <span style={{
+                      fontSize: 13,
+                      color: r.status === 'completed' ? '#4ade80' : r.status === 'exception' ? '#fbbf24' : 'var(--accent)',
+                      fontWeight: 700,
+                    }}>
+                      {r.status === 'completed' ? '✓' : r.status === 'exception' ? '!' : '•'} {r.label}
+                      {r.status === 'exception' && r.exception_reason ? ` — ${r.exception_reason}` : ''}
+                    </span>
+                    {!isManager && r.status === 'outstanding' && (
+                      <div style={{ display: 'flex', gap: 6 }}>
+                        <button className="btn secondary" style={{ padding: '4px 8px', fontSize: 11 }} onClick={() => resolveRequirement(r.id, 'completed')}>Done</button>
+                        <button className="btn secondary" style={{ padding: '4px 8px', fontSize: 11 }} onClick={() => setExceptionFor(r.id)}>Exception</button>
+                      </div>
+                    )}
+                  </div>
+                ))}
+              </div>
+            )}
+
+            {exceptionFor && requirements.some((r) => r.id === exceptionFor) && (
+              <div style={{ marginTop: 10, display: 'grid', gap: 8 }}>
+                <textarea
+                  placeholder="Reason this couldn't be completed"
+                  value={exceptionReason}
+                  onChange={(e) => setExceptionReason(e.target.value)}
+                  rows={2}
+                />
+                <div style={{ display: 'flex', gap: 8 }}>
+                  <button
+                    className="btn"
+                    style={{ flex: 1 }}
+                    disabled={!exceptionReason.trim()}
+                    onClick={() => resolveRequirement(exceptionFor, 'exception', exceptionReason.trim())}
+                  >
+                    Save exception
+                  </button>
+                  <button className="btn secondary" onClick={() => { setExceptionFor(null); setExceptionReason(''); }}>Cancel</button>
+                </div>
+              </div>
+            )}
+
+            {canComplete && open.length === 0 && (
               <button className="btn" style={{ marginTop: 14, width: '100%' }} onClick={() => complete(d.id)}>
                 Mark delivered
               </button>

@@ -1,6 +1,8 @@
 // Sends a Web Push notification to one or more subscribed devices.
-// Called either by a user (test push, to their own devices) or internally
-// by a scheduled reminder job with a service-role key and explicit profile_ids.
+// A caller may always target their own devices (test push). Targeting other
+// profiles (e.g. "notify this salesperson of a new delivery") requires the
+// caller to be a manager role (FSM / General Manager / Master Administrator)
+// in the same dealership as every targeted profile.
 import { createClient } from 'jsr:@supabase/supabase-js@2';
 import webpush from 'npm:web-push@3.6.7';
 
@@ -9,6 +11,8 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
+const MANAGER_ROLES = ['FSM', 'General Manager', 'Master Administrator'];
+
 webpush.setVapidDetails(
   'mailto:007.splinter@gmail.com',
   Deno.env.get('VAPID_PUBLIC_KEY')!,
@@ -16,7 +20,6 @@ webpush.setVapidDetails(
 );
 
 interface RequestBody {
-  test?: boolean;
   profile_ids?: string[];
   title?: string;
   body?: string;
@@ -41,6 +44,19 @@ Deno.serve(async (req) => {
 
     const body: RequestBody = await req.json().catch(() => ({}));
     const targetIds = body.profile_ids?.length ? body.profile_ids : [user.id];
+
+    const targetingOthers = targetIds.some((id) => id !== user.id);
+    if (targetingOthers) {
+      const { data: caller } = await supabase.from('profiles').select('role, dealership_id').eq('id', user.id).single();
+      if (!caller || !MANAGER_ROLES.includes(caller.role)) {
+        return json({ error: 'Only FSM/manager roles can notify other users' }, 403);
+      }
+      const { data: targets } = await supabase.from('profiles').select('id, dealership_id').in('id', targetIds);
+      const unauthorized = (targets || []).some((t) => t.dealership_id !== caller.dealership_id);
+      if (unauthorized || (targets || []).length !== targetIds.length) {
+        return json({ error: 'Cannot notify profiles outside your dealership' }, 403);
+      }
+    }
 
     const { data: subs, error } = await supabase
       .from('push_subscriptions')

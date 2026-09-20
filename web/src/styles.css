@@ -52,7 +52,7 @@ button { font-family: inherit; }
   color: var(--accent);
 }
 
-input, textarea {
+input, textarea, select {
   background: var(--card);
   color: var(--text);
   border: 1px solid #1c2c40;
