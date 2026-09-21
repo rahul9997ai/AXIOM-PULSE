@@ -27,8 +27,12 @@ export default defineConfig({
       },
       injectManifest: {
         injectionPoint: undefined,
+        // Safari has never supported `type: 'module'` service workers —
+        // build the worker as a classic (IIFE) script so it registers on
+        // iOS/iPadOS at all, not just Chromium-based browsers.
+        rollupFormat: 'iife',
       },
-      devOptions: { enabled: true, type: 'module' },
+      devOptions: { enabled: true, type: 'classic' },
     }),
   ],
   resolve: {
