@@ -243,17 +243,10 @@ export default function DeliveryForm({ existing, onSaved }: { existing?: Deliver
       </div>
 
       <div style={fieldLabel}>ASSIGN SALESPERSON</div>
-      {salespeople.map((p) => (
-        <button
-          key={p.id}
-          type="button"
-          className="card"
-          style={{ textAlign: 'left', border: salesperson === p.id ? '2px solid var(--blue)' : '2px solid transparent', cursor: 'pointer' }}
-          onClick={() => setSalesperson(p.id)}
-        >
-          {p.name}
-        </button>
-      ))}
+      <select value={salesperson} onChange={(e) => setSalesperson(e.target.value)}>
+        <option value="">Select a salesperson</option>
+        {salespeople.map((p) => <option key={p.id} value={p.id}>{p.name}</option>)}
+      </select>
 
       <div style={fieldLabel}>COLLECTION REQUIREMENTS</div>
       <div className="card" style={{ display: 'grid', gap: 8, padding: 14 }}>
