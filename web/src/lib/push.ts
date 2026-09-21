@@ -21,6 +21,17 @@ export function pushSupported(): boolean {
   return 'Notification' in window && 'serviceWorker' in navigator && 'PushManager' in window;
 }
 
+// A stuck service worker or a subscribe() call that never settles (both seen
+// on iOS in the wild) would otherwise hang enablePush() forever with no
+// error and no visible sign anything happened — the exact symptom reported.
+// Give every async step a hard ceiling so a stall becomes a clear error.
+function withTimeout<T>(promise: Promise<T>, ms: number, stage: string): Promise<T> {
+  return new Promise((resolve, reject) => {
+    const timer = setTimeout(() => reject(new Error(`Timed out ${stage}. Close and reopen Axiom Pulse, then try again.`)), ms);
+    promise.then((v) => { clearTimeout(timer); resolve(v); }, (e) => { clearTimeout(timer); reject(e); });
+  });
+}
+
 export async function enablePush(): Promise<void> {
   if (!window.isSecureContext) throw new Error('Notifications require a secure connection.');
   if (!pushSupported()) throw new Error('Push notifications are not supported on this device or browser.');
@@ -43,21 +54,31 @@ export async function enablePush(): Promise<void> {
   const permission = Notification.permission === 'granted' ? 'granted' : await Notification.requestPermission();
   if (permission !== 'granted') throw new Error('Notification permission was not granted.');
 
-  const registration = await navigator.serviceWorker.ready;
-  let subscription = await registration.pushManager.getSubscription();
+  const registration = await withTimeout(navigator.serviceWorker.ready, 8000, 'waiting for the app to finish loading');
+  let subscription = await withTimeout(registration.pushManager.getSubscription(), 8000, 'checking notification status');
   if (!subscription) {
-    subscription = await registration.pushManager.subscribe({
-      userVisibleOnly: true,
-      applicationServerKey: base64UrlToUint8Array(import.meta.env.VITE_VAPID_PUBLIC_KEY as string),
-    });
+    try {
+      subscription = await withTimeout(
+        registration.pushManager.subscribe({
+          userVisibleOnly: true,
+          applicationServerKey: base64UrlToUint8Array(import.meta.env.VITE_VAPID_PUBLIC_KEY as string),
+        }),
+        8000,
+        'turning on notifications',
+      );
+    } catch (e) {
+      throw new Error(`Couldn't turn on notifications on this device (${(e as Error).message}). Close and reopen Axiom Pulse from the Home Screen icon, then try again.`);
+    }
   }
 
   const { data: { session } } = await supabase.auth.getSession();
   if (!session) throw new Error('Please sign in first.');
 
-  const { error } = await supabase.functions.invoke('register-webpush', {
-    body: { subscription: subscription.toJSON() },
-  });
+  const { error } = await withTimeout(
+    supabase.functions.invoke('register-webpush', { body: { subscription: subscription.toJSON() } }),
+    8000,
+    'saving your device',
+  );
   if (error) throw error;
 }
 

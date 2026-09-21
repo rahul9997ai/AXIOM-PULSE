@@ -67,10 +67,12 @@ export default function Deliveries() {
       // Permission being granted doesn't guarantee a subscription row still
       // exists server-side (it can be missing from an earlier failed
       // registration, or dropped after a browser/OS reset) — re-run
-      // registration silently on every visit instead of trusting stale
-      // permission state, so a device can self-heal without the user having
-      // to find a button that isn't shown once permission is granted.
-      enablePush().catch(() => {});
+      // registration on every visit instead of trusting stale permission
+      // state, so a device can self-heal without the user having to find a
+      // button that isn't shown once permission is granted. Surface a
+      // failure instead of swallowing it — a silent failure here is exactly
+      // what made this undiagnosable before.
+      enablePush().catch((e) => setNotice(`Notifications: ${(e as Error).message}`));
       setPushState('enabled');
       return;
     }
@@ -192,7 +194,10 @@ export default function Deliveries() {
       {!isManager && pushState === 'enabled' && (
         <div className="card">
           <div style={{ color: '#15803d', fontWeight: 700, fontSize: 13 }}>Background push enabled on this device.</div>
-          <button className="btn secondary" style={{ marginTop: 10 }} onClick={onTestPush}>Send test notification</button>
+          <div style={{ display: 'flex', gap: 8, marginTop: 10 }}>
+            <button className="btn secondary" onClick={onTestPush}>Send test notification</button>
+            <button className="btn secondary" onClick={onEnablePush}>Re-sync notifications</button>
+          </div>
         </div>
       )}
       {notice && <div className="card" style={{ fontSize: 13 }}>{notice}</div>}
