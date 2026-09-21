@@ -1,7 +1,9 @@
 // Scheduled job (Deno.cron, runs every 15 minutes): sends three reminder
 // tiers to the assigned salesperson, each exactly once per delivery —
 // "day before", "delivery day", and "delivery time" (the most urgent,
-// requireInteraction on the client so it doesn't auto-dismiss).
+// requireInteraction on the client so it doesn't auto-dismiss). Every
+// tier's body names the still-outstanding requirements so the salesperson
+// knows exactly what to have ready, not just that a delivery is coming up.
 import { createClient } from 'jsr:@supabase/supabase-js@2';
 import webpush from 'npm:web-push@3.6.7';
 
@@ -37,6 +39,10 @@ async function pushToProfile(profileId: string, title: string, body: string, dat
   if (stale.length) await admin.from('push_subscriptions').delete().in('id', stale);
 }
 
+function todoSuffix(labels: string[]): string {
+  return labels.length ? ` Still needed: ${labels.join(', ')}.` : ' Nothing outstanding.';
+}
+
 async function runReminders() {
   const now = new Date();
   const in24h = new Date(now.getTime() + 24 * 60 * 60 * 1000);
@@ -45,19 +51,22 @@ async function runReminders() {
 
   const { data: deliveries } = await admin
     .from('deliveries')
-    .select('id, salesperson_id, customer_name, vehicle, delivery_at, reminder_24h_sent_at, reminder_day_of_sent_at, reminder_at_time_sent_at')
+    .select('id, salesperson_id, customer_name, vehicle, delivery_at, reminder_24h_sent_at, reminder_day_of_sent_at, reminder_at_time_sent_at, delivery_requirements(label, status)')
     .in('status', ['new', 'requirements_outstanding', 'ready'])
     .lte('delivery_at', in24h.toISOString())
     .gte('delivery_at', gracePast.toISOString());
 
   for (const d of deliveries || []) {
     const deliveryAt = new Date(d.delivery_at);
+    const outstanding = ((d.delivery_requirements as { label: string; status: string }[]) || [])
+      .filter((r) => r.status === 'outstanding')
+      .map((r) => r.label);
 
     if (!d.reminder_24h_sent_at && deliveryAt > now && deliveryAt <= in24h && !isSameDay(deliveryAt, now)) {
       await pushToProfile(
         d.salesperson_id,
         'Delivery tomorrow',
-        `${d.customer_name} — ${d.vehicle}, ${deliveryAt.toLocaleString()}`,
+        `${d.customer_name} — ${d.vehicle}, ${deliveryAt.toLocaleString()}.${todoSuffix(outstanding)}`,
         { url: '/', deliveryId: d.id, type: 'delivery_reminder' },
       );
       await admin.from('deliveries').update({ reminder_24h_sent_at: now.toISOString() }).eq('id', d.id);
@@ -67,7 +76,7 @@ async function runReminders() {
       await pushToProfile(
         d.salesperson_id,
         'Delivery today',
-        `${d.customer_name} — ${d.vehicle} at ${deliveryAt.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`,
+        `${d.customer_name} — ${d.vehicle} at ${deliveryAt.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}.${todoSuffix(outstanding)}`,
         { url: '/', deliveryId: d.id, type: 'delivery_today' },
       );
       await admin.from('deliveries').update({ reminder_day_of_sent_at: now.toISOString() }).eq('id', d.id);
@@ -77,7 +86,7 @@ async function runReminders() {
       await pushToProfile(
         d.salesperson_id,
         'Delivery time',
-        `${d.customer_name} is arriving now for ${d.vehicle}.`,
+        `${d.customer_name} is arriving now for ${d.vehicle}.${todoSuffix(outstanding)}`,
         { url: '/', deliveryId: d.id, type: 'delivery_time' },
       );
       await admin.from('deliveries').update({ reminder_at_time_sent_at: now.toISOString() }).eq('id', d.id);

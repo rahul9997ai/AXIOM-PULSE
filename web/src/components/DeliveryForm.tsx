@@ -155,11 +155,16 @@ export default function DeliveryForm({ existing, onSaved }: { existing?: Deliver
     }
 
     if (!isEdit) {
+      const requirementLabels = [
+        ...templates.filter((t) => checkedTemplates.has(t.id)).map((t) => t.label),
+        ...customReqs.map((c) => c.label),
+      ];
+      const todo = requirementLabels.length ? ` Needed: ${requirementLabels.join(', ')}.` : '';
       await supabase.functions.invoke('send-webpush', {
         body: {
           profile_ids: [salesperson],
           title: 'New delivery assigned',
-          body: `${customer.trim()} — ${vehicle.trim()}, ${new Date(deliveryAt).toLocaleString()}`,
+          body: `${customer.trim()} — ${vehicle.trim()}, ${new Date(deliveryAt).toLocaleString()}.${todo}`,
           data: { url: '/', deliveryId, type: 'delivery_assigned' },
         },
       }).catch(() => {});

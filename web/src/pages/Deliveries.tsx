@@ -3,9 +3,10 @@ import { Link } from 'react-router-dom';
 import { supabase } from '@/lib/supabase';
 import { useSession } from '@/lib/session';
 import type { Delivery } from '@/lib/types';
-import { STATUS_LABEL, MANAGER_ROLES } from '@/lib/types';
+import { STATUS_LABEL, STATUS_COLOR, MANAGER_ROLES, ROLE_LABEL } from '@/lib/types';
 import { formatCents } from '@/lib/money';
 import { enablePush, isStandaloneDisplay, isIOS, pushSupported, sendTestPush } from '@/lib/push';
+import { CalendarIcon, PinIcon, DollarIcon, CarIcon, CheckCircleIcon, AlertIcon, CircleIcon } from '@/components/Icons';
 
 export default function Deliveries() {
   const { profile, session } = useSession();
@@ -85,20 +86,30 @@ export default function Deliveries() {
     catch (e) { setNotice((e as Error).message); }
   };
 
-  const visible = rows
-    .filter((d) => (tab === 'delivered' ? d.status === 'delivered' : d.status !== 'delivered'))
+  const active = rows.filter((d) => d.status !== 'delivered');
+  const visible = (tab === 'delivered' ? rows.filter((d) => d.status === 'delivered') : active)
     .sort((a, b) => tab === 'delivered'
       ? new Date(b.delivered_at ?? b.delivery_at).getTime() - new Date(a.delivered_at ?? a.delivery_at).getTime()
       : new Date(a.delivery_at).getTime() - new Date(b.delivery_at).getTime());
+
+  const outstandingCount = active.filter((d) => (d.delivery_requirements || []).some((r) => r.status === 'outstanding')).length;
 
   return (
     <div style={{ display: 'grid', gap: 14, maxWidth: 640, margin: '0 auto' }}>
       <div>
         <h1 style={{ fontSize: 22, fontWeight: 700, letterSpacing: '-0.02em', margin: 0 }}>Deliveries</h1>
         <div style={{ color: 'var(--accent)', fontWeight: 700, fontSize: 12, letterSpacing: '0.08em', textTransform: 'uppercase', marginTop: 2 }}>
-          {isManager ? 'Manager view' : 'Salesperson view'}
+          {profile ? ROLE_LABEL[profile.role] : ''}
         </div>
       </div>
+
+      {isManager && !loading && (
+        <div style={{ display: 'flex', gap: 10 }}>
+          <StatTile label="Active" value={active.length} />
+          <StatTile label="Outstanding" value={outstandingCount} tone={outstandingCount > 0 ? 'warn' : 'ok'} />
+          <StatTile label="Delivered" value={rows.filter((d) => d.status === 'delivered').length} />
+        </div>
+      )}
 
       {!isManager && pushState === 'offer' && (
         <div className="card">
@@ -152,16 +163,23 @@ export default function Deliveries() {
         const requirements = d.delivery_requirements || [];
         const open = requirements.filter((r) => r.status === 'outstanding');
         const canComplete = !isManager && d.status !== 'delivered' && d.status !== 'cancelled';
+        const sc = STATUS_COLOR[d.status];
 
         return (
-          <div key={d.id} className="card">
+          <div key={d.id} className="card" style={{ borderLeft: `4px solid ${sc.border}`, position: 'relative' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
               <div>
                 <div style={{ fontWeight: 800, fontSize: 17 }}>{d.customer_name}</div>
-                <div style={{ color: 'var(--muted)', marginTop: 4 }}>{d.vehicle}{d.vin ? ` · VIN ${d.vin}` : ''}</div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 6, color: 'var(--muted)', marginTop: 4, fontSize: 13.5 }}>
+                  <CarIcon size={14} />
+                  {d.vehicle}{d.vin ? ` · VIN ${d.vin}` : ''}
+                </div>
               </div>
               <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 6 }}>
-                <span style={{ fontSize: 11, fontWeight: 800, color: 'var(--accent)', textTransform: 'uppercase', letterSpacing: 0.5 }}>
+                <span style={{
+                  fontSize: 10.5, fontWeight: 800, letterSpacing: 0.4, textTransform: 'uppercase',
+                  background: sc.bg, color: sc.fg, padding: '4px 10px', borderRadius: 999,
+                }}>
                   {STATUS_LABEL[d.status]}
                 </span>
                 {isManager && (
@@ -181,30 +199,41 @@ export default function Deliveries() {
                 )}
               </div>
             </div>
-            <div style={{ color: 'var(--muted)', marginTop: 8 }}>{new Date(d.delivery_at).toLocaleString()}</div>
+
+            <div style={{ display: 'flex', alignItems: 'center', gap: 6, color: 'var(--muted)', marginTop: 10, fontSize: 13.5 }}>
+              <CalendarIcon />
+              {new Date(d.delivery_at).toLocaleString()}
+            </div>
             {d.status === 'delivered' && d.delivered_at && (
-              <div style={{ color: '#15803d', fontSize: 13, fontWeight: 700, marginTop: 2 }}>
+              <div style={{ color: '#15803d', fontSize: 13, fontWeight: 700, marginTop: 4, marginLeft: 21 }}>
                 Delivered {new Date(d.delivered_at).toLocaleString()}
               </div>
             )}
-            <div style={{ marginTop: 6 }}>
-              {d.lenders?.name || 'Lender / lessor not selected'}
-              {d.lenders?.address && (
-                <a
-                  href={`https://maps.google.com/?q=${encodeURIComponent(d.lenders.address)}`}
-                  target="_blank"
-                  rel="noreferrer"
-                  style={{ display: 'block', color: 'var(--accent)', fontSize: 13, marginTop: 2, textDecoration: 'none' }}
-                >
-                  {d.lenders.address}
-                </a>
-              )}
+
+            <div style={{ display: 'flex', alignItems: 'flex-start', gap: 6, marginTop: 6, fontSize: 13.5 }}>
+              <span style={{ color: 'var(--muted)', marginTop: 1 }}><PinIcon /></span>
+              <div>
+                {d.lenders?.name || 'Lender / lessor not selected'}
+                {d.lenders?.address && (
+                  <a
+                    href={`https://maps.google.com/?q=${encodeURIComponent(d.lenders.address)}`}
+                    target="_blank"
+                    rel="noreferrer"
+                    style={{ display: 'block', color: 'var(--accent)', fontSize: 12.5, marginTop: 1, textDecoration: 'none' }}
+                  >
+                    {d.lenders.address}
+                  </a>
+                )}
+              </div>
             </div>
-            <div style={{ marginTop: 6, fontSize: 13, color: 'var(--muted)' }}>
+
+            <div style={{ marginTop: 6, fontSize: 13, color: 'var(--muted)', marginLeft: 21 }}>
               Approval: <strong style={{ color: 'var(--text)' }}>{d.approval_status}</strong>
             </div>
+
             {d.due_on_delivery && d.due_on_delivery_amount_cents != null && (
-              <div style={{ marginTop: 8, fontSize: 13 }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginTop: 8, fontSize: 13.5 }}>
+                <span style={{ color: 'var(--muted)' }}><DollarIcon /></span>
                 {d.due_on_delivery_type === 'refund' ? 'Refund to customer' : 'Collect from customer'}: <strong>{formatCents(d.due_on_delivery_amount_cents)}</strong>
               </div>
             )}
@@ -213,25 +242,26 @@ export default function Deliveries() {
             )}
 
             {requirements.length > 0 && (
-              <div style={{ marginTop: 12, display: 'grid', gap: 6 }}>
-                {requirements.map((r) => (
-                  <div key={r.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 8 }}>
-                    <span style={{
-                      fontSize: 13,
-                      color: r.status === 'completed' ? '#15803d' : r.status === 'exception' ? '#b45309' : 'var(--accent)',
-                      fontWeight: 700,
-                    }}>
-                      {r.status === 'completed' ? '✓' : r.status === 'exception' ? '!' : '•'} {r.label}
-                      {r.status === 'exception' && r.exception_reason ? ` — ${r.exception_reason}` : ''}
-                    </span>
-                    {!isManager && r.status === 'outstanding' && (
-                      <div style={{ display: 'flex', gap: 6 }}>
-                        <button className="btn secondary" style={{ padding: '4px 8px', fontSize: 11 }} onClick={() => resolveRequirement(r.id, 'completed')}>Done</button>
-                        <button className="btn secondary" style={{ padding: '4px 8px', fontSize: 11 }} onClick={() => setExceptionFor(r.id)}>Exception</button>
-                      </div>
-                    )}
-                  </div>
-                ))}
+              <div style={{ marginTop: 12, display: 'grid', gap: 8 }}>
+                {requirements.map((r) => {
+                  const color = r.status === 'completed' ? '#15803d' : r.status === 'exception' ? '#b45309' : 'var(--accent)';
+                  const ReqIcon = r.status === 'completed' ? CheckCircleIcon : r.status === 'exception' ? AlertIcon : CircleIcon;
+                  return (
+                    <div key={r.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 8 }}>
+                      <span style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 13, color, fontWeight: 700 }}>
+                        <ReqIcon />
+                        {r.label}
+                        {r.status === 'exception' && r.exception_reason ? ` — ${r.exception_reason}` : ''}
+                      </span>
+                      {!isManager && r.status === 'outstanding' && (
+                        <div style={{ display: 'flex', gap: 6 }}>
+                          <button className="btn secondary" style={{ padding: '4px 8px', fontSize: 11 }} onClick={() => resolveRequirement(r.id, 'completed')}>Done</button>
+                          <button className="btn secondary" style={{ padding: '4px 8px', fontSize: 11 }} onClick={() => setExceptionFor(r.id)}>Exception</button>
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
               </div>
             )}
 
@@ -265,6 +295,16 @@ export default function Deliveries() {
           </div>
         );
       })}
+    </div>
+  );
+}
+
+function StatTile({ label, value, tone }: { label: string; value: number; tone?: 'ok' | 'warn' }) {
+  const color = tone === 'warn' && value > 0 ? '#b45309' : tone === 'ok' ? '#15803d' : 'var(--ink)';
+  return (
+    <div className="card" style={{ flex: 1, padding: '12px 10px', textAlign: 'center' }}>
+      <div style={{ fontSize: 22, fontWeight: 800, color }}>{value}</div>
+      <div style={{ fontSize: 11, color: 'var(--muted)', fontWeight: 700, textTransform: 'uppercase', letterSpacing: 0.4, marginTop: 2 }}>{label}</div>
     </div>
   );
 }

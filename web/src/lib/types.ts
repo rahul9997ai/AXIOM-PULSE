@@ -82,4 +82,19 @@ export const STATUS_LABEL: Record<DeliveryStatus, string> = {
   cancelled: 'Cancelled',
 };
 
+export const STATUS_COLOR: Record<DeliveryStatus, { bg: string; fg: string; border: string }> = {
+  new: { bg: '#eaf2ff', fg: '#0a55e6', border: '#0a6cf0' },
+  requirements_outstanding: { bg: '#fef3e2', fg: '#b45309', border: '#f59e0b' },
+  ready: { bg: '#eafaf0', fg: '#15803d', border: '#22c55e' },
+  delivered: { bg: '#eef2f7', fg: '#334155', border: '#94a3b8' },
+  cancelled: { bg: '#fdecea', fg: '#a3261b', border: '#ef4444' },
+};
+
 export const MANAGER_ROLES: Role[] = ['FSM', 'General Manager', 'Master Administrator'];
+
+export const ROLE_LABEL: Record<Role, string> = {
+  FSM: 'FSM view',
+  'General Manager': 'General Manager view',
+  'Master Administrator': 'Master Administrator view',
+  Salesperson: 'Salesperson view',
+};
