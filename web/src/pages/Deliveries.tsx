@@ -15,7 +15,7 @@ export default function Deliveries() {
   const { isMaster, actingRole, actingDealershipId, isAdminMode } = useActingRole();
   const [rows, setRows] = useState<Delivery[]>([]);
   const [loading, setLoading] = useState(true);
-  const [pushState, setPushState] = useState<'unsupported' | 'ios-install' | 'offer' | 'enabled'>('offer');
+  const [pushState, setPushState] = useState<'unsupported' | 'ios-install' | 'offer' | 'blocked' | 'enabled'>('offer');
   const [notice, setNotice] = useState<string | null>(null);
   const [exceptionFor, setExceptionFor] = useState<string | null>(null);
   const [exceptionReason, setExceptionReason] = useState('');
@@ -63,6 +63,7 @@ export default function Deliveries() {
     if (!pushSupported()) { setPushState('unsupported'); return; }
     if (isIOS() && !isStandaloneDisplay()) { setPushState('ios-install'); return; }
     if (Notification.permission === 'granted') { setPushState('enabled'); return; }
+    if (Notification.permission === 'denied') { setPushState('blocked'); return; }
     setPushState('offer');
   }, []);
 
@@ -165,6 +166,16 @@ export default function Deliveries() {
           <h3 style={{ marginTop: 0 }}>Enable Delivery Notifications</h3>
           <p style={{ color: 'var(--muted)', fontSize: 13 }}>
             On iPhone/iPad, add Axiom Pulse to your Home Screen first, then open it from there to enable notifications.
+          </p>
+        </div>
+      )}
+      {!isManager && pushState === 'blocked' && (
+        <div className="card">
+          <h3 style={{ marginTop: 0, color: '#a3261b' }}>Notifications Are Blocked</h3>
+          <p style={{ color: 'var(--muted)', fontSize: 13 }}>
+            {isIOS()
+              ? 'Notifications for Axiom Pulse were previously turned off on this iPhone. Open iOS Settings, scroll down to Axiom Pulse, and turn Notifications on — then come back to this screen.'
+              : 'Notifications for Axiom Pulse are blocked in this browser. Enable them in your browser or site settings, then come back to this screen.'}
           </p>
         </div>
       )}

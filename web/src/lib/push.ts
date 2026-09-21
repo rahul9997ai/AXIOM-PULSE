@@ -28,6 +28,18 @@ export async function enablePush(): Promise<void> {
     throw new Error('On iPhone or iPad, add Axiom Pulse to your Home Screen first, then open it from there to enable notifications.');
   }
 
+  // iOS/Safari only shows the allow/deny dialog once per app install. A prior
+  // "Don't Allow" (even from testing, before this was set up correctly) means
+  // requestPermission() now silently re-returns 'denied' with no dialog at all —
+  // it looks like nothing happened when the button is tapped.
+  if (Notification.permission === 'denied') {
+    throw new Error(
+      isIOS()
+        ? 'Notifications are blocked for Axiom Pulse. Open iOS Settings, scroll to Axiom Pulse, turn on Notifications, then come back and try again.'
+        : 'Notifications are blocked for Axiom Pulse in this browser. Enable them in your browser/site settings, then try again.',
+    );
+  }
+
   const permission = Notification.permission === 'granted' ? 'granted' : await Notification.requestPermission();
   if (permission !== 'granted') throw new Error('Notification permission was not granted.');
 
