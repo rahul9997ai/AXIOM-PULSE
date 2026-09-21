@@ -3,6 +3,7 @@ import { useSession } from '@/lib/session';
 import { ActingRoleProvider, useActingRole } from '@/lib/actingRole';
 import { MANAGER_ROLES } from '@/lib/types';
 import SignIn from '@/pages/SignIn';
+import ForcePasswordChange from '@/pages/ForcePasswordChange';
 import Layout from '@/pages/Layout';
 import Deliveries from '@/pages/Deliveries';
 import NewDelivery from '@/pages/NewDelivery';
@@ -10,10 +11,11 @@ import EditDelivery from '@/pages/EditDelivery';
 import Settings from '@/pages/Settings';
 
 export default function App() {
-  const { session, loading } = useSession();
+  const { session, profile, loading } = useSession();
 
   if (loading) return null;
   if (!session) return <SignIn />;
+  if (profile?.must_change_password) return <ForcePasswordChange />;
 
   return (
     <ActingRoleProvider>

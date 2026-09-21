@@ -3,6 +3,7 @@ import { supabase } from '@/lib/supabase';
 import type { Role } from '@/lib/types';
 
 interface Dealership { id: string; name: string; active: boolean; }
+interface AppUser { id: string; name: string; role: Role; dealership_id: string | null; active: boolean; }
 
 const INVITE_ROLES: Role[] = ['General Manager', 'FSM', 'Salesperson'];
 
@@ -25,6 +26,10 @@ export default function AdminHome() {
 
   const [notice, setNotice] = useState<{ text: string; tone: 'ok' | 'err' } | null>(null);
 
+  const [users, setUsers] = useState<AppUser[]>([]);
+  const [loadingUsers, setLoadingUsers] = useState(true);
+  const [deletingId, setDeletingId] = useState<string | null>(null);
+
   const loadDealerships = async () => {
     setLoadingDealerships(true);
     const { data } = await supabase.from('dealerships').select('id,name,active').order('name');
@@ -34,7 +39,33 @@ export default function AdminHome() {
     setLoadingDealerships(false);
   };
 
-  useEffect(() => { loadDealerships(); }, []);
+  const loadUsers = async () => {
+    setLoadingUsers(true);
+    const { data } = await supabase
+      .from('profiles')
+      .select('id,name,role,dealership_id,active')
+      .neq('role', 'Master Administrator')
+      .order('name');
+    setUsers((data as AppUser[]) || []);
+    setLoadingUsers(false);
+  };
+
+  useEffect(() => { loadDealerships(); loadUsers(); }, []);
+
+  const deleteUser = async (u: AppUser) => {
+    if (!window.confirm(`Remove ${u.name} (${u.role})? This can't be undone.`)) return;
+    setDeletingId(u.id);
+    const { data, error } = await supabase.functions.invoke('admin-users', { body: { action: 'delete', id: u.id } });
+    setDeletingId(null);
+    if (error) { setNotice({ text: error.message, tone: 'err' }); return; }
+    setNotice({
+      text: data?.deactivated
+        ? `${u.name} has records tied to their account, so they were deactivated instead of removed — they can no longer sign in.`
+        : `${u.name} removed.`,
+      tone: 'ok',
+    });
+    loadUsers();
+  };
 
   const createDealership = async () => {
     const name = newDealershipName.trim();
@@ -98,6 +129,7 @@ export default function AdminHome() {
     setInviteName('');
     setInviteIdentifier('');
     setInvitePassword('');
+    loadUsers();
   };
 
   return (
@@ -181,9 +213,43 @@ export default function AdminHome() {
         </p>
       </div>
 
+      <div className="card">
+        <h3 style={{ marginTop: 0 }}>Users</h3>
+        {loadingUsers && <div style={{ color: 'var(--muted)', fontSize: 13 }}>Loading…</div>}
+        {!loadingUsers && users.length === 0 && (
+          <div style={{ color: 'var(--muted)', fontSize: 13 }}>No General Managers, FSMs or Salespeople yet.</div>
+        )}
+        {users.length > 0 && (
+          <div style={{ display: 'grid', gap: 8 }}>
+            {users.map((u) => {
+              const dealership = dealerships.find((d) => d.id === u.dealership_id);
+              return (
+                <div key={u.id} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8, borderBottom: '1px solid var(--line)', paddingBottom: 8 }}>
+                  <div>
+                    <div style={{ fontWeight: 700, fontSize: 14 }}>
+                      {u.name} {!u.active && <span style={{ color: '#a3261b', fontSize: 11, fontWeight: 700 }}>· Inactive</span>}
+                    </div>
+                    <div style={{ color: 'var(--muted)', fontSize: 12 }}>{u.role} · {dealership?.name ?? 'No dealership'}</div>
+                  </div>
+                  <button
+                    type="button"
+                    className="btn secondary"
+                    style={{ padding: '4px 10px', fontSize: 12, borderColor: '#dc2626', color: '#dc2626' }}
+                    disabled={deletingId === u.id}
+                    onClick={() => deleteUser(u)}
+                  >
+                    {deletingId === u.id ? 'Removing…' : 'Remove'}
+                  </button>
+                </div>
+              );
+            })}
+          </div>
+        )}
+      </div>
+
       <p style={{ color: 'var(--muted)', fontSize: 12, textAlign: 'center' }}>
-        For password resets, deactivating accounts or full dealership settings (brand, tax, finance
-        defaults), use Axiom Command Center.
+        For password resets or full dealership settings (brand, tax, finance defaults), use Axiom
+        Command Center.
       </p>
     </div>
   );
