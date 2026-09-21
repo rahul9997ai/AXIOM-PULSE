@@ -26,7 +26,15 @@ export default defineConfig({
         ],
       },
       injectManifest: {
-        injectionPoint: undefined,
+        // `injectionPoint: undefined` (removed) was disabling Workbox's
+        // precache-manifest injection entirely: self.__WB_MANIFEST in the
+        // compiled worker was left as a literal, never-defined property
+        // access instead of the real file list, which throws during the
+        // service worker's install step on every browser — the worker
+        // never activates, so navigator.serviceWorker.ready never
+        // resolves. This is the default injection point; leaving it unset
+        // makes the build replace self.__WB_MANIFEST for real.
+        //
         // Safari has never supported `type: 'module'` service workers —
         // build the worker as a classic (IIFE) script so it registers on
         // iOS/iPadOS at all, not just Chromium-based browsers.
