@@ -15,6 +15,7 @@ export default function Deliveries() {
   const [notice, setNotice] = useState<string | null>(null);
   const [exceptionFor, setExceptionFor] = useState<string | null>(null);
   const [exceptionReason, setExceptionReason] = useState('');
+  const [tab, setTab] = useState<'active' | 'delivered'>('active');
 
   const isManager = profile ? MANAGER_ROLES.includes(profile.role) : false;
 
@@ -67,6 +68,13 @@ export default function Deliveries() {
     else load();
   };
 
+  const deleteDelivery = async (d: Delivery) => {
+    if (!window.confirm(`Permanently delete the delivery record for ${d.customer_name}? This can't be undone.`)) return;
+    const { error } = await supabase.from('deliveries').delete().eq('id', d.id);
+    if (error) setNotice(error.message);
+    else load();
+  };
+
   const onEnablePush = async () => {
     try { await enablePush(); setPushState('enabled'); setNotice('Notifications enabled. Delivery reminders arrive even when Pulse is closed.'); }
     catch (e) { setNotice((e as Error).message); }
@@ -76,6 +84,12 @@ export default function Deliveries() {
     try { const { sent } = await sendTestPush(); setNotice(`Test notification sent to ${sent} device(s). Close the app to verify background delivery.`); }
     catch (e) { setNotice((e as Error).message); }
   };
+
+  const visible = rows
+    .filter((d) => (tab === 'delivered' ? d.status === 'delivered' : d.status !== 'delivered'))
+    .sort((a, b) => tab === 'delivered'
+      ? new Date(b.delivered_at ?? b.delivery_at).getTime() - new Date(a.delivered_at ?? a.delivery_at).getTime()
+      : new Date(a.delivery_at).getTime() - new Date(b.delivery_at).getTime());
 
   return (
     <div style={{ display: 'grid', gap: 14, maxWidth: 640, margin: '0 auto' }}>
@@ -109,10 +123,32 @@ export default function Deliveries() {
       )}
       {notice && <div className="card" style={{ fontSize: 13 }}>{notice}</div>}
 
-      {loading && <div style={{ color: 'var(--muted)' }}>Loading…</div>}
-      {!loading && rows.length === 0 && <div style={{ color: 'var(--muted)', textAlign: 'center', marginTop: 40 }}>No deliveries scheduled yet.</div>}
+      <div style={{ display: 'flex', gap: 6, background: 'var(--surface)', borderRadius: 12, padding: 4 }}>
+        {(['active', 'delivered'] as const).map((t) => (
+          <button
+            key={t}
+            type="button"
+            onClick={() => setTab(t)}
+            style={{
+              flex: 1, border: 'none', borderRadius: 9, padding: '8px 0', fontSize: 13, fontWeight: 700,
+              cursor: 'pointer', background: tab === t ? '#fff' : 'transparent',
+              color: tab === t ? 'var(--ink)' : 'var(--muted)',
+              boxShadow: tab === t ? '0 1px 3px rgba(20,50,100,0.12)' : 'none',
+            }}
+          >
+            {t === 'active' ? 'Active' : 'Delivered'}
+          </button>
+        ))}
+      </div>
 
-      {rows.map((d) => {
+      {loading && <div style={{ color: 'var(--muted)' }}>Loading…</div>}
+      {!loading && visible.length === 0 && (
+        <div style={{ color: 'var(--muted)', textAlign: 'center', marginTop: 40 }}>
+          {tab === 'delivered' ? 'No delivered units yet.' : 'No deliveries scheduled yet.'}
+        </div>
+      )}
+
+      {visible.map((d) => {
         const requirements = d.delivery_requirements || [];
         const open = requirements.filter((r) => r.status === 'outstanding');
         const canComplete = !isManager && d.status !== 'delivered' && d.status !== 'cancelled';
@@ -133,9 +169,24 @@ export default function Deliveries() {
                     Edit
                   </Link>
                 )}
+                {isManager && d.status === 'delivered' && (
+                  <button
+                    type="button"
+                    className="btn secondary"
+                    style={{ padding: '3px 10px', fontSize: 11, borderColor: '#dc2626', color: '#dc2626' }}
+                    onClick={() => deleteDelivery(d)}
+                  >
+                    Delete
+                  </button>
+                )}
               </div>
             </div>
             <div style={{ color: 'var(--muted)', marginTop: 8 }}>{new Date(d.delivery_at).toLocaleString()}</div>
+            {d.status === 'delivered' && d.delivered_at && (
+              <div style={{ color: '#15803d', fontSize: 13, fontWeight: 700, marginTop: 2 }}>
+                Delivered {new Date(d.delivered_at).toLocaleString()}
+              </div>
+            )}
             <div style={{ marginTop: 6 }}>
               {d.lenders?.name || 'Lender / lessor not selected'}
               {d.lenders?.address && (
