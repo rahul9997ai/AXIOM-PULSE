@@ -6,16 +6,15 @@ import { useActingRole } from '@/lib/actingRole';
 import type { Delivery } from '@/lib/types';
 import { STATUS_LABEL, STATUS_COLOR, MANAGER_ROLES, ROLE_LABEL } from '@/lib/types';
 import { formatCents } from '@/lib/money';
-import { enablePush, isStandaloneDisplay, isIOS, pushSupported, sendTestPush } from '@/lib/push';
 import { CalendarIcon, PinIcon, DollarIcon, CarIcon, CheckCircleIcon, AlertIcon, CircleIcon } from '@/components/Icons';
 import AdminHome from './AdminHome';
+import PushCard from '@/components/PushCard';
 
 export default function Deliveries() {
   const { profile, session } = useSession();
   const { isMaster, actingRole, actingDealershipId, isAdminMode } = useActingRole();
   const [rows, setRows] = useState<Delivery[]>([]);
   const [loading, setLoading] = useState(true);
-  const [pushState, setPushState] = useState<'unsupported' | 'ios-install' | 'offer' | 'blocked' | 'enabled'>('offer');
   const [notice, setNotice] = useState<string | null>(null);
   const [exceptionFor, setExceptionFor] = useState<string | null>(null);
   const [exceptionReason, setExceptionReason] = useState('');
@@ -59,26 +58,6 @@ export default function Deliveries() {
     return () => { supabase.removeChannel(channel); };
   }, [profile, load]);
 
-  useEffect(() => {
-    if (!pushSupported()) { setPushState('unsupported'); return; }
-    if (isIOS() && !isStandaloneDisplay()) { setPushState('ios-install'); return; }
-    if (Notification.permission === 'denied') { setPushState('blocked'); return; }
-    if (Notification.permission === 'granted') {
-      // Permission being granted doesn't guarantee a subscription row still
-      // exists server-side (it can be missing from an earlier failed
-      // registration, or dropped after a browser/OS reset) — re-run
-      // registration on every visit instead of trusting stale permission
-      // state, so a device can self-heal without the user having to find a
-      // button that isn't shown once permission is granted. Surface a
-      // failure instead of swallowing it — a silent failure here is exactly
-      // what made this undiagnosable before.
-      enablePush().catch((e) => setNotice(`Notifications: ${(e as Error).message}`));
-      setPushState('enabled');
-      return;
-    }
-    setPushState('offer');
-  }, []);
-
   const resolveRequirement = async (id: string, status: 'completed' | 'exception', reason?: string) => {
     const { error } = await supabase.rpc('set_requirement_status', {
       p_requirement_id: id,
@@ -100,16 +79,6 @@ export default function Deliveries() {
     const { error } = await supabase.from('deliveries').delete().eq('id', d.id);
     if (error) setNotice(error.message);
     else load();
-  };
-
-  const onEnablePush = async () => {
-    try { await enablePush(); setPushState('enabled'); setNotice('Notifications enabled. Delivery reminders arrive even when Pulse is closed.'); }
-    catch (e) { setNotice((e as Error).message); }
-  };
-
-  const onTestPush = async () => {
-    try { const { sent } = await sendTestPush(); setNotice(`Test notification sent to ${sent} device(s). Close the app to verify background delivery.`); }
-    catch (e) { setNotice((e as Error).message); }
   };
 
   const sendUrgentNotify = async (d: Delivery) => {
@@ -166,40 +135,7 @@ export default function Deliveries() {
         </div>
       )}
 
-      {!isManager && pushState === 'offer' && (
-        <div className="card">
-          <h3 style={{ marginTop: 0 }}>Enable Delivery Notifications</h3>
-          <p style={{ color: 'var(--muted)', fontSize: 13 }}>Get reminded of upcoming deliveries even when Pulse is closed.</p>
-          <button className="btn" onClick={onEnablePush}>Enable notifications</button>
-        </div>
-      )}
-      {!isManager && pushState === 'ios-install' && (
-        <div className="card">
-          <h3 style={{ marginTop: 0 }}>Enable Delivery Notifications</h3>
-          <p style={{ color: 'var(--muted)', fontSize: 13 }}>
-            On iPhone/iPad, add Axiom Pulse to your Home Screen first, then open it from there to enable notifications.
-          </p>
-        </div>
-      )}
-      {!isManager && pushState === 'blocked' && (
-        <div className="card">
-          <h3 style={{ marginTop: 0, color: '#a3261b' }}>Notifications Are Blocked</h3>
-          <p style={{ color: 'var(--muted)', fontSize: 13 }}>
-            {isIOS()
-              ? 'Notifications for Axiom Pulse were previously turned off on this iPhone. Open iOS Settings, scroll down to Axiom Pulse, and turn Notifications on — then come back to this screen.'
-              : 'Notifications for Axiom Pulse are blocked in this browser. Enable them in your browser or site settings, then come back to this screen.'}
-          </p>
-        </div>
-      )}
-      {!isManager && pushState === 'enabled' && (
-        <div className="card">
-          <div style={{ color: '#15803d', fontWeight: 700, fontSize: 13 }}>Background push enabled on this device.</div>
-          <div style={{ display: 'flex', gap: 8, marginTop: 10 }}>
-            <button className="btn secondary" onClick={onTestPush}>Send test notification</button>
-            <button className="btn secondary" onClick={onEnablePush}>Re-sync notifications</button>
-          </div>
-        </div>
-      )}
+      {!isManager && <PushCard />}
       {notice && <div className="card" style={{ fontSize: 13 }}>{notice}</div>}
 
       <div style={{ display: 'flex', gap: 6, background: 'var(--surface)', borderRadius: 12, padding: 4 }}>

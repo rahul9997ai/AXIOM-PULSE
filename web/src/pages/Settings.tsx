@@ -5,6 +5,7 @@ import { useActingRole } from '@/lib/actingRole';
 import type { Lender, RequirementTemplate } from '@/lib/types';
 import { MANAGER_ROLES } from '@/lib/types';
 import InstallAppCard from '@/components/InstallAppCard';
+import PushCard from '@/components/PushCard';
 import { LogOutIcon } from '@/components/Icons';
 
 interface Dealership { id: string; name: string; }
@@ -156,6 +157,8 @@ export default function Settings() {
       </div>
 
       <InstallAppCard />
+
+      <PushCard />
 
       {canManageLists && isMaster && (
         <div className="card">
