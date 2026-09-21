@@ -62,8 +62,18 @@ export default function Deliveries() {
   useEffect(() => {
     if (!pushSupported()) { setPushState('unsupported'); return; }
     if (isIOS() && !isStandaloneDisplay()) { setPushState('ios-install'); return; }
-    if (Notification.permission === 'granted') { setPushState('enabled'); return; }
     if (Notification.permission === 'denied') { setPushState('blocked'); return; }
+    if (Notification.permission === 'granted') {
+      // Permission being granted doesn't guarantee a subscription row still
+      // exists server-side (it can be missing from an earlier failed
+      // registration, or dropped after a browser/OS reset) — re-run
+      // registration silently on every visit instead of trusting stale
+      // permission state, so a device can self-heal without the user having
+      // to find a button that isn't shown once permission is granted.
+      enablePush().catch(() => {});
+      setPushState('enabled');
+      return;
+    }
     setPushState('offer');
   }, []);
 
