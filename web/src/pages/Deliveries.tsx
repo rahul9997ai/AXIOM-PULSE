@@ -2,16 +2,17 @@ import { useEffect, useState, useCallback } from 'react';
 import { Link } from 'react-router-dom';
 import { supabase } from '@/lib/supabase';
 import { useSession } from '@/lib/session';
+import { useActingRole } from '@/lib/actingRole';
 import type { Delivery } from '@/lib/types';
 import { STATUS_LABEL, STATUS_COLOR, MANAGER_ROLES, ROLE_LABEL } from '@/lib/types';
 import { formatCents } from '@/lib/money';
 import { enablePush, isStandaloneDisplay, isIOS, pushSupported, sendTestPush } from '@/lib/push';
 import { CalendarIcon, PinIcon, DollarIcon, CarIcon, CheckCircleIcon, AlertIcon, CircleIcon } from '@/components/Icons';
-
-interface Dealership { id: string; name: string; }
+import AdminHome from './AdminHome';
 
 export default function Deliveries() {
   const { profile, session } = useSession();
+  const { isMaster, actingRole, actingDealershipId, isAdminMode } = useActingRole();
   const [rows, setRows] = useState<Delivery[]>([]);
   const [loading, setLoading] = useState(true);
   const [pushState, setPushState] = useState<'unsupported' | 'ios-install' | 'offer' | 'enabled'>('offer');
@@ -21,40 +22,28 @@ export default function Deliveries() {
   const [tab, setTab] = useState<'active' | 'delivered'>('active');
   const [notifyFor, setNotifyFor] = useState<string | null>(null);
   const [notifyMessage, setNotifyMessage] = useState('');
-  const [dealerships, setDealerships] = useState<Dealership[]>([]);
-  const [selectedDealershipId, setSelectedDealershipId] = useState('');
 
-  const isManager = profile ? MANAGER_ROLES.includes(profile.role) : false;
-  const isMaster = profile?.role === 'Master Administrator';
-
-  // Master Administrator isn't tied to one dealership — they test/oversee any
-  // of them, so the list is scoped to one dealership at a time via a picker,
-  // instead of a mixed cross-dealership list.
-  useEffect(() => {
-    if (!isMaster) return;
-    supabase.from('dealerships').select('id,name').order('name')
-      .then(({ data }) => {
-        const list = (data as Dealership[]) || [];
-        setDealerships(list);
-        setSelectedDealershipId((prev) => prev || list[0]?.id || '');
-      });
-  }, [isMaster]);
+  // A Master Administrator has no operational role of their own — the delivery
+  // board only makes sense once they've chosen a role+dealership to preview.
+  const effectiveRole = isMaster ? actingRole : profile?.role;
+  const isManager = effectiveRole ? MANAGER_ROLES.includes(effectiveRole) : false;
 
   const load = useCallback(async () => {
-    if (!profile) return;
+    if (!profile || isAdminMode) return;
     let query = supabase
       .from('deliveries')
       .select('*, delivery_requirements(*), lenders(name, address)')
       .order('delivery_at', { ascending: true });
-    if (!isManager) query = query.eq('salesperson_id', session?.user.id);
     if (isMaster) {
-      if (!selectedDealershipId) { setRows([]); setLoading(false); return; }
-      query = query.eq('dealership_id', selectedDealershipId);
+      if (!actingDealershipId) { setRows([]); setLoading(false); return; }
+      query = query.eq('dealership_id', actingDealershipId);
+    } else if (!isManager) {
+      query = query.eq('salesperson_id', session?.user.id);
     }
     const { data, error } = await query;
     if (!error) setRows((data as Delivery[]) || []);
     setLoading(false);
-  }, [profile, isManager, isMaster, selectedDealershipId, session?.user.id]);
+  }, [profile, isManager, isMaster, isAdminMode, actingDealershipId, session?.user.id]);
 
   useEffect(() => { load(); }, [load]);
 
@@ -137,29 +126,16 @@ export default function Deliveries() {
 
   const outstandingCount = active.filter((d) => (d.delivery_requirements || []).some((r) => r.status === 'outstanding')).length;
 
+  if (isAdminMode) return <AdminHome />;
+
   return (
     <div style={{ display: 'grid', gap: 14, maxWidth: 640, margin: '0 auto' }}>
       <div>
         <h1 style={{ fontSize: 22, fontWeight: 700, letterSpacing: '-0.02em', margin: 0 }}>Deliveries</h1>
         <div style={{ color: 'var(--accent)', fontWeight: 700, fontSize: 12, letterSpacing: '0.08em', textTransform: 'uppercase', marginTop: 2 }}>
-          {profile ? ROLE_LABEL[profile.role] : ''}
+          {effectiveRole ? ROLE_LABEL[effectiveRole] : ''}{isMaster ? ' (previewed by Master Administrator)' : ''}
         </div>
       </div>
-
-      {isMaster && dealerships.length > 0 && (
-        <div>
-          <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--muted)', letterSpacing: 0.4, textTransform: 'uppercase', marginBottom: 4 }}>
-            Dealership
-          </div>
-          <select
-            value={selectedDealershipId}
-            onChange={(e) => setSelectedDealershipId(e.target.value)}
-            style={{ width: '100%' }}
-          >
-            {dealerships.map((dl) => <option key={dl.id} value={dl.id}>{dl.name}</option>)}
-          </select>
-        </div>
-      )}
 
       {isManager && !loading && (
         <div style={{ display: 'flex', gap: 10 }}>

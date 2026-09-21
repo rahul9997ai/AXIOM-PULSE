@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { supabase } from '@/lib/supabase';
 import { useSession } from '@/lib/session';
 import { inputToCents, centsToInput } from '@/lib/money';
+import { useActingRole } from '@/lib/actingRole';
 import type { ApprovalStatus, Delivery, DueOnDeliveryType, Lender, RequirementTemplate } from '@/lib/types';
 
 interface Salesperson { id: string; name: string; }
@@ -13,12 +14,13 @@ const APPROVAL_OPTIONS: ApprovalStatus[] = ['pending', 'approved', 'conditional'
 
 export default function DeliveryForm({ existing, onSaved }: { existing?: Delivery; onSaved: () => void }) {
   const { profile, session } = useSession();
+  const { actingDealershipId } = useActingRole();
   const navigate = useNavigate();
   const isEdit = !!existing;
   const isMaster = profile?.role === 'Master Administrator';
 
   const [dealerships, setDealerships] = useState<Dealership[]>([]);
-  const [selectedDealershipId, setSelectedDealershipId] = useState(existing?.dealership_id ?? '');
+  const [selectedDealershipId, setSelectedDealershipId] = useState(existing?.dealership_id ?? actingDealershipId ?? '');
   // Master Administrator has no dealership_id of their own (oversees every
   // dealership), so they pick one explicitly; everyone else is locked to theirs.
   const effectiveDealershipId = isMaster ? selectedDealershipId : (profile?.dealership_id ?? '');

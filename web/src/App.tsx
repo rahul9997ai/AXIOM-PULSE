@@ -1,5 +1,6 @@
 import { Routes, Route, Navigate } from 'react-router-dom';
 import { useSession } from '@/lib/session';
+import { ActingRoleProvider, useActingRole } from '@/lib/actingRole';
 import { MANAGER_ROLES } from '@/lib/types';
 import SignIn from '@/pages/SignIn';
 import Layout from '@/pages/Layout';
@@ -9,19 +10,30 @@ import EditDelivery from '@/pages/EditDelivery';
 import Settings from '@/pages/Settings';
 
 export default function App() {
-  const { session, profile, loading } = useSession();
+  const { session, loading } = useSession();
 
   if (loading) return null;
   if (!session) return <SignIn />;
 
+  return (
+    <ActingRoleProvider>
+      <AppRoutes />
+    </ActingRoleProvider>
+  );
+}
+
+function AppRoutes() {
+  const { isAdminMode } = useActingRole();
+  const { profile } = useSession();
   const isManager = profile ? MANAGER_ROLES.includes(profile.role) : false;
+  const canCreate = isManager && !isAdminMode;
 
   return (
     <Layout>
       <Routes>
         <Route path="/" element={<Deliveries />} />
-        <Route path="/new" element={isManager ? <NewDelivery /> : <Navigate to="/" replace />} />
-        <Route path="/edit/:id" element={isManager ? <EditDelivery /> : <Navigate to="/" replace />} />
+        <Route path="/new" element={canCreate ? <NewDelivery /> : <Navigate to="/" replace />} />
+        <Route path="/edit/:id" element={canCreate ? <EditDelivery /> : <Navigate to="/" replace />} />
         <Route path="/settings" element={<Settings />} />
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>

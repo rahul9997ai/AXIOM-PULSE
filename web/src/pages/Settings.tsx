@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { supabase } from '@/lib/supabase';
 import { useSession } from '@/lib/session';
+import { useActingRole } from '@/lib/actingRole';
 import type { Lender, RequirementTemplate } from '@/lib/types';
 import { MANAGER_ROLES } from '@/lib/types';
 import InstallAppCard from '@/components/InstallAppCard';
@@ -12,11 +13,12 @@ const FK_IN_USE = '23503';
 
 export default function Settings() {
   const { profile } = useSession();
+  const { actingDealershipId } = useActingRole();
   const isMaster = profile?.role === 'Master Administrator';
   const canManageLists = profile ? MANAGER_ROLES.includes(profile.role) : false;
 
   const [dealerships, setDealerships] = useState<Dealership[]>([]);
-  const [selectedDealershipId, setSelectedDealershipId] = useState('');
+  const [selectedDealershipId, setSelectedDealershipId] = useState(actingDealershipId);
   const dealershipId = isMaster ? selectedDealershipId : (profile?.dealership_id ?? '');
 
   const [lenders, setLenders] = useState<Lender[]>([]);
