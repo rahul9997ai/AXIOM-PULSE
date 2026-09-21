@@ -1,50 +1,38 @@
 import type { ReactNode } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useLocation } from 'react-router-dom';
 import { useSession } from '@/lib/session';
-import { supabase } from '@/lib/supabase';
 import { AxiomLockup } from '@/components/AxiomMark';
 import { MANAGER_ROLES } from '@/lib/types';
+import { HomeIcon, PlusCircleIcon, GearIcon } from '@/components/Icons';
 
 export default function Layout({ children }: { children: ReactNode }) {
   const { profile } = useSession();
+  const { pathname } = useLocation();
   const isManager = profile ? MANAGER_ROLES.includes(profile.role) : false;
 
+  const navItems = [
+    { to: '/', label: 'Deliveries', icon: HomeIcon, match: (p: string) => p === '/' || p.startsWith('/edit') },
+    ...(isManager ? [{ to: '/new', label: 'New', icon: PlusCircleIcon, match: (p: string) => p === '/new' }] : []),
+    { to: '/settings', label: 'Settings', icon: GearIcon, match: (p: string) => p === '/settings' },
+  ];
+
   return (
-    <div style={{ minHeight: '100dvh', display: 'flex', flexDirection: 'column' }}>
-      <header
-        style={{
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'space-between',
-          padding: '14px 18px',
-          background: '#fff',
-          borderBottom: '1px solid var(--line)',
-          flexWrap: 'wrap',
-          gap: 10,
-        }}
-      >
-        <AxiomLockup size={26} />
-        <div style={{ display: 'flex', gap: 10, alignItems: 'center' }}>
-          {isManager && (
-            <>
-              <Link to="/settings" className="btn secondary" style={{ textDecoration: 'none', padding: '8px 12px', fontSize: 13 }}>
-                Settings
-              </Link>
-              <Link to="/new" className="btn secondary" style={{ textDecoration: 'none', padding: '8px 12px', fontSize: 13 }}>
-                + New
-              </Link>
-            </>
-          )}
-          <button
-            className="btn secondary"
-            style={{ padding: '8px 12px', fontSize: 13 }}
-            onClick={() => supabase.auth.signOut()}
-          >
-            Sign out
-          </button>
-        </div>
+    <div className="app-shell">
+      <header className="app-header">
+        <AxiomLockup size={24} />
       </header>
-      <main style={{ flex: 1, padding: '18px 18px 24px' }}>{children}</main>
+      <main className="app-main">{children}</main>
+      <nav className="app-tabbar" aria-label="Primary">
+        {navItems.map(({ to, label, icon: Icon, match }) => {
+          const active = match(pathname);
+          return (
+            <Link key={to} to={to} className={`app-tab ${active ? 'active' : ''}`}>
+              <Icon size={22} />
+              <span>{label}</span>
+            </Link>
+          );
+        })}
+      </nav>
     </div>
   );
 }

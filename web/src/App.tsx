@@ -22,7 +22,7 @@ export default function App() {
         <Route path="/" element={<Deliveries />} />
         <Route path="/new" element={isManager ? <NewDelivery /> : <Navigate to="/" replace />} />
         <Route path="/edit/:id" element={isManager ? <EditDelivery /> : <Navigate to="/" replace />} />
-        <Route path="/settings" element={isManager ? <Settings /> : <Navigate to="/" replace />} />
+        <Route path="/settings" element={<Settings />} />
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
     </Layout>

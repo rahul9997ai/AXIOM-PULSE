@@ -2,6 +2,9 @@ import { useEffect, useState } from 'react';
 import { supabase } from '@/lib/supabase';
 import { useSession } from '@/lib/session';
 import type { Lender, RequirementTemplate } from '@/lib/types';
+import { MANAGER_ROLES } from '@/lib/types';
+import InstallAppCard from '@/components/InstallAppCard';
+import { LogOutIcon } from '@/components/Icons';
 
 interface Dealership { id: string; name: string; }
 
@@ -10,6 +13,7 @@ const FK_IN_USE = '23503';
 export default function Settings() {
   const { profile } = useSession();
   const isMaster = profile?.role === 'Master Administrator';
+  const canManageLists = profile ? MANAGER_ROLES.includes(profile.role) : false;
 
   const [dealerships, setDealerships] = useState<Dealership[]>([]);
   const [selectedDealershipId, setSelectedDealershipId] = useState('');
@@ -132,7 +136,26 @@ export default function Settings() {
     <div style={{ display: 'grid', gap: 16, maxWidth: 560, margin: '0 auto' }}>
       <h1 style={{ fontSize: 22, fontWeight: 700, letterSpacing: '-0.02em', margin: 0 }}>Settings</h1>
 
-      {isMaster && (
+      <div className="card">
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+          <div>
+            <div style={{ fontWeight: 700, fontSize: 15 }}>{profile?.name}</div>
+            <div style={{ color: 'var(--muted)', fontSize: 13 }}>{profile?.role}</div>
+          </div>
+          <button
+            type="button"
+            className="btn secondary"
+            style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '8px 14px', fontSize: 13 }}
+            onClick={() => supabase.auth.signOut()}
+          >
+            <LogOutIcon size={16} /> Sign out
+          </button>
+        </div>
+      </div>
+
+      <InstallAppCard />
+
+      {canManageLists && isMaster && (
         <div className="card">
           <div style={{ color: 'var(--muted)', fontWeight: 800, fontSize: 12, letterSpacing: 1, marginBottom: 8 }}>DEALERSHIP</div>
           <select value={selectedDealershipId} onChange={(e) => setSelectedDealershipId(e.target.value)}>
@@ -144,6 +167,8 @@ export default function Settings() {
 
       {error && <div className="card" style={{ fontSize: 13, color: '#a3261b' }}>{error}</div>}
 
+      {canManageLists && (
+      <>
       <div className="card">
         <h3 style={{ marginTop: 0 }}>Collection requirements</h3>
         <p style={{ color: 'var(--muted)', fontSize: 13, marginTop: -4 }}>
@@ -213,6 +238,8 @@ export default function Settings() {
           <button type="button" className="btn" onClick={addLender}>Add</button>
         </div>
       </div>
+      </>
+      )}
     </div>
   );
 }

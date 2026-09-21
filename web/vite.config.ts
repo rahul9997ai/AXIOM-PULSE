@@ -14,7 +14,7 @@ export default defineConfig({
         name: 'Axiom Pulse',
         short_name: 'Pulse',
         description: 'The pulse of every delivery.',
-        theme_color: '#0b1b3a',
+        theme_color: '#ffffff',
         background_color: '#eef4fc',
         display: 'standalone',
         start_url: '/',
