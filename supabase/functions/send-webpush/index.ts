@@ -38,6 +38,15 @@ Deno.serve(async (req) => {
       Deno.env.get('SUPABASE_ANON_KEY')!,
       { global: { headers: { Authorization: authHeader } } },
     );
+    // push_subscriptions RLS only ever allows profile_id = auth.uid() — as
+    // the caller's own client, querying another profile's subscriptions
+    // always silently returns zero rows, authorized or not. Authorization
+    // for cross-user targeting is already fully checked below by hand, so
+    // the actual lookup needs the service role to bypass that RLS.
+    const admin = createClient(
+      Deno.env.get('SUPABASE_URL')!,
+      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!,
+    );
 
     const { data: { user }, error: userError } = await supabase.auth.getUser();
     if (userError || !user) return json({ error: 'Not authenticated' }, 401);
@@ -47,12 +56,12 @@ Deno.serve(async (req) => {
 
     const targetingOthers = targetIds.some((id) => id !== user.id);
     if (targetingOthers) {
-      const { data: caller } = await supabase.from('profiles').select('role, dealership_id').eq('id', user.id).single();
+      const { data: caller } = await admin.from('profiles').select('role, dealership_id').eq('id', user.id).single();
       if (!caller || !MANAGER_ROLES.includes(caller.role)) {
         return json({ error: 'Only FSM/manager roles can notify other users' }, 403);
       }
       if (caller.role !== 'Master Administrator') {
-        const { data: targets } = await supabase.from('profiles').select('id, dealership_id').in('id', targetIds);
+        const { data: targets } = await admin.from('profiles').select('id, dealership_id').in('id', targetIds);
         const unauthorized = (targets || []).some((t) => t.dealership_id !== caller.dealership_id);
         if (unauthorized || (targets || []).length !== targetIds.length) {
           return json({ error: 'Cannot notify profiles outside your dealership' }, 403);
@@ -60,7 +69,7 @@ Deno.serve(async (req) => {
       }
     }
 
-    const { data: subs, error } = await supabase
+    const { data: subs, error } = await admin
       .from('push_subscriptions')
       .select('id, profile_id, endpoint, p256dh, auth')
       .in('profile_id', targetIds);
@@ -89,7 +98,7 @@ Deno.serve(async (req) => {
       }
     }));
 
-    if (stale.length) await supabase.from('push_subscriptions').delete().in('id', stale);
+    if (stale.length) await admin.from('push_subscriptions').delete().in('id', stale);
 
     return json({ sent, removed: stale.length });
   } catch (e) {
