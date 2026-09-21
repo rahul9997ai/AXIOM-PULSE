@@ -104,7 +104,7 @@ export default function Deliveries() {
     const body = notifyMessage.trim() || (open.length
       ? `Still needed: ${open.join(', ')}.`
       : `Please check the ${d.customer_name} delivery.`);
-    const { error } = await supabase.functions.invoke('send-webpush', {
+    const { data, error } = await supabase.functions.invoke('send-webpush', {
       body: {
         profile_ids: [d.salesperson_id],
         title: `Urgent: ${d.customer_name}`,
@@ -112,8 +112,16 @@ export default function Deliveries() {
         data: { url: '/', deliveryId: d.id, type: 'urgent' },
       },
     });
-    if (error) setNotice(error.message);
-    else setNotice('Notification sent.');
+    if (error) {
+      setNotice(error.message);
+    } else if (!data?.sent) {
+      setNotice(
+        `Sent, but the salesperson has no device enrolled for push yet. On iPhone, they need iOS 16.4+, ` +
+        `Pulse added to the Home Screen (not just a Safari tab), opened from that icon, and "Enable notifications" tapped in the app.`,
+      );
+    } else {
+      setNotice(`Notification sent to ${data.sent} device(s).`);
+    }
     setNotifyFor(null);
     setNotifyMessage('');
   };
