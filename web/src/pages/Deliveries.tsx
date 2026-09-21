@@ -164,20 +164,20 @@ export default function Deliveries() {
                 <span style={{ fontSize: 11, fontWeight: 800, color: 'var(--accent)', textTransform: 'uppercase', letterSpacing: 0.5 }}>
                   {STATUS_LABEL[d.status]}
                 </span>
-                {isManager && d.status !== 'delivered' && d.status !== 'cancelled' && (
-                  <Link to={`/edit/${d.id}`} className="btn secondary" style={{ textDecoration: 'none', padding: '3px 10px', fontSize: 11 }}>
-                    Edit
-                  </Link>
-                )}
-                {isManager && d.status === 'delivered' && (
-                  <button
-                    type="button"
-                    className="btn secondary"
-                    style={{ padding: '3px 10px', fontSize: 11, borderColor: '#dc2626', color: '#dc2626' }}
-                    onClick={() => deleteDelivery(d)}
-                  >
-                    Delete
-                  </button>
+                {isManager && (
+                  <div style={{ display: 'flex', gap: 6 }}>
+                    <Link to={`/edit/${d.id}`} className="btn secondary" style={{ textDecoration: 'none', padding: '3px 10px', fontSize: 11 }}>
+                      Edit
+                    </Link>
+                    <button
+                      type="button"
+                      className="btn secondary"
+                      style={{ padding: '3px 10px', fontSize: 11, borderColor: '#dc2626', color: '#dc2626' }}
+                      onClick={() => deleteDelivery(d)}
+                    >
+                      Delete
+                    </button>
+                  </div>
                 )}
               </div>
             </div>
