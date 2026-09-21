@@ -154,18 +154,30 @@ export default function DeliveryForm({ existing, onSaved }: { existing?: Deliver
       await supabase.from('delivery_requirements').delete().in('id', toRemove);
     }
 
+    const requirementLabels = [
+      ...templates.filter((t) => checkedTemplates.has(t.id)).map((t) => t.label),
+      ...customReqs.map((c) => c.label),
+    ];
+    const todo = requirementLabels.length ? ` Needed: ${requirementLabels.join(', ')}.` : '';
+
     if (!isEdit) {
-      const requirementLabels = [
-        ...templates.filter((t) => checkedTemplates.has(t.id)).map((t) => t.label),
-        ...customReqs.map((c) => c.label),
-      ];
-      const todo = requirementLabels.length ? ` Needed: ${requirementLabels.join(', ')}.` : '';
       await supabase.functions.invoke('send-webpush', {
         body: {
           profile_ids: [salesperson],
           title: 'New delivery assigned',
           body: `${customer.trim()} — ${vehicle.trim()}, ${new Date(deliveryAt).toLocaleString()}.${todo}`,
           data: { url: '/', deliveryId, type: 'delivery_assigned' },
+        },
+      }).catch(() => {});
+    } else if (inserts.length || toRemove.length) {
+      // Requirements changed on an already-assigned delivery — let the
+      // salesperson know right away instead of waiting for the next reminder.
+      await supabase.functions.invoke('send-webpush', {
+        body: {
+          profile_ids: [salesperson],
+          title: 'Delivery requirements updated',
+          body: `${customer.trim()} — ${vehicle.trim()}.${todo}`,
+          data: { url: '/', deliveryId, type: 'requirements_updated' },
         },
       }).catch(() => {});
     }

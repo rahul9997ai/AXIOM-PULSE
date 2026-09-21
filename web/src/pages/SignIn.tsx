@@ -3,7 +3,7 @@ import { supabase } from '@/lib/supabase';
 import { AxiomLockup } from '@/components/AxiomMark';
 
 export default function SignIn() {
-  const [email, setEmail] = useState('');
+  const [identifier, setIdentifier] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [busy, setBusy] = useState(false);
@@ -13,9 +13,14 @@ export default function SignIn() {
     e.preventDefault();
     setBusy(true);
     setError(null);
+    // FSM/GM/Master sign in with a real email. Salespeople are invited with a
+    // username instead (no email required) — the backend gave them a hidden
+    // internal address of that exact shape, which we reconstruct here.
+    const trimmed = identifier.trim();
+    const email = trimmed.includes('@') ? trimmed : `${trimmed.toLowerCase()}@pulse.local`;
     const { error } = await supabase.auth.signInWithPassword({ email, password });
     setBusy(false);
-    if (error) setError(error.message);
+    if (error) setError('Incorrect email/username or password.');
   };
 
   return (
@@ -45,11 +50,13 @@ export default function SignIn() {
             <div className="landing-field">
               <UserIcon />
               <input
-                type="email"
-                placeholder="Email"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
+                type="text"
+                placeholder="Email or username"
+                value={identifier}
+                onChange={(e) => setIdentifier(e.target.value)}
                 autoComplete="username"
+                autoCapitalize="off"
+                autoCorrect="off"
                 required
               />
             </div>
@@ -72,7 +79,8 @@ export default function SignIn() {
             </button>
             <p className="landing-note">
               Your Finance Manager or dealership admin provides your account.
-              You cannot self-register.
+              You cannot self-register. Forgot your password? Contact your
+              Finance Manager to reset it.
             </p>
           </form>
         </section>

@@ -8,6 +8,8 @@ import { formatCents } from '@/lib/money';
 import { enablePush, isStandaloneDisplay, isIOS, pushSupported, sendTestPush } from '@/lib/push';
 import { CalendarIcon, PinIcon, DollarIcon, CarIcon, CheckCircleIcon, AlertIcon, CircleIcon } from '@/components/Icons';
 
+interface Dealership { id: string; name: string; }
+
 export default function Deliveries() {
   const { profile, session } = useSession();
   const [rows, setRows] = useState<Delivery[]>([]);
@@ -17,8 +19,26 @@ export default function Deliveries() {
   const [exceptionFor, setExceptionFor] = useState<string | null>(null);
   const [exceptionReason, setExceptionReason] = useState('');
   const [tab, setTab] = useState<'active' | 'delivered'>('active');
+  const [notifyFor, setNotifyFor] = useState<string | null>(null);
+  const [notifyMessage, setNotifyMessage] = useState('');
+  const [dealerships, setDealerships] = useState<Dealership[]>([]);
+  const [selectedDealershipId, setSelectedDealershipId] = useState('');
 
   const isManager = profile ? MANAGER_ROLES.includes(profile.role) : false;
+  const isMaster = profile?.role === 'Master Administrator';
+
+  // Master Administrator isn't tied to one dealership — they test/oversee any
+  // of them, so the list is scoped to one dealership at a time via a picker,
+  // instead of a mixed cross-dealership list.
+  useEffect(() => {
+    if (!isMaster) return;
+    supabase.from('dealerships').select('id,name').order('name')
+      .then(({ data }) => {
+        const list = (data as Dealership[]) || [];
+        setDealerships(list);
+        setSelectedDealershipId((prev) => prev || list[0]?.id || '');
+      });
+  }, [isMaster]);
 
   const load = useCallback(async () => {
     if (!profile) return;
@@ -27,10 +47,14 @@ export default function Deliveries() {
       .select('*, delivery_requirements(*), lenders(name, address)')
       .order('delivery_at', { ascending: true });
     if (!isManager) query = query.eq('salesperson_id', session?.user.id);
+    if (isMaster) {
+      if (!selectedDealershipId) { setRows([]); setLoading(false); return; }
+      query = query.eq('dealership_id', selectedDealershipId);
+    }
     const { data, error } = await query;
     if (!error) setRows((data as Delivery[]) || []);
     setLoading(false);
-  }, [profile, isManager, session?.user.id]);
+  }, [profile, isManager, isMaster, selectedDealershipId, session?.user.id]);
 
   useEffect(() => { load(); }, [load]);
 
@@ -86,6 +110,25 @@ export default function Deliveries() {
     catch (e) { setNotice((e as Error).message); }
   };
 
+  const sendUrgentNotify = async (d: Delivery) => {
+    const open = (d.delivery_requirements || []).filter((r) => r.status === 'outstanding').map((r) => r.label);
+    const body = notifyMessage.trim() || (open.length
+      ? `Still needed: ${open.join(', ')}.`
+      : `Please check the ${d.customer_name} delivery.`);
+    const { error } = await supabase.functions.invoke('send-webpush', {
+      body: {
+        profile_ids: [d.salesperson_id],
+        title: `Urgent: ${d.customer_name}`,
+        body,
+        data: { url: '/', deliveryId: d.id, type: 'urgent' },
+      },
+    });
+    if (error) setNotice(error.message);
+    else setNotice('Notification sent.');
+    setNotifyFor(null);
+    setNotifyMessage('');
+  };
+
   const active = rows.filter((d) => d.status !== 'delivered');
   const visible = (tab === 'delivered' ? rows.filter((d) => d.status === 'delivered') : active)
     .sort((a, b) => tab === 'delivered'
@@ -102,6 +145,21 @@ export default function Deliveries() {
           {profile ? ROLE_LABEL[profile.role] : ''}
         </div>
       </div>
+
+      {isMaster && dealerships.length > 0 && (
+        <div>
+          <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--muted)', letterSpacing: 0.4, textTransform: 'uppercase', marginBottom: 4 }}>
+            Dealership
+          </div>
+          <select
+            value={selectedDealershipId}
+            onChange={(e) => setSelectedDealershipId(e.target.value)}
+            style={{ width: '100%' }}
+          >
+            {dealerships.map((dl) => <option key={dl.id} value={dl.id}>{dl.name}</option>)}
+          </select>
+        </div>
+      )}
 
       {isManager && !loading && (
         <div style={{ display: 'flex', gap: 10 }}>
@@ -190,6 +248,14 @@ export default function Deliveries() {
                     <button
                       type="button"
                       className="btn secondary"
+                      style={{ padding: '3px 10px', fontSize: 11 }}
+                      onClick={() => { setNotifyFor(notifyFor === d.id ? null : d.id); setNotifyMessage(''); }}
+                    >
+                      Notify
+                    </button>
+                    <button
+                      type="button"
+                      className="btn secondary"
                       style={{ padding: '3px 10px', fontSize: 11, borderColor: '#dc2626', color: '#dc2626' }}
                       onClick={() => deleteDelivery(d)}
                     >
@@ -262,6 +328,23 @@ export default function Deliveries() {
                     </div>
                   );
                 })}
+              </div>
+            )}
+
+            {notifyFor === d.id && (
+              <div style={{ marginTop: 10, display: 'grid', gap: 8 }}>
+                <textarea
+                  placeholder="Urgent message to the salesperson (optional — defaults to outstanding requirements)"
+                  value={notifyMessage}
+                  onChange={(e) => setNotifyMessage(e.target.value)}
+                  rows={2}
+                />
+                <div style={{ display: 'flex', gap: 8 }}>
+                  <button className="btn" style={{ flex: 1 }} onClick={() => sendUrgentNotify(d)}>
+                    Send urgent notification
+                  </button>
+                  <button className="btn secondary" onClick={() => { setNotifyFor(null); setNotifyMessage(''); }}>Cancel</button>
+                </div>
               </div>
             )}
 
