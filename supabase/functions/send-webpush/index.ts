@@ -51,10 +51,12 @@ Deno.serve(async (req) => {
       if (!caller || !MANAGER_ROLES.includes(caller.role)) {
         return json({ error: 'Only FSM/manager roles can notify other users' }, 403);
       }
-      const { data: targets } = await supabase.from('profiles').select('id, dealership_id').in('id', targetIds);
-      const unauthorized = (targets || []).some((t) => t.dealership_id !== caller.dealership_id);
-      if (unauthorized || (targets || []).length !== targetIds.length) {
-        return json({ error: 'Cannot notify profiles outside your dealership' }, 403);
+      if (caller.role !== 'Master Administrator') {
+        const { data: targets } = await supabase.from('profiles').select('id, dealership_id').in('id', targetIds);
+        const unauthorized = (targets || []).some((t) => t.dealership_id !== caller.dealership_id);
+        if (unauthorized || (targets || []).length !== targetIds.length) {
+          return json({ error: 'Cannot notify profiles outside your dealership' }, 403);
+        }
       }
     }
 
