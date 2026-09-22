@@ -174,10 +174,12 @@ export default function Deliveries() {
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
               <div>
                 <div style={{ fontWeight: 800, fontSize: 17 }}>{d.customer_name}</div>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 6, color: 'var(--muted)', marginTop: 4, fontSize: 13.5 }}>
-                  <CarIcon size={14} />
-                  {d.vehicle}{d.vin ? ` · VIN ${d.vin}` : ''}
-                </div>
+                {(d.vehicle || d.vin) && (
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 6, color: 'var(--muted)', marginTop: 4, fontSize: 13.5 }}>
+                    <CarIcon size={14} />
+                    {[d.vehicle, d.vin ? `VIN ${d.vin}` : null].filter(Boolean).join(' · ')}
+                  </div>
+                )}
               </div>
               <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 6 }}>
                 <span style={{

@@ -62,11 +62,13 @@ async function runReminders() {
       .filter((r) => r.status === 'outstanding')
       .map((r) => r.label);
 
+    const vehicleSuffix = d.vehicle ? ` — ${d.vehicle}` : '';
+
     if (!d.reminder_24h_sent_at && deliveryAt > now && deliveryAt <= in24h && !isSameDay(deliveryAt, now)) {
       await pushToProfile(
         d.salesperson_id,
         'Delivery tomorrow',
-        `${d.customer_name} — ${d.vehicle}, ${deliveryAt.toLocaleString()}.${todoSuffix(outstanding)}`,
+        `${d.customer_name}${vehicleSuffix}, ${deliveryAt.toLocaleString()}.${todoSuffix(outstanding)}`,
         { url: '/', deliveryId: d.id, type: 'delivery_reminder' },
       );
       await admin.from('deliveries').update({ reminder_24h_sent_at: now.toISOString() }).eq('id', d.id);
@@ -76,7 +78,7 @@ async function runReminders() {
       await pushToProfile(
         d.salesperson_id,
         'Delivery today',
-        `${d.customer_name} — ${d.vehicle} at ${deliveryAt.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}.${todoSuffix(outstanding)}`,
+        `${d.customer_name}${vehicleSuffix} at ${deliveryAt.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}.${todoSuffix(outstanding)}`,
         { url: '/', deliveryId: d.id, type: 'delivery_today' },
       );
       await admin.from('deliveries').update({ reminder_day_of_sent_at: now.toISOString() }).eq('id', d.id);
@@ -86,7 +88,7 @@ async function runReminders() {
       await pushToProfile(
         d.salesperson_id,
         'Delivery time',
-        `${d.customer_name} is arriving now for ${d.vehicle}.${todoSuffix(outstanding)}`,
+        `${d.customer_name} is arriving now${d.vehicle ? ` for ${d.vehicle}` : ''}.${todoSuffix(outstanding)}`,
         { url: '/', deliveryId: d.id, type: 'delivery_time' },
       );
       await admin.from('deliveries').update({ reminder_at_time_sent_at: now.toISOString() }).eq('id', d.id);

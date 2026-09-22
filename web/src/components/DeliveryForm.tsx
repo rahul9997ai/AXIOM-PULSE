@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { supabase } from '@/lib/supabase';
 import { useSession } from '@/lib/session';
 import { inputToCents, centsToInput } from '@/lib/money';
+import { capitalizeWords } from '@/lib/text';
 import { useActingRole } from '@/lib/actingRole';
 import type { ApprovalStatus, Delivery, DueOnDeliveryType, Lender, RequirementTemplate } from '@/lib/types';
 
@@ -26,8 +27,6 @@ export default function DeliveryForm({ existing, onSaved }: { existing?: Deliver
   const effectiveDealershipId = isMaster ? selectedDealershipId : (profile?.dealership_id ?? '');
 
   const [customer, setCustomer] = useState(existing?.customer_name ?? '');
-  const [vehicle, setVehicle] = useState(existing?.vehicle ?? '');
-  const [vin, setVin] = useState(existing?.vin ?? '');
   const [lenderId, setLenderId] = useState(existing?.lender_id ?? '');
   const [approvalStatus, setApprovalStatus] = useState<ApprovalStatus>(existing?.approval_status ?? 'pending');
   const [deliveryAt, setDeliveryAt] = useState(existing ? toLocalInput(existing.delivery_at) : '');
@@ -98,8 +97,8 @@ export default function DeliveryForm({ existing, onSaved }: { existing?: Deliver
       setError(isMaster ? 'Select a dealership first.' : 'Your account has no dealership assigned.');
       return;
     }
-    if (!customer || !vehicle || !salesperson || !deliveryAt) {
-      setError('Customer, vehicle, delivery time and salesperson are required.');
+    if (!customer || !salesperson || !deliveryAt) {
+      setError('Customer, delivery time and salesperson are required.');
       return;
     }
     if (dueOnDelivery && (!dueAmount || inputToCents(dueAmount) <= 0)) {
@@ -109,12 +108,11 @@ export default function DeliveryForm({ existing, onSaved }: { existing?: Deliver
     setBusy(true);
     setError(null);
 
+    const customerName = capitalizeWords(customer.trim());
     const payload = {
       dealership_id: effectiveDealershipId,
       salesperson_id: salesperson,
-      customer_name: customer.trim(),
-      vehicle: vehicle.trim(),
-      vin: vin.trim() || null,
+      customer_name: customerName,
       lender_id: lenderId || null,
       approval_status: approvalStatus,
       delivery_at: new Date(deliveryAt).toISOString(),
@@ -167,7 +165,7 @@ export default function DeliveryForm({ existing, onSaved }: { existing?: Deliver
         body: {
           profile_ids: [salesperson],
           title: 'New delivery assigned',
-          body: `${customer.trim()} — ${vehicle.trim()}, ${new Date(deliveryAt).toLocaleString()}.${todo}`,
+          body: `${customerName}, ${new Date(deliveryAt).toLocaleString()}.${todo}`,
           data: { url: '/', deliveryId, type: 'delivery_assigned' },
         },
       }).catch(() => {});
@@ -178,7 +176,7 @@ export default function DeliveryForm({ existing, onSaved }: { existing?: Deliver
         body: {
           profile_ids: [salesperson],
           title: 'Delivery requirements updated',
-          body: `${customer.trim()} — ${vehicle.trim()}.${todo}`,
+          body: `${customerName}.${todo}`,
           data: { url: '/', deliveryId, type: 'requirements_updated' },
         },
       }).catch(() => {});
@@ -203,9 +201,12 @@ export default function DeliveryForm({ existing, onSaved }: { existing?: Deliver
         </>
       )}
 
-      <input placeholder="Customer name" value={customer} onChange={(e) => setCustomer(e.target.value)} />
-      <input placeholder="Vehicle" value={vehicle} onChange={(e) => setVehicle(e.target.value)} />
-      <input placeholder="VIN" value={vin} onChange={(e) => setVin(e.target.value)} />
+      <input
+        placeholder="Customer name"
+        value={customer}
+        onChange={(e) => setCustomer(e.target.value)}
+        style={{ textTransform: 'capitalize' }}
+      />
 
       <div style={fieldLabel}>LENDER / LESSOR</div>
       <select value={lenderId} onChange={(e) => setLenderId(e.target.value)}>

@@ -50,7 +50,7 @@ export interface Delivery {
   fsm_id: string;
   salesperson_id: string;
   customer_name: string;
-  vehicle: string;
+  vehicle: string | null;
   vin: string | null;
   lender_id: string | null;
   lender_name: string | null;
