@@ -15,6 +15,7 @@ export default function Deliveries() {
   const [loading, setLoading] = useState(true);
   const [tab, setTab] = useState<'active' | 'delivered'>('active');
   const [customerFilter, setCustomerFilter] = useState('');
+  const [fsmFilter, setFsmFilter] = useState('');
 
   // A Master Administrator has no operational role of their own — the delivery
   // board only makes sense once they've chosen a role+dealership to preview.
@@ -64,7 +65,15 @@ export default function Deliveries() {
   // Someone with several deliveries on different dates can pick one customer
   // and see just that delivery instead of scrolling the whole list.
   const customerNames = Array.from(new Set(rows.map((d) => d.customer_name))).sort();
-  const visible = customerFilter ? visibleAll.filter((d) => d.customer_name === customerFilter) : visibleAll;
+  // Master-only: see every dealership's deliveries at once, or narrow to one
+  // finance manager (including their own, when they created deliveries
+  // directly) — nobody else gets this filter.
+  const fsmOptions = isMaster
+    ? Array.from(new Map(rows.map((d) => [d.fsm_id, d.fsm_name || 'Unknown'])).entries())
+      .sort((a, b) => a[1].localeCompare(b[1]))
+    : [];
+  const byCustomer = customerFilter ? visibleAll.filter((d) => d.customer_name === customerFilter) : visibleAll;
+  const visible = isMaster && fsmFilter ? byCustomer.filter((d) => d.fsm_id === fsmFilter) : byCustomer;
 
   const outstandingCount = active.filter((d) => (d.delivery_requirements || []).some((r) => r.status === 'outstanding')).length;
 
@@ -93,6 +102,15 @@ export default function Deliveries() {
         <select value={customerFilter} onChange={(e) => setCustomerFilter(e.target.value)}>
           <option value="">All customers ({customerNames.length})</option>
           {customerNames.map((name) => <option key={name} value={name}>{name}</option>)}
+        </select>
+      )}
+
+      {isMaster && fsmOptions.length > 1 && (
+        <select value={fsmFilter} onChange={(e) => setFsmFilter(e.target.value)}>
+          <option value="">All Finance Managers</option>
+          {fsmOptions.map(([fsmId, name]) => (
+            <option key={fsmId} value={fsmId}>{name}{fsmId === session?.user.id ? ' (You)' : ''}</option>
+          ))}
         </select>
       )}
 
@@ -134,7 +152,14 @@ export default function Deliveries() {
             style={{ display: 'block', borderLeft: `4px solid ${sc.border}`, textDecoration: 'none', color: 'inherit' }}
           >
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 8 }}>
-              <div style={{ fontWeight: 800, fontSize: 17, lineHeight: 1.25, minWidth: 0 }}>{d.customer_name}</div>
+              <div style={{ minWidth: 0 }}>
+                <div style={{ fontWeight: 800, fontSize: 17, lineHeight: 1.25 }}>{d.customer_name}</div>
+                {isMaster && d.fsm_name && (
+                  <div style={{ fontSize: 12, color: 'var(--muted)', marginTop: 2 }}>
+                    Finance Manager: {d.fsm_name}{d.fsm_id === session?.user.id ? ' (You)' : ''}
+                  </div>
+                )}
+              </div>
               <span style={{
                 flexShrink: 0, fontSize: 10, fontWeight: 800, letterSpacing: 0.3, textTransform: 'uppercase',
                 background: sc.bg, color: sc.fg, padding: '4px 9px', borderRadius: 999,
