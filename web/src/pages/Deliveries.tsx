@@ -229,16 +229,17 @@ export default function Deliveries() {
 
             {(() => {
               const dt = new Date(d.delivery_at);
+              const darkGreen = '#15803d';
               return (
                 <div style={{
                   display: 'flex', alignItems: 'center', gap: 8, marginTop: 10,
-                  padding: '8px 12px', borderRadius: 10, background: sc.bg,
+                  padding: '8px 12px', borderRadius: 10, background: '#eafaf0',
                 }}>
-                  <span style={{ color: sc.fg }}><CalendarIcon size={18} /></span>
-                  <span style={{ fontSize: 16, fontWeight: 800, color: sc.fg }}>
+                  <span style={{ color: darkGreen }}><CalendarIcon size={18} /></span>
+                  <span style={{ fontSize: 16, fontWeight: 800, color: darkGreen }}>
                     {dt.toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric' })}
                   </span>
-                  <span style={{ fontSize: 16, fontWeight: 800, color: sc.fg }}>
+                  <span style={{ fontSize: 16, fontWeight: 800, color: darkGreen }}>
                     {dt.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })}
                   </span>
                 </div>
