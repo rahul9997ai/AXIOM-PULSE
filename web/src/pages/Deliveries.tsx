@@ -6,6 +6,7 @@ import { useActingRole } from '@/lib/actingRole';
 import type { Delivery } from '@/lib/types';
 import { STATUS_LABEL, STATUS_COLOR, MANAGER_ROLES, ROLE_LABEL } from '@/lib/types';
 import { formatCents } from '@/lib/money';
+import { capitalizeWords } from '@/lib/text';
 import { CalendarIcon, PinIcon, DollarIcon, CarIcon, CheckCircleIcon, AlertIcon, CircleIcon } from '@/components/Icons';
 import AdminHome from './AdminHome';
 import PushCard from '@/components/PushCard';
@@ -242,7 +243,7 @@ export default function Deliveries() {
             </div>
 
             <div style={{ marginTop: 6, fontSize: 13, color: 'var(--muted)', marginLeft: 21 }}>
-              Approval: <strong style={{ color: 'var(--text)' }}>{d.approval_status}</strong>
+              Approval: <strong style={{ color: 'var(--text)' }}>{capitalizeWords(d.approval_status)}</strong>
             </div>
 
             {d.due_on_delivery && d.due_on_delivery_amount_cents != null && (
