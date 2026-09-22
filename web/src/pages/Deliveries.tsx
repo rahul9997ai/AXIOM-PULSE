@@ -22,6 +22,7 @@ export default function Deliveries() {
   const [tab, setTab] = useState<'active' | 'delivered'>('active');
   const [notifyFor, setNotifyFor] = useState<string | null>(null);
   const [notifyMessage, setNotifyMessage] = useState('');
+  const [customerFilter, setCustomerFilter] = useState('');
 
   // A Master Administrator has no operational role of their own — the delivery
   // board only makes sense once they've chosen a role+dealership to preview.
@@ -32,7 +33,7 @@ export default function Deliveries() {
     if (!profile || isAdminMode) return;
     let query = supabase
       .from('deliveries')
-      .select('*, delivery_requirements(*), lenders(name, address)')
+      .select('*, delivery_requirements(*), lenders(name, address), fsm:profiles!deliveries_fsm_id_fkey(name)')
       .order('delivery_at', { ascending: true });
     if (isMaster) {
       if (!actingDealershipId) { setRows([]); setLoading(false); return; }
@@ -110,10 +111,14 @@ export default function Deliveries() {
   };
 
   const active = rows.filter((d) => d.status !== 'delivered');
-  const visible = (tab === 'delivered' ? rows.filter((d) => d.status === 'delivered') : active)
+  const visibleAll = (tab === 'delivered' ? rows.filter((d) => d.status === 'delivered') : active)
     .sort((a, b) => tab === 'delivered'
       ? new Date(b.delivered_at ?? b.delivery_at).getTime() - new Date(a.delivered_at ?? a.delivery_at).getTime()
       : new Date(a.delivery_at).getTime() - new Date(b.delivery_at).getTime());
+  // Someone with several deliveries on different dates can pick one customer
+  // and see just that delivery instead of scrolling the whole list.
+  const customerNames = Array.from(new Set(rows.map((d) => d.customer_name))).sort();
+  const visible = customerFilter ? visibleAll.filter((d) => d.customer_name === customerFilter) : visibleAll;
 
   const outstandingCount = active.filter((d) => (d.delivery_requirements || []).some((r) => r.status === 'outstanding')).length;
 
@@ -138,6 +143,13 @@ export default function Deliveries() {
 
       {!isManager && <PushCard />}
       {notice && <div className="card" style={{ fontSize: 13 }}>{notice}</div>}
+
+      {customerNames.length > 1 && (
+        <select value={customerFilter} onChange={(e) => setCustomerFilter(e.target.value)}>
+          <option value="">All customers ({customerNames.length})</option>
+          {customerNames.map((name) => <option key={name} value={name}>{name}</option>)}
+        </select>
+      )}
 
       <div style={{ display: 'flex', gap: 6, background: 'var(--surface)', borderRadius: 12, padding: 4 }}>
         {(['active', 'delivered'] as const).map((t) => (
@@ -245,6 +257,11 @@ export default function Deliveries() {
             <div style={{ marginTop: 6, fontSize: 13, color: 'var(--muted)', marginLeft: 21 }}>
               Approval: <strong style={{ color: 'var(--text)' }}>{capitalizeWords(d.approval_status)}</strong>
             </div>
+            {d.fsm?.name && (
+              <div style={{ marginTop: 2, fontSize: 13, color: 'var(--muted)', marginLeft: 21 }}>
+                Finance Manager: <strong style={{ color: 'var(--text)' }}>{d.fsm.name}</strong>
+              </div>
+            )}
 
             {d.due_on_delivery && d.due_on_delivery_amount_cents != null && (
               <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginTop: 8, fontSize: 13.5 }}>

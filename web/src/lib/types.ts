@@ -63,6 +63,7 @@ export interface Delivery {
   due_on_delivery_amount_cents: number | null;
   delivered_at: string | null;
   lenders?: Lender | null;
+  fsm?: { name: string } | null;
   delivery_requirements?: DeliveryRequirement[];
 }
 
