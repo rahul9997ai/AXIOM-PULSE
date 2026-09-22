@@ -1,4 +1,4 @@
-import { useEffect, useState, useCallback } from 'react';
+import { useEffect, useState, useCallback, type ReactNode } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import { supabase } from '@/lib/supabase';
 import { useSession } from '@/lib/session';
@@ -9,7 +9,7 @@ import { formatCents } from '@/lib/money';
 import { capitalizeWords } from '@/lib/text';
 import { downloadDeliveryIcs } from '@/lib/ics';
 import {
-  CalendarIcon, PinIcon, DollarIcon, CarIcon, CheckCircleIcon, AlertIcon, CircleIcon,
+  CalendarIcon, PinIcon, DollarIcon, CarIcon,
   EditIcon, BellIcon, TrashIcon,
 } from '@/components/Icons';
 
@@ -70,7 +70,7 @@ export default function DeliveryDetail() {
   const dt = new Date(d.delivery_at);
   const darkGreen = '#15803d';
 
-  const resolveRequirement = async (reqId: string, status: 'completed' | 'exception', reason?: string) => {
+  const resolveRequirement = async (reqId: string, status: 'completed' | 'exception' | 'outstanding', reason?: string) => {
     const { error } = await supabase.rpc('set_requirement_status', {
       p_requirement_id: reqId,
       p_status: status,
@@ -278,20 +278,33 @@ export default function DeliveryDetail() {
           <h3 style={{ marginTop: 0, fontSize: 14 }}>Requirements</h3>
           <div style={{ display: 'grid', gap: 9 }}>
             {requirements.map((r) => {
-              const color = r.status === 'completed' ? '#15803d' : r.status === 'exception' ? '#b45309' : 'var(--muted)';
-              const ReqIcon = r.status === 'completed' ? CheckCircleIcon : r.status === 'exception' ? AlertIcon : CircleIcon;
+              const canEdit = !isManager && canComplete;
               return (
-                <div key={r.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 8 }}>
-                  <span style={{ display: 'flex', alignItems: 'flex-start', gap: 7, fontSize: 13.5, color: 'var(--text)' }}>
-                    <span style={{ color, marginTop: 1, flexShrink: 0 }}><ReqIcon size={14} /></span>
-                    <span>{r.label}{r.status === 'exception' && r.exception_reason ? ` — ${r.exception_reason}` : ''}</span>
+                <div key={r.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+                  <span style={{ fontSize: 13.5, color: 'var(--text)' }}>
+                    {r.label}
+                    {r.status === 'exception' && r.exception_reason && (
+                      <span style={{ color: 'var(--muted)' }}> — {r.exception_reason}</span>
+                    )}
                   </span>
-                  {!isManager && r.status === 'outstanding' && (
-                    <div style={{ display: 'flex', gap: 6, flexShrink: 0 }}>
-                      <button className="btn secondary" style={{ padding: '4px 8px', fontSize: 11 }} onClick={() => resolveRequirement(r.id, 'completed')}>Done</button>
-                      <button className="btn secondary" style={{ padding: '4px 8px', fontSize: 11 }} onClick={() => setExceptionFor(r.id)}>Exception</button>
-                    </div>
-                  )}
+                  <div style={{ display: 'flex', gap: 6, flexShrink: 0 }}>
+                    {r.status === 'outstanding' && canEdit && (
+                      <>
+                        <PillButton tone="green" onClick={() => resolveRequirement(r.id, 'completed')}>Complete</PillButton>
+                        <PillButton tone="amber" onClick={() => setExceptionFor(r.id)}>Exception</PillButton>
+                      </>
+                    )}
+                    {r.status === 'completed' && (
+                      <PillButton tone="green" filled onClick={canEdit ? () => resolveRequirement(r.id, 'outstanding') : undefined}>
+                        ✓ Complete{canEdit ? ' · Undo' : ''}
+                      </PillButton>
+                    )}
+                    {r.status === 'exception' && (
+                      <PillButton tone="amber" filled onClick={canEdit ? () => resolveRequirement(r.id, 'outstanding') : undefined}>
+                        ⚠ Exception{canEdit ? ' · Undo' : ''}
+                      </PillButton>
+                    )}
+                  </div>
                 </div>
               );
             })}
@@ -382,6 +395,35 @@ export default function DeliveryDetail() {
         </div>
       </div>
     </div>
+  );
+}
+
+function PillButton({ tone, filled, onClick, children }: {
+  tone: 'green' | 'amber';
+  filled?: boolean;
+  onClick?: () => void;
+  children: ReactNode;
+}) {
+  const c = tone === 'green' ? { fg: '#15803d', bg: '#eafaf0' } : { fg: '#b45309', bg: '#fef3e2' };
+  return (
+    <button
+      type="button"
+      disabled={!onClick}
+      onClick={onClick}
+      style={{
+        border: filled ? 'none' : `1px solid ${c.fg}`,
+        background: filled ? c.bg : 'transparent',
+        color: c.fg,
+        borderRadius: 999,
+        padding: '5px 11px',
+        fontSize: 11.5,
+        fontWeight: 700,
+        cursor: onClick ? 'pointer' : 'default',
+        whiteSpace: 'nowrap',
+      }}
+    >
+      {children}
+    </button>
   );
 }
 
