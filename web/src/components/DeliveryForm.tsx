@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '@/lib/supabase';
 import { useSession } from '@/lib/session';
-import { inputToCents, centsToInput } from '@/lib/money';
+import { inputToCents, centsToInput, formatCents } from '@/lib/money';
 import { capitalizeWords } from '@/lib/text';
 import { useActingRole } from '@/lib/actingRole';
 import type { ApprovalStatus, Delivery, DueOnDeliveryType, Lender, RequirementTemplate } from '@/lib/types';
@@ -148,11 +148,6 @@ export default function DeliveryForm({ existing, onSaved }: { existing?: Deliver
       if ((lenderId || null) !== existing.lender_id) changedFields.push('lender/lessor');
       if (approvalStatus !== existing.approval_status) changedFields.push('approval status');
       if (payload.delivery_at !== existing.delivery_at) changedFields.push('delivery time');
-      if (
-        dueOnDelivery !== existing.due_on_delivery
-        || (dueOnDelivery && dueType !== existing.due_on_delivery_type)
-        || (dueOnDelivery && inputToCents(dueAmount) !== existing.due_on_delivery_amount_cents)
-      ) changedFields.push('collection/refund amount');
       if ((fsmNotes.trim() || null) !== existing.fsm_notes) changedFields.push('notes');
       if (salesperson !== existing.salesperson_id) changedFields.push('assigned salesperson');
     }
@@ -176,22 +171,38 @@ export default function DeliveryForm({ existing, onSaved }: { existing?: Deliver
     const keptCustomIds = new Set(customReqs.filter((c) => c.id).map((c) => c.id));
     const toRemoveCustomReqIds = existingReqs.filter((r) => !r.template_id && !keptCustomIds.has(r.id) && r.status === 'outstanding').map((r) => r.id);
 
+    // Due-on-delivery is itself a requirement — the salesperson clears it
+    // from the same requirements grid instead of it sitting as a separate
+    // info line, so it's reconciled the same way as templates/custom items.
+    const dueLabel = dueOnDelivery ? `${dueType === 'refund' ? 'Refund' : 'Collect'} ${formatCents(inputToCents(dueAmount))}` : null;
+    const existingDueReq = existingReqs.find((r) => r.kind === 'due_on_delivery');
+    const dueLabelChanged = !!(dueOnDelivery && existingDueReq && existingDueReq.label !== dueLabel);
+
     const inserts = [
       ...toAddTemplates.map((t) => ({ delivery_id: deliveryId, kind: 'template', template_id: t.id, label: t.label })),
       ...toAddCustom.map((c) => ({ delivery_id: deliveryId, kind: 'custom', label: c.label })),
+      ...(dueOnDelivery && !existingDueReq ? [{ delivery_id: deliveryId, kind: 'due_on_delivery', label: dueLabel }] : []),
     ];
     if (inserts.length) {
       const { error: reqError } = await supabase.from('delivery_requirements').insert(inserts);
       if (reqError) { setBusy(false); setError(`Saved, but requirements failed: ${reqError.message}`); return; }
     }
-    const toRemove = [...toRemoveTemplateReqIds, ...toRemoveCustomReqIds];
+    const toRemove = [
+      ...toRemoveTemplateReqIds,
+      ...toRemoveCustomReqIds,
+      ...(!dueOnDelivery && existingDueReq && existingDueReq.status === 'outstanding' ? [existingDueReq.id] : []),
+    ];
     if (toRemove.length) {
       await supabase.from('delivery_requirements').delete().in('id', toRemove);
+    }
+    if (dueLabelChanged) {
+      await supabase.from('delivery_requirements').update({ label: dueLabel }).eq('id', existingDueReq!.id);
     }
 
     const requirementLabels = [
       ...templates.filter((t) => checkedTemplates.has(t.id)).map((t) => t.label),
       ...customReqs.map((c) => c.label),
+      ...(dueLabel ? [dueLabel] : []),
     ];
     const todo = requirementLabels.length ? ` Needed: ${requirementLabels.join(', ')}.` : '';
 
@@ -204,12 +215,12 @@ export default function DeliveryForm({ existing, onSaved }: { existing?: Deliver
           data: { url: `/delivery/${deliveryId}`, deliveryId, type: 'delivery_assigned' },
         },
       }).catch(() => {});
-    } else if (changedFields.length || inserts.length || toRemove.length) {
+    } else if (changedFields.length || inserts.length || toRemove.length || dueLabelChanged) {
       // Any real edit to an already-assigned delivery reaches the
       // salesperson right away instead of waiting for the next reminder —
       // requirement changes and field changes (approval, lender, timing,
-      // amount, notes, reassignment) alike.
-      const requirementsChanged = inserts.length || toRemove.length;
+      // notes, reassignment) alike.
+      const requirementsChanged = inserts.length || toRemove.length || dueLabelChanged;
       const fieldSummary = changedFields.length ? `Updated: ${changedFields.join(', ')}.` : '';
       await supabase.functions.invoke('send-webpush', {
         body: {

@@ -5,11 +5,10 @@ import { useSession } from '@/lib/session';
 import { useActingRole } from '@/lib/actingRole';
 import type { Delivery, DeliveryComment } from '@/lib/types';
 import { STATUS_LABEL, STATUS_COLOR, MANAGER_ROLES } from '@/lib/types';
-import { formatCents } from '@/lib/money';
 import { capitalizeWords } from '@/lib/text';
 import { downloadDeliveryIcs } from '@/lib/ics';
 import {
-  CalendarIcon, PinIcon, DollarIcon, CarIcon,
+  CalendarIcon, PinIcon, CarIcon,
   EditIcon, BellIcon, TrashIcon,
 } from '@/components/Icons';
 
@@ -232,15 +231,6 @@ export default function DeliveryDetail() {
           </div>
           <InfoRow label="Approval" value={capitalizeWords(d.approval_status)} />
           {d.fsm_name && <InfoRow label="Finance Manager" value={d.fsm_name} />}
-          {d.due_on_delivery && d.due_on_delivery_amount_cents != null && (
-            <div style={{ display: 'flex', alignItems: 'center', gap: 7 }}>
-              <span style={{ color: 'var(--muted)', flexShrink: 0 }}><DollarIcon size={13} /></span>
-              <span style={{ color: 'var(--muted)' }}>
-                {d.due_on_delivery_type === 'refund' ? 'Refund to customer' : 'Collect from customer'}:{' '}
-                <strong style={{ color: 'var(--text)' }}>{formatCents(d.due_on_delivery_amount_cents)}</strong>
-              </span>
-            </div>
-          )}
         </div>
 
         {d.fsm_notes && (
