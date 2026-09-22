@@ -139,6 +139,24 @@ export default function DeliveryForm({ existing, onSaved }: { existing?: Deliver
       fsm_notes: fsmNotes.trim() || null,
     };
 
+    // Compare against the original so the salesperson's push names what
+    // actually changed, not just "something did" — computed before the
+    // update lands so `existing` still reflects the prior values.
+    const changedFields: string[] = [];
+    if (isEdit && existing) {
+      if (customerName !== existing.customer_name) changedFields.push('customer name');
+      if ((lenderId || null) !== existing.lender_id) changedFields.push('lender/lessor');
+      if (approvalStatus !== existing.approval_status) changedFields.push('approval status');
+      if (payload.delivery_at !== existing.delivery_at) changedFields.push('delivery time');
+      if (
+        dueOnDelivery !== existing.due_on_delivery
+        || (dueOnDelivery && dueType !== existing.due_on_delivery_type)
+        || (dueOnDelivery && inputToCents(dueAmount) !== existing.due_on_delivery_amount_cents)
+      ) changedFields.push('collection/refund amount');
+      if ((fsmNotes.trim() || null) !== existing.fsm_notes) changedFields.push('notes');
+      if (salesperson !== existing.salesperson_id) changedFields.push('assigned salesperson');
+    }
+
     let deliveryId = existing?.id;
     if (isEdit) {
       const { error } = await supabase.from('deliveries').update(payload).eq('id', existing!.id);
@@ -183,18 +201,22 @@ export default function DeliveryForm({ existing, onSaved }: { existing?: Deliver
           profile_ids: [salesperson],
           title: 'New Delivery Created',
           body: `${customerName} — ${new Date(deliveryAt).toLocaleString()}.${todo}`,
-          data: { url: '/', deliveryId, type: 'delivery_assigned' },
+          data: { url: `/delivery/${deliveryId}`, deliveryId, type: 'delivery_assigned' },
         },
       }).catch(() => {});
-    } else if (inserts.length || toRemove.length) {
-      // Requirements changed on an already-assigned delivery — let the
-      // salesperson know right away instead of waiting for the next reminder.
+    } else if (changedFields.length || inserts.length || toRemove.length) {
+      // Any real edit to an already-assigned delivery reaches the
+      // salesperson right away instead of waiting for the next reminder —
+      // requirement changes and field changes (approval, lender, timing,
+      // amount, notes, reassignment) alike.
+      const requirementsChanged = inserts.length || toRemove.length;
+      const fieldSummary = changedFields.length ? `Updated: ${changedFields.join(', ')}.` : '';
       await supabase.functions.invoke('send-webpush', {
         body: {
           profile_ids: [salesperson],
-          title: 'Delivery requirements updated',
-          body: `${customerName}.${todo}`,
-          data: { url: '/', deliveryId, type: 'requirements_updated' },
+          title: 'Delivery Updated',
+          body: `${customerName}. ${fieldSummary}${requirementsChanged ? todo : ''}`.trim(),
+          data: { url: `/delivery/${deliveryId}`, deliveryId, type: 'delivery_updated' },
         },
       }).catch(() => {});
     }
