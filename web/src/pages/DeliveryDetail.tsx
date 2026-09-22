@@ -284,7 +284,7 @@ export default function DeliveryDetail() {
               const canEdit = !isManager && canComplete;
               const tone = r.status === 'completed' ? { bg: '#eafaf0', fg: '#15803d', border: '#bfe8cf' }
                 : r.status === 'exception' ? { bg: '#fef3e2', fg: '#b45309', border: '#f6dba6' }
-                : { bg: 'var(--surface)', fg: 'var(--text)', border: 'var(--line)' };
+                : { bg: 'var(--blue)', fg: '#fff', border: 'var(--blue)' };
               const onTap = !canEdit ? undefined
                 : r.status === 'outstanding' ? () => resolveRequirement(r.id, 'completed')
                 : () => resolveRequirement(r.id, 'outstanding');
