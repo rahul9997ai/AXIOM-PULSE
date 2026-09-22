@@ -28,6 +28,7 @@ export default function DeliveryDetail() {
   const [notifyOpen, setNotifyOpen] = useState(false);
   const [notifyMessage, setNotifyMessage] = useState('');
   const [newComment, setNewComment] = useState('');
+  const [commentType, setCommentType] = useState<'question' | 'approval'>('question');
   const [sendingComment, setSendingComment] = useState(false);
   const [denyFor, setDenyFor] = useState<string | null>(null);
   const [denyReason, setDenyReason] = useState('');
@@ -116,7 +117,8 @@ export default function DeliveryDetail() {
     const body = newComment.trim();
     if (!body || !profile || !session) return;
     setSendingComment(true);
-    const requiresDecision = effectiveRole === 'Salesperson';
+    const requiresDecision = effectiveRole === 'Salesperson' && commentType === 'approval';
+    const isSalespersonComment = effectiveRole === 'Salesperson';
     const { error } = await supabase.from('delivery_comments').insert({
       delivery_id: d.id,
       author_id: session.user.id,
@@ -128,14 +130,15 @@ export default function DeliveryDetail() {
     setSendingComment(false);
     if (error) { setNotice(error.message); return; }
     setNewComment('');
-    if (requiresDecision) {
+    setCommentType('question');
+    if (isSalespersonComment) {
       await supabase.functions.invoke('send-webpush', {
         body: {
           profile_ids: [d.fsm_id],
           delivery_id: d.id,
-          title: `Question — ${d.customer_name}`,
+          title: requiresDecision ? `Approval needed — ${d.customer_name}` : `Question — ${d.customer_name}`,
           body,
-          data: { url: `/delivery/${d.id}`, deliveryId: d.id, type: 'question' },
+          data: { url: `/delivery/${d.id}`, deliveryId: d.id, type: requiresDecision ? 'question' : 'chat' },
         },
       }).catch(() => {});
     }
@@ -317,7 +320,7 @@ export default function DeliveryDetail() {
       <div className="card">
         <h3 style={{ marginTop: 0, fontSize: 14 }}>Comments</h3>
         <p style={{ color: 'var(--muted)', fontSize: 12.5, marginTop: -6 }}>
-          A salesperson's question here needs a Finance Manager decision — approve or deny (with a reason).
+          Approval requests need a Finance Manager decision — approve or deny (with a reason). Questions are an open chat.
         </p>
         <div style={{ display: 'grid', gap: 10, marginBottom: 12 }}>
           {comments.length === 0 && <div style={{ color: 'var(--muted)', fontSize: 13 }}>No comments yet.</div>}
@@ -368,14 +371,38 @@ export default function DeliveryDetail() {
         </div>
 
         <div style={{ display: 'grid', gap: 8 }}>
+          {!isManager && (
+            <div style={{ display: 'flex', gap: 6, background: 'var(--surface)', borderRadius: 10, padding: 3 }}>
+              {([
+                { key: 'question', label: 'Ask a question' },
+                { key: 'approval', label: 'Request approval' },
+              ] as const).map((t) => (
+                <button
+                  key={t.key}
+                  type="button"
+                  onClick={() => setCommentType(t.key)}
+                  style={{
+                    flex: 1, border: 'none', borderRadius: 8, padding: '7px 0', fontSize: 12.5, fontWeight: 700,
+                    cursor: 'pointer', background: commentType === t.key ? '#fff' : 'transparent',
+                    color: commentType === t.key ? 'var(--ink)' : 'var(--muted)',
+                    boxShadow: commentType === t.key ? '0 1px 3px rgba(20,50,100,0.12)' : 'none',
+                  }}
+                >
+                  {t.label}
+                </button>
+              ))}
+            </div>
+          )}
           <textarea
-            placeholder={!isManager ? 'Ask the Finance Manager a question about this delivery…' : 'Reply to the salesperson…'}
+            placeholder={!isManager
+              ? (commentType === 'approval' ? 'What do you need approved? Be specific — this goes to the Finance Manager for a decision…' : 'Ask the Finance Manager a question about this delivery…')
+              : 'Reply to the salesperson…'}
             value={newComment}
             onChange={(e) => setNewComment(e.target.value)}
             rows={2}
           />
           <button className="btn" disabled={sendingComment || !newComment.trim()} onClick={postComment}>
-            {sendingComment ? 'Sending…' : 'Send'}
+            {sendingComment ? 'Sending…' : commentType === 'approval' && !isManager ? 'Send for approval' : 'Send'}
           </button>
         </div>
       </div>
