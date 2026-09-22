@@ -146,6 +146,61 @@ button { font-family: inherit; }
   .app-main { max-width: 720px; margin: 0 auto; width: 100%; }
 }
 
+/* ---- Desktop shell (finance manager on a laptop/desktop): a left nav
+   rail replaces the bottom tab bar, and the mobile app-header is hidden
+   in favor of the brand lockup living in the rail instead. Applied via a
+   JS-detected class (large screen + fine pointer), not a bare media
+   query, so it tracks input type as well as width. ---- */
+.app-shell.desktop .app-header,
+.app-shell.desktop .app-tabbar {
+  display: none;
+}
+.desktop-body {
+  display: flex;
+  flex-direction: row;
+  flex: 1;
+  min-height: 0;
+}
+.desktop-sidebar {
+  width: 232px;
+  flex-shrink: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 22px;
+  padding: 22px 16px;
+  border-right: 1px solid var(--line);
+  background: var(--card);
+  position: sticky;
+  top: 0;
+  height: 100dvh;
+  overflow-y: auto;
+}
+.desktop-nav {
+  display: grid;
+  gap: 3px;
+}
+.desktop-nav-item {
+  display: flex;
+  align-items: center;
+  gap: 11px;
+  padding: 10px 12px;
+  border-radius: 10px;
+  color: var(--mut);
+  text-decoration: none;
+  font-weight: 600;
+  font-size: 14px;
+  transition: color 0.15s, background 0.15s;
+}
+.desktop-nav-item:hover { background: var(--surface); }
+.desktop-nav-item.active { background: var(--surface); color: var(--blue); }
+.app-shell.desktop .app-main {
+  max-width: 880px;
+  margin: 0;
+  width: 100%;
+  padding: 30px 36px;
+  overflow-y: auto;
+}
+
 /* ---- Shared UI ---- */
 .card {
   background: var(--card);
