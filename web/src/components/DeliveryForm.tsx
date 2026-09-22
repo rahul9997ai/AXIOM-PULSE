@@ -13,6 +13,18 @@ interface Dealership { id: string; name: string; }
 
 const APPROVAL_OPTIONS: ApprovalStatus[] = ['pending', 'approved', 'conditional', 'declined'];
 
+// Delivery slots only ever need quarter-hour granularity — build the full
+// list once instead of relying on a native time picker's step behavior,
+// which mobile browsers apply inconsistently.
+const QUARTER_HOUR_OPTIONS = Array.from({ length: 24 * 4 }, (_, i) => {
+  const hour24 = Math.floor(i / 4);
+  const minute = (i % 4) * 15;
+  const value = `${String(hour24).padStart(2, '0')}:${String(minute).padStart(2, '0')}`;
+  const hour12 = hour24 % 12 === 0 ? 12 : hour24 % 12;
+  const label = `${hour12}:${String(minute).padStart(2, '0')} ${hour24 < 12 ? 'AM' : 'PM'}`;
+  return { value, label };
+});
+
 export default function DeliveryForm({ existing, onSaved }: { existing?: Delivery; onSaved: () => void }) {
   const { profile, session } = useSession();
   const { actingDealershipId } = useActingRole();
@@ -29,7 +41,12 @@ export default function DeliveryForm({ existing, onSaved }: { existing?: Deliver
   const [customer, setCustomer] = useState(existing?.customer_name ?? '');
   const [lenderId, setLenderId] = useState(existing?.lender_id ?? '');
   const [approvalStatus, setApprovalStatus] = useState<ApprovalStatus>(existing?.approval_status ?? 'pending');
-  const [deliveryAt, setDeliveryAt] = useState(existing ? toLocalInput(existing.delivery_at) : '');
+  const existingLocal = existing ? toLocalInput(existing.delivery_at) : null;
+  const [deliveryDate, setDeliveryDate] = useState(existingLocal?.slice(0, 10) ?? '');
+  // Time is restricted to quarter-hour increments (:00/:15/:30/:45) — a
+  // finance manager picking a delivery slot doesn't need arbitrary minutes.
+  const [deliveryTime, setDeliveryTime] = useState(existingLocal?.slice(11, 16) ?? '');
+  const deliveryAt = deliveryDate && deliveryTime ? `${deliveryDate}T${deliveryTime}` : '';
   const [salesperson, setSalesperson] = useState(existing?.salesperson_id ?? '');
   const [dueOnDelivery, setDueOnDelivery] = useState(existing?.due_on_delivery ?? false);
   const [dueType, setDueType] = useState<DueOnDeliveryType>(existing?.due_on_delivery_type ?? 'collection');
@@ -219,7 +236,18 @@ export default function DeliveryForm({ existing, onSaved }: { existing?: Deliver
         {APPROVAL_OPTIONS.map((s) => <option key={s} value={s}>{s[0].toUpperCase() + s.slice(1)}</option>)}
       </select>
 
-      <input type="datetime-local" value={deliveryAt} onChange={(e) => setDeliveryAt(e.target.value)} />
+      <div style={fieldLabel}>DELIVERY DATE &amp; TIME</div>
+      <div style={{ display: 'flex', gap: 8 }}>
+        <input type="date" value={deliveryDate} onChange={(e) => setDeliveryDate(e.target.value)} style={{ flex: 1.2 }} />
+        <select
+          value={deliveryTime}
+          onChange={(e) => setDeliveryTime(e.target.value)}
+          style={{ flex: 1 }}
+        >
+          <option value="">Time</option>
+          {QUARTER_HOUR_OPTIONS.map((t) => <option key={t.value} value={t.value}>{t.label}</option>)}
+        </select>
+      </div>
 
       <div className="card" style={{ padding: 14 }}>
         <label style={{ display: 'flex', alignItems: 'center', gap: 10, fontWeight: 700, fontSize: 14 }}>

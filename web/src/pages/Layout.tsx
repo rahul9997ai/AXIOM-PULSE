@@ -13,8 +13,12 @@ export default function Layout({ children }: { children: ReactNode }) {
   const isManager = profile ? MANAGER_ROLES.includes(profile.role) : false;
   const canCreate = isManager && !isAdminMode;
   // A salesperson works off "what's on today" + a calendar to look ahead,
-  // instead of the manager's flat list + create/edit tools.
+  // instead of the manager's flat list + create/edit tools. FSM/GM keep
+  // their full-list oversight (stat tiles, customer filter) on Deliveries,
+  // but get a Calendar tab too so browsing by date doesn't mean scrolling
+  // past every delivery in the dealership.
   const isSalespersonView = effectiveRole === 'Salesperson';
+  const showCalendarTab = !isAdminMode && !!effectiveRole;
 
   const navItems = isSalespersonView
     ? [
@@ -24,6 +28,7 @@ export default function Layout({ children }: { children: ReactNode }) {
       ]
     : [
         { to: '/', label: isAdminMode ? 'Admin' : 'Deliveries', icon: HomeIcon, match: (p: string) => p === '/' || p.startsWith('/edit') },
+        ...(showCalendarTab ? [{ to: '/calendar', label: 'Calendar', icon: CalendarIcon, match: (p: string) => p === '/calendar' }] : []),
         ...(canCreate ? [{ to: '/new', label: 'New', icon: PlusCircleIcon, match: (p: string) => p === '/new' }] : []),
         { to: '/settings', label: 'Settings', icon: GearIcon, match: (p: string) => p === '/settings' },
       ];
