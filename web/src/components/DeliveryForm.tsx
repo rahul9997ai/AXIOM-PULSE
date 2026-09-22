@@ -127,7 +127,7 @@ export default function DeliveryForm({ existing, onSaved }: { existing?: Deliver
       const { error } = await supabase.from('deliveries').update(payload).eq('id', existing!.id);
       if (error) { setBusy(false); setError(error.message); return; }
     } else {
-      const { data, error } = await supabase.from('deliveries').insert({ ...payload, fsm_id: session!.user.id }).select().single();
+      const { data, error } = await supabase.from('deliveries').insert({ ...payload, fsm_id: session!.user.id, fsm_name: profile?.name ?? null }).select().single();
       if (error) { setBusy(false); setError(error.message); return; }
       deliveryId = data.id;
     }

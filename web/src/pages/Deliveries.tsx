@@ -33,7 +33,7 @@ export default function Deliveries() {
     if (!profile || isAdminMode) return;
     let query = supabase
       .from('deliveries')
-      .select('*, delivery_requirements(*), lenders(name, address), fsm:profiles!deliveries_fsm_id_fkey(name)')
+      .select('*, delivery_requirements(*), lenders(name, address)')
       .order('delivery_at', { ascending: true });
     if (isMaster) {
       if (!actingDealershipId) { setRows([]); setLoading(false); return; }
@@ -257,9 +257,9 @@ export default function Deliveries() {
             <div style={{ marginTop: 6, fontSize: 13, color: 'var(--muted)', marginLeft: 21 }}>
               Approval: <strong style={{ color: 'var(--text)' }}>{capitalizeWords(d.approval_status)}</strong>
             </div>
-            {d.fsm?.name && (
+            {d.fsm_name && (
               <div style={{ marginTop: 2, fontSize: 13, color: 'var(--muted)', marginLeft: 21 }}>
-                Finance Manager: <strong style={{ color: 'var(--text)' }}>{d.fsm.name}</strong>
+                Finance Manager: <strong style={{ color: 'var(--text)' }}>{d.fsm_name}</strong>
               </div>
             )}
 
