@@ -7,7 +7,7 @@ import type { Delivery } from '@/lib/types';
 import { STATUS_LABEL, STATUS_COLOR, MANAGER_ROLES, ROLE_LABEL } from '@/lib/types';
 import { formatCents } from '@/lib/money';
 import { capitalizeWords } from '@/lib/text';
-import { CalendarIcon, PinIcon, DollarIcon, CarIcon, CheckCircleIcon, AlertIcon, CircleIcon } from '@/components/Icons';
+import { CalendarIcon, PinIcon, DollarIcon, CarIcon, CheckCircleIcon, AlertIcon, CircleIcon, EditIcon, BellIcon, TrashIcon } from '@/components/Icons';
 import AdminHome from './AdminHome';
 import PushCard from '@/components/PushCard';
 
@@ -184,47 +184,22 @@ export default function Deliveries() {
 
         return (
           <div key={d.id} className="card" style={{ borderLeft: `4px solid ${sc.border}`, position: 'relative' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-              <div>
-                <div style={{ fontWeight: 800, fontSize: 17 }}>{d.customer_name}</div>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 8 }}>
+              <div style={{ minWidth: 0 }}>
+                <div style={{ fontWeight: 800, fontSize: 17, lineHeight: 1.25 }}>{d.customer_name}</div>
                 {(d.vehicle || d.vin) && (
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 6, color: 'var(--muted)', marginTop: 4, fontSize: 13.5 }}>
-                    <CarIcon size={14} />
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 6, color: 'var(--muted)', marginTop: 3, fontSize: 13 }}>
+                    <CarIcon size={13} />
                     {[d.vehicle, d.vin ? `VIN ${d.vin}` : null].filter(Boolean).join(' · ')}
                   </div>
                 )}
               </div>
-              <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 6 }}>
-                <span style={{
-                  fontSize: 10.5, fontWeight: 800, letterSpacing: 0.4, textTransform: 'uppercase',
-                  background: sc.bg, color: sc.fg, padding: '4px 10px', borderRadius: 999,
-                }}>
-                  {STATUS_LABEL[d.status]}
-                </span>
-                {isManager && (
-                  <div style={{ display: 'flex', gap: 6 }}>
-                    <Link to={`/edit/${d.id}`} className="btn secondary" style={{ textDecoration: 'none', padding: '3px 10px', fontSize: 11 }}>
-                      Edit
-                    </Link>
-                    <button
-                      type="button"
-                      className="btn secondary"
-                      style={{ padding: '3px 10px', fontSize: 11 }}
-                      onClick={() => { setNotifyFor(notifyFor === d.id ? null : d.id); setNotifyMessage(''); }}
-                    >
-                      Notify
-                    </button>
-                    <button
-                      type="button"
-                      className="btn secondary"
-                      style={{ padding: '3px 10px', fontSize: 11, borderColor: '#dc2626', color: '#dc2626' }}
-                      onClick={() => deleteDelivery(d)}
-                    >
-                      Delete
-                    </button>
-                  </div>
-                )}
-              </div>
+              <span style={{
+                flexShrink: 0, fontSize: 10, fontWeight: 800, letterSpacing: 0.3, textTransform: 'uppercase',
+                background: sc.bg, color: sc.fg, padding: '4px 9px', borderRadius: 999,
+              }}>
+                {STATUS_LABEL[d.status]}
+              </span>
             </div>
 
             {(() => {
@@ -232,75 +207,76 @@ export default function Deliveries() {
               const darkGreen = '#15803d';
               return (
                 <div style={{
-                  display: 'flex', alignItems: 'center', gap: 8, marginTop: 10,
-                  padding: '8px 12px', borderRadius: 10, background: '#eafaf0',
+                  display: 'flex', alignItems: 'center', gap: 7, marginTop: 10,
+                  padding: '7px 11px', borderRadius: 9, background: '#eafaf0',
                 }}>
-                  <span style={{ color: darkGreen }}><CalendarIcon size={18} /></span>
-                  <span style={{ fontSize: 16, fontWeight: 800, color: darkGreen }}>
+                  <span style={{ color: darkGreen, display: 'flex' }}><CalendarIcon size={16} /></span>
+                  <span style={{ fontSize: 14.5, fontWeight: 700, color: darkGreen }}>
                     {dt.toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric' })}
                   </span>
-                  <span style={{ fontSize: 16, fontWeight: 800, color: darkGreen }}>
+                  <span style={{ fontSize: 14.5, fontWeight: 700, color: darkGreen }}>
                     {dt.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })}
                   </span>
                 </div>
               );
             })()}
             {d.status === 'delivered' && d.delivered_at && (
-              <div style={{ color: '#15803d', fontSize: 13, fontWeight: 700, marginTop: 4, marginLeft: 21 }}>
+              <div style={{ color: '#15803d', fontSize: 12.5, fontWeight: 700, marginTop: 4, marginLeft: 3 }}>
                 Delivered {new Date(d.delivered_at).toLocaleString()}
               </div>
             )}
 
-            <div style={{ display: 'flex', alignItems: 'flex-start', gap: 6, marginTop: 6, fontSize: 13.5 }}>
-              <span style={{ color: 'var(--muted)', marginTop: 1 }}><PinIcon /></span>
-              <div>
-                {d.lenders?.name || 'Lender / lessor not selected'}
-                {d.lenders?.address && (
-                  <a
-                    href={`https://maps.google.com/?q=${encodeURIComponent(d.lenders.address)}`}
-                    target="_blank"
-                    rel="noreferrer"
-                    style={{ display: 'block', color: 'var(--accent)', fontSize: 12.5, marginTop: 1, textDecoration: 'none' }}
-                  >
-                    {d.lenders.address}
-                  </a>
-                )}
+            <div style={{ display: 'grid', gap: 5, marginTop: 10, fontSize: 13 }}>
+              <div style={{ display: 'flex', alignItems: 'flex-start', gap: 7 }}>
+                <span style={{ color: 'var(--muted)', marginTop: 2, flexShrink: 0 }}><PinIcon size={13} /></span>
+                <div style={{ color: 'var(--text)' }}>
+                  {d.lenders?.name || 'Lender / lessor not selected'}
+                  {d.lenders?.address && (
+                    <a
+                      href={`https://maps.google.com/?q=${encodeURIComponent(d.lenders.address)}`}
+                      target="_blank"
+                      rel="noreferrer"
+                      style={{ display: 'block', color: 'var(--accent)', fontSize: 12, marginTop: 1, textDecoration: 'none' }}
+                    >
+                      {d.lenders.address}
+                    </a>
+                  )}
+                </div>
               </div>
+
+              <InfoRow label="Approval" value={capitalizeWords(d.approval_status)} />
+              {d.fsm_name && <InfoRow label="Finance Manager" value={d.fsm_name} />}
+              {d.due_on_delivery && d.due_on_delivery_amount_cents != null && (
+                <div style={{ display: 'flex', alignItems: 'center', gap: 7 }}>
+                  <span style={{ color: 'var(--muted)', flexShrink: 0 }}><DollarIcon size={13} /></span>
+                  <span style={{ color: 'var(--muted)' }}>
+                    {d.due_on_delivery_type === 'refund' ? 'Refund to customer' : 'Collect from customer'}:{' '}
+                    <strong style={{ color: 'var(--text)' }}>{formatCents(d.due_on_delivery_amount_cents)}</strong>
+                  </span>
+                </div>
+              )}
             </div>
 
-            <div style={{ marginTop: 6, fontSize: 13, color: 'var(--muted)', marginLeft: 21 }}>
-              Approval: <strong style={{ color: 'var(--text)' }}>{capitalizeWords(d.approval_status)}</strong>
-            </div>
-            {d.fsm_name && (
-              <div style={{ marginTop: 2, fontSize: 13, color: 'var(--muted)', marginLeft: 21 }}>
-                Finance Manager: <strong style={{ color: 'var(--text)' }}>{d.fsm_name}</strong>
-              </div>
-            )}
-
-            {d.due_on_delivery && d.due_on_delivery_amount_cents != null && (
-              <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginTop: 8, fontSize: 13.5 }}>
-                <span style={{ color: 'var(--muted)' }}><DollarIcon /></span>
-                {d.due_on_delivery_type === 'refund' ? 'Refund to customer' : 'Collect from customer'}: <strong>{formatCents(d.due_on_delivery_amount_cents)}</strong>
-              </div>
-            )}
             {d.fsm_notes && (
-              <div style={{ marginTop: 10, fontSize: 13, fontStyle: 'italic', color: 'var(--muted)' }}>“{d.fsm_notes}”</div>
+              <div style={{ marginTop: 9, fontSize: 13, fontStyle: 'italic', color: 'var(--muted)' }}>“{d.fsm_notes}”</div>
             )}
 
             {requirements.length > 0 && (
-              <div style={{ marginTop: 12, display: 'grid', gap: 8 }}>
+              <div style={{ marginTop: 12, borderTop: '1px solid var(--line)', paddingTop: 10, display: 'grid', gap: 7 }}>
                 {requirements.map((r) => {
-                  const color = r.status === 'completed' ? '#15803d' : r.status === 'exception' ? '#b45309' : 'var(--accent)';
+                  const color = r.status === 'completed' ? '#15803d' : r.status === 'exception' ? '#b45309' : 'var(--muted)';
                   const ReqIcon = r.status === 'completed' ? CheckCircleIcon : r.status === 'exception' ? AlertIcon : CircleIcon;
                   return (
                     <div key={r.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 8 }}>
-                      <span style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 13, color, fontWeight: 700 }}>
-                        <ReqIcon />
-                        {r.label}
-                        {r.status === 'exception' && r.exception_reason ? ` — ${r.exception_reason}` : ''}
+                      <span style={{ display: 'flex', alignItems: 'flex-start', gap: 7, fontSize: 13, color: 'var(--text)' }}>
+                        <span style={{ color, marginTop: 1, flexShrink: 0 }}><ReqIcon size={14} /></span>
+                        <span>
+                          {r.label}
+                          {r.status === 'exception' && r.exception_reason ? ` — ${r.exception_reason}` : ''}
+                        </span>
                       </span>
                       {!isManager && r.status === 'outstanding' && (
-                        <div style={{ display: 'flex', gap: 6 }}>
+                        <div style={{ display: 'flex', gap: 6, flexShrink: 0 }}>
                           <button className="btn secondary" style={{ padding: '4px 8px', fontSize: 11 }} onClick={() => resolveRequirement(r.id, 'completed')}>Done</button>
                           <button className="btn secondary" style={{ padding: '4px 8px', fontSize: 11 }} onClick={() => setExceptionFor(r.id)}>Exception</button>
                         </div>
@@ -308,6 +284,34 @@ export default function Deliveries() {
                     </div>
                   );
                 })}
+              </div>
+            )}
+
+            {isManager && (
+              <div style={{ display: 'flex', gap: 6, marginTop: 12, borderTop: '1px solid var(--line)', paddingTop: 10 }}>
+                <Link
+                  to={`/edit/${d.id}`}
+                  className="btn secondary"
+                  style={{ display: 'flex', alignItems: 'center', gap: 5, textDecoration: 'none', padding: '5px 11px', fontSize: 12 }}
+                >
+                  <EditIcon size={14} /> Edit
+                </Link>
+                <button
+                  type="button"
+                  className="btn secondary"
+                  style={{ display: 'flex', alignItems: 'center', gap: 5, padding: '5px 11px', fontSize: 12 }}
+                  onClick={() => { setNotifyFor(notifyFor === d.id ? null : d.id); setNotifyMessage(''); }}
+                >
+                  <BellIcon size={14} /> Notify
+                </button>
+                <button
+                  type="button"
+                  className="btn secondary"
+                  style={{ display: 'flex', alignItems: 'center', gap: 5, padding: '5px 11px', fontSize: 12, borderColor: '#dc2626', color: '#dc2626', marginLeft: 'auto' }}
+                  onClick={() => deleteDelivery(d)}
+                >
+                  <TrashIcon size={14} /> Delete
+                </button>
               </div>
             )}
 
@@ -358,6 +362,14 @@ export default function Deliveries() {
           </div>
         );
       })}
+    </div>
+  );
+}
+
+function InfoRow({ label, value }: { label: string; value: string }) {
+  return (
+    <div style={{ color: 'var(--muted)' }}>
+      {label}: <strong style={{ color: 'var(--text)', fontWeight: 700 }}>{value}</strong>
     </div>
   );
 }
