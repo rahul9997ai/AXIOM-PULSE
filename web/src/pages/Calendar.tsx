@@ -1,11 +1,10 @@
 import { useEffect, useMemo, useState, useCallback } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { Link } from 'react-router-dom';
 import { supabase } from '@/lib/supabase';
 import { useSession } from '@/lib/session';
 import { useActingRole } from '@/lib/actingRole';
 import type { Delivery } from '@/lib/types';
 import { STATUS_COLOR, MANAGER_ROLES } from '@/lib/types';
-import { downloadDeliveryIcs } from '@/lib/ics';
 
 const WEEKDAY_LABELS = ['S', 'M', 'T', 'W', 'T', 'F', 'S'];
 
@@ -16,7 +15,6 @@ function dateKey(d: Date): string {
 export default function CalendarPage() {
   const { profile, session } = useSession();
   const { isMaster, actingRole, actingDealershipId } = useActingRole();
-  const navigate = useNavigate();
   const [rows, setRows] = useState<Delivery[]>([]);
   const [loading, setLoading] = useState(true);
   const [cursor, setCursor] = useState(() => { const d = new Date(); d.setDate(1); return d; });
@@ -126,9 +124,13 @@ export default function CalendarPage() {
         )}
         {selectedDeliveries.map((d) => {
           const sc = STATUS_COLOR[d.status];
-          const open = (d.delivery_requirements || []).filter((r) => r.status === 'outstanding').length;
           return (
-            <div key={d.id} className="card" style={{ borderLeft: `4px solid ${sc.border}`, marginBottom: 10, cursor: 'pointer' }} onClick={() => navigate('/')}>
+            <Link
+              key={d.id}
+              to={`/delivery/${d.id}`}
+              className="card"
+              style={{ display: 'block', borderLeft: `4px solid ${sc.border}`, marginBottom: 10, textDecoration: 'none', color: 'inherit' }}
+            >
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                 <div style={{ fontWeight: 800, fontSize: 15 }}>{d.customer_name}</div>
                 <div style={{ fontWeight: 700, fontSize: 13, color: '#15803d' }}>
@@ -136,17 +138,9 @@ export default function CalendarPage() {
                 </div>
               </div>
               <div style={{ fontSize: 12.5, color: 'var(--muted)', marginTop: 3 }}>
-                {open > 0 ? `${open} requirement${open === 1 ? '' : 's'} outstanding` : 'All requirements complete'}
+                {d.lenders?.name || 'Lender / lessor not selected'}
               </div>
-              <button
-                type="button"
-                className="btn secondary"
-                style={{ marginTop: 8, padding: '5px 11px', fontSize: 12 }}
-                onClick={(e) => { e.stopPropagation(); downloadDeliveryIcs(d); }}
-              >
-                Add to Calendar
-              </button>
-            </div>
+            </Link>
           );
         })}
       </div>

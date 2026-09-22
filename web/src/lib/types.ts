@@ -67,6 +67,23 @@ export interface Delivery {
   delivery_requirements?: DeliveryRequirement[];
 }
 
+export type CommentStatus = 'pending' | 'approved' | 'denied';
+
+export interface DeliveryComment {
+  id: string;
+  delivery_id: string;
+  author_id: string;
+  author_name: string;
+  author_role: Role;
+  body: string;
+  requires_decision: boolean;
+  status: CommentStatus;
+  decision_reason: string | null;
+  decided_by_name: string | null;
+  decided_at: string | null;
+  created_at: string;
+}
+
 export interface DeliveryEvent {
   id: string;
   delivery_id: string;

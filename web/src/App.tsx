@@ -7,6 +7,7 @@ import ForcePasswordChange from '@/pages/ForcePasswordChange';
 import Layout from '@/pages/Layout';
 import Deliveries from '@/pages/Deliveries';
 import CalendarPage from '@/pages/Calendar';
+import DeliveryDetail from '@/pages/DeliveryDetail';
 import NewDelivery from '@/pages/NewDelivery';
 import EditDelivery from '@/pages/EditDelivery';
 import Settings from '@/pages/Settings';
@@ -36,6 +37,7 @@ function AppRoutes() {
       <Routes>
         <Route path="/" element={<Deliveries />} />
         <Route path="/calendar" element={<CalendarPage />} />
+        <Route path="/delivery/:id" element={<DeliveryDetail />} />
         <Route path="/new" element={canCreate ? <NewDelivery /> : <Navigate to="/" replace />} />
         <Route path="/edit/:id" element={canCreate ? <EditDelivery /> : <Navigate to="/" replace />} />
         <Route path="/settings" element={<Settings />} />

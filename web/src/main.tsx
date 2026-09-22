@@ -2,8 +2,11 @@ import { StrictMode } from 'react';
 import { createRoot } from 'react-dom/client';
 import { BrowserRouter } from 'react-router-dom';
 import { SessionProvider } from '@/lib/session';
+import { applyTheme, getStoredTheme } from '@/lib/theme';
 import App from './App';
 import './styles.css';
+
+applyTheme(getStoredTheme());
 
 if ('serviceWorker' in navigator) {
   window.addEventListener('load', () => {

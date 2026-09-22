@@ -7,6 +7,7 @@ import { MANAGER_ROLES } from '@/lib/types';
 import InstallAppCard from '@/components/InstallAppCard';
 import PushCard from '@/components/PushCard';
 import { LogOutIcon } from '@/components/Icons';
+import { applyTheme, getStoredTheme, type Theme } from '@/lib/theme';
 
 interface Dealership { id: string; name: string; }
 
@@ -17,6 +18,9 @@ export default function Settings() {
   const { actingDealershipId } = useActingRole();
   const isMaster = profile?.role === 'Master Administrator';
   const canManageLists = profile ? MANAGER_ROLES.includes(profile.role) : false;
+  const [theme, setTheme] = useState<Theme>(getStoredTheme());
+
+  const onSetTheme = (t: Theme) => { setTheme(t); applyTheme(t); };
 
   const [dealerships, setDealerships] = useState<Dealership[]>([]);
   const [selectedDealershipId, setSelectedDealershipId] = useState(actingDealershipId);
@@ -153,6 +157,23 @@ export default function Settings() {
           >
             <LogOutIcon size={16} /> Sign out
           </button>
+        </div>
+      </div>
+
+      <div className="card">
+        <div style={{ color: 'var(--muted)', fontWeight: 800, fontSize: 12, letterSpacing: 1, marginBottom: 10 }}>APPEARANCE</div>
+        <div style={{ display: 'flex', gap: 8 }}>
+          {(['light', 'dark'] as const).map((t) => (
+            <button
+              key={t}
+              type="button"
+              className={theme === t ? 'btn' : 'btn secondary'}
+              style={{ flex: 1, textTransform: 'capitalize' }}
+              onClick={() => onSetTheme(t)}
+            >
+              {t}
+            </button>
+          ))}
         </div>
       </div>
 

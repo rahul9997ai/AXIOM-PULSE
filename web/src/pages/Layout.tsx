@@ -23,11 +23,11 @@ export default function Layout({ children }: { children: ReactNode }) {
   const navItems = isSalespersonView
     ? [
         { to: '/calendar', label: 'Calendar', icon: CalendarIcon, match: (p: string) => p === '/calendar' },
-        { to: '/', label: 'Deliveries', icon: HomeIcon, match: (p: string) => p === '/' },
+        { to: '/', label: 'Deliveries', icon: HomeIcon, match: (p: string) => p === '/' || p.startsWith('/delivery') },
         { to: '/settings', label: 'Settings', icon: GearIcon, match: (p: string) => p === '/settings' },
       ]
     : [
-        { to: '/', label: isAdminMode ? 'Admin' : 'Deliveries', icon: HomeIcon, match: (p: string) => p === '/' || p.startsWith('/edit') },
+        { to: '/', label: isAdminMode ? 'Admin' : 'Deliveries', icon: HomeIcon, match: (p: string) => p === '/' || p.startsWith('/edit') || p.startsWith('/delivery') },
         ...(showCalendarTab ? [{ to: '/calendar', label: 'Calendar', icon: CalendarIcon, match: (p: string) => p === '/calendar' }] : []),
         ...(canCreate ? [{ to: '/new', label: 'New', icon: PlusCircleIcon, match: (p: string) => p === '/new' }] : []),
         { to: '/settings', label: 'Settings', icon: GearIcon, match: (p: string) => p === '/settings' },

@@ -5,10 +5,7 @@ import { useSession } from '@/lib/session';
 import { useActingRole } from '@/lib/actingRole';
 import type { Delivery } from '@/lib/types';
 import { STATUS_LABEL, STATUS_COLOR, MANAGER_ROLES, ROLE_LABEL } from '@/lib/types';
-import { formatCents } from '@/lib/money';
-import { capitalizeWords } from '@/lib/text';
-import { downloadDeliveryIcs } from '@/lib/ics';
-import { CalendarIcon, PinIcon, DollarIcon, CarIcon, CheckCircleIcon, AlertIcon, CircleIcon, EditIcon, BellIcon, TrashIcon } from '@/components/Icons';
+import { CalendarIcon, PinIcon } from '@/components/Icons';
 import AdminHome from './AdminHome';
 
 export default function Deliveries() {
@@ -16,12 +13,7 @@ export default function Deliveries() {
   const { isMaster, actingRole, actingDealershipId, isAdminMode } = useActingRole();
   const [rows, setRows] = useState<Delivery[]>([]);
   const [loading, setLoading] = useState(true);
-  const [notice, setNotice] = useState<string | null>(null);
-  const [exceptionFor, setExceptionFor] = useState<string | null>(null);
-  const [exceptionReason, setExceptionReason] = useState('');
   const [tab, setTab] = useState<'active' | 'delivered'>('active');
-  const [notifyFor, setNotifyFor] = useState<string | null>(null);
-  const [notifyMessage, setNotifyMessage] = useState('');
   const [customerFilter, setCustomerFilter] = useState('');
 
   // A Master Administrator has no operational role of their own — the delivery
@@ -60,56 +52,6 @@ export default function Deliveries() {
     return () => { supabase.removeChannel(channel); };
   }, [profile, load]);
 
-  const resolveRequirement = async (id: string, status: 'completed' | 'exception', reason?: string) => {
-    const { error } = await supabase.rpc('set_requirement_status', {
-      p_requirement_id: id,
-      p_status: status,
-      p_exception_reason: reason ?? null,
-    });
-    if (error) setNotice(error.message);
-    else { setExceptionFor(null); setExceptionReason(''); load(); }
-  };
-
-  const complete = async (id: string) => {
-    const { error } = await supabase.rpc('complete_delivery', { p_delivery_id: id });
-    if (error) setNotice(error.message);
-    else load();
-  };
-
-  const deleteDelivery = async (d: Delivery) => {
-    if (!window.confirm(`Permanently delete the delivery record for ${d.customer_name}? This can't be undone.`)) return;
-    const { error } = await supabase.from('deliveries').delete().eq('id', d.id);
-    if (error) setNotice(error.message);
-    else load();
-  };
-
-  const sendUrgentNotify = async (d: Delivery) => {
-    const open = (d.delivery_requirements || []).filter((r) => r.status === 'outstanding').map((r) => r.label);
-    const body = notifyMessage.trim() || (open.length
-      ? `Still needed: ${open.join(', ')}.`
-      : `Please check the ${d.customer_name} delivery.`);
-    const { data, error } = await supabase.functions.invoke('send-webpush', {
-      body: {
-        profile_ids: [d.salesperson_id],
-        title: `Urgent: ${d.customer_name}`,
-        body,
-        data: { url: '/', deliveryId: d.id, type: 'urgent' },
-      },
-    });
-    if (error) {
-      setNotice(error.message);
-    } else if (!data?.sent) {
-      setNotice(
-        `Sent, but the salesperson has no device enrolled for push yet. On iPhone, they need iOS 16.4+, ` +
-        `Pulse added to the Home Screen (not just a Safari tab), opened from that icon, and "Enable notifications" tapped in the app.`,
-      );
-    } else {
-      setNotice(`Notification sent to ${data.sent} device(s).`);
-    }
-    setNotifyFor(null);
-    setNotifyMessage('');
-  };
-
   const active = rows.filter((d) => d.status !== 'delivered');
   // A salesperson's Deliveries tab is "what's on today" — anything else is a
   // calendar lookup away, on the Calendar tab.
@@ -147,8 +89,6 @@ export default function Deliveries() {
         </div>
       )}
 
-      {notice && <div className="card" style={{ fontSize: 13 }}>{notice}</div>}
-
       {customerNames.length > 1 && (
         <select value={customerFilter} onChange={(e) => setCustomerFilter(e.target.value)}>
           <option value="">All customers ({customerNames.length})</option>
@@ -182,23 +122,19 @@ export default function Deliveries() {
       )}
 
       {visible.map((d) => {
-        const requirements = d.delivery_requirements || [];
-        const open = requirements.filter((r) => r.status === 'outstanding');
-        const canComplete = !isManager && d.status !== 'delivered' && d.status !== 'cancelled';
         const sc = STATUS_COLOR[d.status];
+        const dt = new Date(d.delivery_at);
+        const darkGreen = '#15803d';
 
         return (
-          <div key={d.id} className="card" style={{ borderLeft: `4px solid ${sc.border}`, position: 'relative' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 8 }}>
-              <div style={{ minWidth: 0 }}>
-                <div style={{ fontWeight: 800, fontSize: 17, lineHeight: 1.25 }}>{d.customer_name}</div>
-                {(d.vehicle || d.vin) && (
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 6, color: 'var(--muted)', marginTop: 3, fontSize: 13 }}>
-                    <CarIcon size={13} />
-                    {[d.vehicle, d.vin ? `VIN ${d.vin}` : null].filter(Boolean).join(' · ')}
-                  </div>
-                )}
-              </div>
+          <Link
+            key={d.id}
+            to={`/delivery/${d.id}`}
+            className="card"
+            style={{ display: 'block', borderLeft: `4px solid ${sc.border}`, textDecoration: 'none', color: 'inherit' }}
+          >
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 8 }}>
+              <div style={{ fontWeight: 800, fontSize: 17, lineHeight: 1.25, minWidth: 0 }}>{d.customer_name}</div>
               <span style={{
                 flexShrink: 0, fontSize: 10, fontWeight: 800, letterSpacing: 0.3, textTransform: 'uppercase',
                 background: sc.bg, color: sc.fg, padding: '4px 9px', borderRadius: 999,
@@ -207,186 +143,31 @@ export default function Deliveries() {
               </span>
             </div>
 
-            {(() => {
-              const dt = new Date(d.delivery_at);
-              const darkGreen = '#15803d';
-              return (
-                <div style={{
-                  display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 7, marginTop: 10,
-                  padding: '7px 11px', borderRadius: 9, background: '#eafaf0',
-                }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 7 }}>
-                    <span style={{ color: darkGreen, display: 'flex' }}><CalendarIcon size={16} /></span>
-                    <span style={{ fontSize: 14.5, fontWeight: 700, color: darkGreen }}>
-                      {dt.toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric' })}
-                    </span>
-                    <span style={{ fontSize: 14.5, fontWeight: 700, color: darkGreen }}>
-                      {dt.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })}
-                    </span>
-                  </div>
-                  <button
-                    type="button"
-                    onClick={() => downloadDeliveryIcs(d)}
-                    style={{
-                      border: `1px solid ${darkGreen}`, color: darkGreen, background: 'transparent',
-                      borderRadius: 7, padding: '3px 8px', fontSize: 11, fontWeight: 700, cursor: 'pointer',
-                    }}
-                  >
-                    + Calendar
-                  </button>
-                </div>
-              );
-            })()}
-            {d.status === 'delivered' && d.delivered_at && (
-              <div style={{ color: '#15803d', fontSize: 12.5, fontWeight: 700, marginTop: 4, marginLeft: 3 }}>
-                Delivered {new Date(d.delivered_at).toLocaleString()}
-              </div>
-            )}
-
-            <div style={{ display: 'grid', gap: 5, marginTop: 10, fontSize: 13 }}>
-              <div style={{ display: 'flex', alignItems: 'flex-start', gap: 7 }}>
-                <span style={{ color: 'var(--muted)', marginTop: 2, flexShrink: 0 }}><PinIcon size={13} /></span>
-                <div style={{ color: 'var(--text)' }}>
-                  {d.lenders?.name || 'Lender / lessor not selected'}
-                  {d.lenders?.address && (
-                    <a
-                      href={`https://maps.google.com/?q=${encodeURIComponent(d.lenders.address)}`}
-                      target="_blank"
-                      rel="noreferrer"
-                      style={{ display: 'block', color: 'var(--accent)', fontSize: 12, marginTop: 1, textDecoration: 'none' }}
-                    >
-                      {d.lenders.address}
-                    </a>
-                  )}
-                </div>
-              </div>
-
-              <InfoRow label="Approval" value={capitalizeWords(d.approval_status)} />
-              {d.fsm_name && <InfoRow label="Finance Manager" value={d.fsm_name} />}
-              {d.due_on_delivery && d.due_on_delivery_amount_cents != null && (
-                <div style={{ display: 'flex', alignItems: 'center', gap: 7 }}>
-                  <span style={{ color: 'var(--muted)', flexShrink: 0 }}><DollarIcon size={13} /></span>
-                  <span style={{ color: 'var(--muted)' }}>
-                    {d.due_on_delivery_type === 'refund' ? 'Refund to customer' : 'Collect from customer'}:{' '}
-                    <strong style={{ color: 'var(--text)' }}>{formatCents(d.due_on_delivery_amount_cents)}</strong>
-                  </span>
-                </div>
-              )}
+            <div style={{
+              display: 'flex', alignItems: 'center', gap: 7, marginTop: 10,
+              padding: '7px 11px', borderRadius: 9, background: '#eafaf0',
+            }}>
+              <span style={{ color: darkGreen, display: 'flex' }}><CalendarIcon size={16} /></span>
+              <span style={{ fontSize: 14.5, fontWeight: 700, color: darkGreen }}>
+                {dt.toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric' })}
+              </span>
+              <span style={{ fontSize: 14.5, fontWeight: 700, color: darkGreen }}>
+                {dt.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })}
+              </span>
             </div>
 
-            {d.fsm_notes && (
-              <div style={{ marginTop: 9, fontSize: 13, fontStyle: 'italic', color: 'var(--muted)' }}>“{d.fsm_notes}”</div>
-            )}
-
-            {requirements.length > 0 && (
-              <div style={{ marginTop: 12, borderTop: '1px solid var(--line)', paddingTop: 10, display: 'grid', gap: 7 }}>
-                {requirements.map((r) => {
-                  const color = r.status === 'completed' ? '#15803d' : r.status === 'exception' ? '#b45309' : 'var(--muted)';
-                  const ReqIcon = r.status === 'completed' ? CheckCircleIcon : r.status === 'exception' ? AlertIcon : CircleIcon;
-                  return (
-                    <div key={r.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 8 }}>
-                      <span style={{ display: 'flex', alignItems: 'flex-start', gap: 7, fontSize: 13, color: 'var(--text)' }}>
-                        <span style={{ color, marginTop: 1, flexShrink: 0 }}><ReqIcon size={14} /></span>
-                        <span>
-                          {r.label}
-                          {r.status === 'exception' && r.exception_reason ? ` — ${r.exception_reason}` : ''}
-                        </span>
-                      </span>
-                      {!isManager && r.status === 'outstanding' && (
-                        <div style={{ display: 'flex', gap: 6, flexShrink: 0 }}>
-                          <button className="btn secondary" style={{ padding: '4px 8px', fontSize: 11 }} onClick={() => resolveRequirement(r.id, 'completed')}>Done</button>
-                          <button className="btn secondary" style={{ padding: '4px 8px', fontSize: 11 }} onClick={() => setExceptionFor(r.id)}>Exception</button>
-                        </div>
-                      )}
-                    </div>
-                  );
-                })}
+            <div style={{ display: 'flex', alignItems: 'flex-start', gap: 7, marginTop: 10, fontSize: 13 }}>
+              <span style={{ color: 'var(--muted)', marginTop: 2, flexShrink: 0 }}><PinIcon size={13} /></span>
+              <div style={{ color: 'var(--text)' }}>
+                {d.lenders?.name || 'Lender / lessor not selected'}
+                {d.lenders?.address && (
+                  <div style={{ color: 'var(--muted)', fontSize: 12, marginTop: 1 }}>{d.lenders.address}</div>
+                )}
               </div>
-            )}
-
-            {isManager && (
-              <div style={{ display: 'flex', gap: 6, marginTop: 12, borderTop: '1px solid var(--line)', paddingTop: 10 }}>
-                <Link
-                  to={`/edit/${d.id}`}
-                  className="btn secondary"
-                  style={{ display: 'flex', alignItems: 'center', gap: 5, textDecoration: 'none', padding: '5px 11px', fontSize: 12 }}
-                >
-                  <EditIcon size={14} /> Edit
-                </Link>
-                <button
-                  type="button"
-                  className="btn secondary"
-                  style={{ display: 'flex', alignItems: 'center', gap: 5, padding: '5px 11px', fontSize: 12 }}
-                  onClick={() => { setNotifyFor(notifyFor === d.id ? null : d.id); setNotifyMessage(''); }}
-                >
-                  <BellIcon size={14} /> Notify
-                </button>
-                <button
-                  type="button"
-                  className="btn secondary"
-                  style={{ display: 'flex', alignItems: 'center', gap: 5, padding: '5px 11px', fontSize: 12, borderColor: '#dc2626', color: '#dc2626', marginLeft: 'auto' }}
-                  onClick={() => deleteDelivery(d)}
-                >
-                  <TrashIcon size={14} /> Delete
-                </button>
-              </div>
-            )}
-
-            {notifyFor === d.id && (
-              <div style={{ marginTop: 10, display: 'grid', gap: 8 }}>
-                <textarea
-                  placeholder="Urgent message to the salesperson (optional — defaults to outstanding requirements)"
-                  value={notifyMessage}
-                  onChange={(e) => setNotifyMessage(e.target.value)}
-                  rows={2}
-                />
-                <div style={{ display: 'flex', gap: 8 }}>
-                  <button className="btn" style={{ flex: 1 }} onClick={() => sendUrgentNotify(d)}>
-                    Send urgent notification
-                  </button>
-                  <button className="btn secondary" onClick={() => { setNotifyFor(null); setNotifyMessage(''); }}>Cancel</button>
-                </div>
-              </div>
-            )}
-
-            {exceptionFor && requirements.some((r) => r.id === exceptionFor) && (
-              <div style={{ marginTop: 10, display: 'grid', gap: 8 }}>
-                <textarea
-                  placeholder="Reason this couldn't be completed"
-                  value={exceptionReason}
-                  onChange={(e) => setExceptionReason(e.target.value)}
-                  rows={2}
-                />
-                <div style={{ display: 'flex', gap: 8 }}>
-                  <button
-                    className="btn"
-                    style={{ flex: 1 }}
-                    disabled={!exceptionReason.trim()}
-                    onClick={() => resolveRequirement(exceptionFor, 'exception', exceptionReason.trim())}
-                  >
-                    Save exception
-                  </button>
-                  <button className="btn secondary" onClick={() => { setExceptionFor(null); setExceptionReason(''); }}>Cancel</button>
-                </div>
-              </div>
-            )}
-
-            {canComplete && open.length === 0 && (
-              <button className="btn" style={{ marginTop: 14, width: '100%' }} onClick={() => complete(d.id)}>
-                Mark delivered
-              </button>
-            )}
-          </div>
+            </div>
+          </Link>
         );
       })}
-    </div>
-  );
-}
-
-function InfoRow({ label, value }: { label: string; value: string }) {
-  return (
-    <div style={{ color: 'var(--muted)' }}>
-      {label}: <strong style={{ color: 'var(--text)', fontWeight: 700 }}>{value}</strong>
     </div>
   );
 }

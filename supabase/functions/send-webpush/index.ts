@@ -24,6 +24,9 @@ interface RequestBody {
   title?: string;
   body?: string;
   data?: Record<string, unknown>;
+  // Set when a Salesperson notifies the FSM of a question on their own
+  // delivery — the one non-manager case allowed to target someone else.
+  delivery_id?: string;
 }
 
 Deno.serve(async (req) => {
@@ -57,10 +60,20 @@ Deno.serve(async (req) => {
     const targetingOthers = targetIds.some((id) => id !== user.id);
     if (targetingOthers) {
       const { data: caller } = await admin.from('profiles').select('role, dealership_id').eq('id', user.id).single();
-      if (!caller || !MANAGER_ROLES.includes(caller.role)) {
-        return json({ error: 'Only FSM/manager roles can notify other users' }, 403);
-      }
-      if (caller.role !== 'Master Administrator') {
+      if (!caller) return json({ error: 'Not allowed' }, 403);
+
+      if (!MANAGER_ROLES.includes(caller.role)) {
+        // The one non-manager case: a salesperson posting a question notifies
+        // the FSM on their own delivery — verify that relationship directly
+        // against the delivery row rather than trusting the caller's claim.
+        if (caller.role === 'Salesperson' && body.delivery_id && targetIds.length === 1) {
+          const { data: delivery } = await admin.from('deliveries').select('salesperson_id, fsm_id').eq('id', body.delivery_id).single();
+          const authorized = delivery && delivery.salesperson_id === user.id && delivery.fsm_id === targetIds[0];
+          if (!authorized) return json({ error: 'Not allowed to notify this profile' }, 403);
+        } else {
+          return json({ error: 'Only FSM/manager roles can notify other users' }, 403);
+        }
+      } else if (caller.role !== 'Master Administrator') {
         const { data: targets } = await admin.from('profiles').select('id, dealership_id').in('id', targetIds);
         const unauthorized = (targets || []).some((t) => t.dealership_id !== caller.dealership_id);
         if (unauthorized || (targets || []).length !== targetIds.length) {

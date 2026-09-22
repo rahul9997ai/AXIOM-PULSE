@@ -10,6 +10,49 @@
   --accent: #0a6cf0;
   --text: #0b1b3a;
   --muted: #5a6b88;
+  --focus-bg: #ffffff;
+  --header-bg: rgba(255, 255, 255, 0.9);
+  --tabbar-bg: rgba(255, 255, 255, 0.92);
+}
+
+:root[data-theme="dark"] {
+  color-scheme: dark;
+  --ink: #e7ecf8;
+  --blue: #5aa2ff;
+  --blue2: #7ab4ff;
+  --mut: #93a1c2;
+  --line: #263050;
+  --card: #131a2c;
+  --surface: #1a2238;
+  --accent: #5aa2ff;
+  --text: #e7ecf8;
+  --muted: #93a1c2;
+  --focus-bg: #1a2238;
+  --header-bg: rgba(11, 15, 26, 0.9);
+  --tabbar-bg: rgba(11, 15, 26, 0.92);
+}
+
+:root[data-theme="dark"] body {
+  background: linear-gradient(115deg, #070a13 0%, #0a0f1c 45%, #0c1428 100%);
+}
+
+:root[data-theme="dark"] .card,
+:root[data-theme="dark"] .landing-card {
+  border-color: rgba(60, 80, 120, 0.4);
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.2), 0 8px 24px rgba(0, 0, 0, 0.25);
+}
+
+:root[data-theme="dark"] input:focus,
+:root[data-theme="dark"] textarea:focus,
+:root[data-theme="dark"] select:focus,
+:root[data-theme="dark"] .landing-field:focus-within {
+  background: var(--focus-bg);
+}
+
+:root[data-theme="dark"] .landing-err {
+  background: #3a1518;
+  border-color: #6b2226;
+  color: #f5a3a3;
 }
 
 * { box-sizing: border-box; }
@@ -56,7 +99,7 @@ button { font-family: inherit; }
   display: flex;
   align-items: center;
   padding: max(12px, env(safe-area-inset-top)) 18px 12px;
-  background: rgba(255, 255, 255, 0.9);
+  background: var(--header-bg);
   backdrop-filter: blur(10px);
   -webkit-backdrop-filter: blur(10px);
   border-bottom: 1px solid var(--line);
@@ -75,7 +118,7 @@ button { font-family: inherit; }
   justify-content: space-around;
   align-items: stretch;
   padding: 6px 8px calc(6px + env(safe-area-inset-bottom));
-  background: rgba(255, 255, 255, 0.92);
+  background: var(--tabbar-bg);
   backdrop-filter: blur(14px);
   -webkit-backdrop-filter: blur(14px);
   border-top: 1px solid var(--line);
