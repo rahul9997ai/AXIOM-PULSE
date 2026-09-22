@@ -227,10 +227,23 @@ export default function Deliveries() {
               </div>
             </div>
 
-            <div style={{ display: 'flex', alignItems: 'center', gap: 6, color: 'var(--muted)', marginTop: 10, fontSize: 13.5 }}>
-              <CalendarIcon />
-              {new Date(d.delivery_at).toLocaleString()}
-            </div>
+            {(() => {
+              const dt = new Date(d.delivery_at);
+              return (
+                <div style={{
+                  display: 'flex', alignItems: 'center', gap: 8, marginTop: 10,
+                  padding: '8px 12px', borderRadius: 10, background: sc.bg,
+                }}>
+                  <span style={{ color: sc.fg }}><CalendarIcon size={18} /></span>
+                  <span style={{ fontSize: 16, fontWeight: 800, color: sc.fg }}>
+                    {dt.toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric' })}
+                  </span>
+                  <span style={{ fontSize: 16, fontWeight: 800, color: sc.fg }}>
+                    {dt.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })}
+                  </span>
+                </div>
+              );
+            })()}
             {d.status === 'delivered' && d.delivered_at && (
               <div style={{ color: '#15803d', fontSize: 13, fontWeight: 700, marginTop: 4, marginLeft: 21 }}>
                 Delivered {new Date(d.delivered_at).toLocaleString()}
