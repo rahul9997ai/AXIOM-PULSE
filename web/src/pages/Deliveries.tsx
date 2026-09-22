@@ -7,6 +7,7 @@ import type { Delivery } from '@/lib/types';
 import { STATUS_LABEL, STATUS_COLOR, MANAGER_ROLES, ROLE_LABEL } from '@/lib/types';
 import { formatCents } from '@/lib/money';
 import { capitalizeWords } from '@/lib/text';
+import { downloadDeliveryIcs } from '@/lib/ics';
 import { CalendarIcon, PinIcon, DollarIcon, CarIcon, CheckCircleIcon, AlertIcon, CircleIcon, EditIcon, BellIcon, TrashIcon } from '@/components/Icons';
 import AdminHome from './AdminHome';
 
@@ -110,7 +111,11 @@ export default function Deliveries() {
   };
 
   const active = rows.filter((d) => d.status !== 'delivered');
-  const visibleAll = (tab === 'delivered' ? rows.filter((d) => d.status === 'delivered') : active)
+  // A salesperson's Deliveries tab is "what's on today" — anything else is a
+  // calendar lookup away, on the Calendar tab.
+  const todayKey = new Date().toDateString();
+  const todaysActive = !isManager ? active.filter((d) => new Date(d.delivery_at).toDateString() === todayKey) : active;
+  const visibleAll = (tab === 'delivered' ? rows.filter((d) => d.status === 'delivered') : todaysActive)
     .sort((a, b) => tab === 'delivered'
       ? new Date(b.delivered_at ?? b.delivery_at).getTime() - new Date(a.delivered_at ?? a.delivery_at).getTime()
       : new Date(a.delivery_at).getTime() - new Date(b.delivery_at).getTime());
@@ -126,7 +131,9 @@ export default function Deliveries() {
   return (
     <div style={{ display: 'grid', gap: 14, maxWidth: 640, margin: '0 auto' }}>
       <div>
-        <h1 style={{ fontSize: 22, fontWeight: 700, letterSpacing: '-0.02em', margin: 0 }}>Deliveries</h1>
+        <h1 style={{ fontSize: 22, fontWeight: 700, letterSpacing: '-0.02em', margin: 0 }}>
+          {!isManager && tab === 'active' ? "Today's Deliveries" : 'Deliveries'}
+        </h1>
         <div style={{ color: 'var(--accent)', fontWeight: 700, fontSize: 12, letterSpacing: '0.08em', textTransform: 'uppercase', marginTop: 2 }}>
           {effectiveRole ? ROLE_LABEL[effectiveRole] : ''}{isMaster ? ' (previewed by Master Administrator)' : ''}
         </div>
@@ -170,7 +177,7 @@ export default function Deliveries() {
       {loading && <div style={{ color: 'var(--muted)' }}>Loading…</div>}
       {!loading && visible.length === 0 && (
         <div style={{ color: 'var(--muted)', textAlign: 'center', marginTop: 40 }}>
-          {tab === 'delivered' ? 'No delivered units yet.' : 'No deliveries scheduled yet.'}
+          {tab === 'delivered' ? 'No delivered units yet.' : !isManager ? 'Nothing scheduled for today. Check Calendar for upcoming deliveries.' : 'No deliveries scheduled yet.'}
         </div>
       )}
 
@@ -205,16 +212,28 @@ export default function Deliveries() {
               const darkGreen = '#15803d';
               return (
                 <div style={{
-                  display: 'flex', alignItems: 'center', gap: 7, marginTop: 10,
+                  display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 7, marginTop: 10,
                   padding: '7px 11px', borderRadius: 9, background: '#eafaf0',
                 }}>
-                  <span style={{ color: darkGreen, display: 'flex' }}><CalendarIcon size={16} /></span>
-                  <span style={{ fontSize: 14.5, fontWeight: 700, color: darkGreen }}>
-                    {dt.toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric' })}
-                  </span>
-                  <span style={{ fontSize: 14.5, fontWeight: 700, color: darkGreen }}>
-                    {dt.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })}
-                  </span>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 7 }}>
+                    <span style={{ color: darkGreen, display: 'flex' }}><CalendarIcon size={16} /></span>
+                    <span style={{ fontSize: 14.5, fontWeight: 700, color: darkGreen }}>
+                      {dt.toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric' })}
+                    </span>
+                    <span style={{ fontSize: 14.5, fontWeight: 700, color: darkGreen }}>
+                      {dt.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })}
+                    </span>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => downloadDeliveryIcs(d)}
+                    style={{
+                      border: `1px solid ${darkGreen}`, color: darkGreen, background: 'transparent',
+                      borderRadius: 7, padding: '3px 8px', fontSize: 11, fontWeight: 700, cursor: 'pointer',
+                    }}
+                  >
+                    + Calendar
+                  </button>
                 </div>
               );
             })()}

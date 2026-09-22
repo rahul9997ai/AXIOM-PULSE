@@ -4,20 +4,29 @@ import { useSession } from '@/lib/session';
 import { useActingRole, ACTABLE_ROLES } from '@/lib/actingRole';
 import { AxiomLockup } from '@/components/AxiomMark';
 import { MANAGER_ROLES } from '@/lib/types';
-import { HomeIcon, PlusCircleIcon, GearIcon } from '@/components/Icons';
+import { HomeIcon, PlusCircleIcon, GearIcon, CalendarIcon } from '@/components/Icons';
 
 export default function Layout({ children }: { children: ReactNode }) {
   const { profile } = useSession();
   const { pathname } = useLocation();
-  const { isMaster, actingRole, setActingRole, dealerships, actingDealershipId, setActingDealershipId, isAdminMode } = useActingRole();
+  const { isMaster, actingRole, setActingRole, dealerships, actingDealershipId, setActingDealershipId, isAdminMode, effectiveRole } = useActingRole();
   const isManager = profile ? MANAGER_ROLES.includes(profile.role) : false;
   const canCreate = isManager && !isAdminMode;
+  // A salesperson works off "what's on today" + a calendar to look ahead,
+  // instead of the manager's flat list + create/edit tools.
+  const isSalespersonView = effectiveRole === 'Salesperson';
 
-  const navItems = [
-    { to: '/', label: isAdminMode ? 'Admin' : 'Deliveries', icon: HomeIcon, match: (p: string) => p === '/' || p.startsWith('/edit') },
-    ...(canCreate ? [{ to: '/new', label: 'New', icon: PlusCircleIcon, match: (p: string) => p === '/new' }] : []),
-    { to: '/settings', label: 'Settings', icon: GearIcon, match: (p: string) => p === '/settings' },
-  ];
+  const navItems = isSalespersonView
+    ? [
+        { to: '/calendar', label: 'Calendar', icon: CalendarIcon, match: (p: string) => p === '/calendar' },
+        { to: '/', label: 'Deliveries', icon: HomeIcon, match: (p: string) => p === '/' },
+        { to: '/settings', label: 'Settings', icon: GearIcon, match: (p: string) => p === '/settings' },
+      ]
+    : [
+        { to: '/', label: isAdminMode ? 'Admin' : 'Deliveries', icon: HomeIcon, match: (p: string) => p === '/' || p.startsWith('/edit') },
+        ...(canCreate ? [{ to: '/new', label: 'New', icon: PlusCircleIcon, match: (p: string) => p === '/new' }] : []),
+        { to: '/settings', label: 'Settings', icon: GearIcon, match: (p: string) => p === '/settings' },
+      ];
 
   return (
     <div className="app-shell">

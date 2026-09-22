@@ -164,8 +164,8 @@ export default function DeliveryForm({ existing, onSaved }: { existing?: Deliver
       await supabase.functions.invoke('send-webpush', {
         body: {
           profile_ids: [salesperson],
-          title: 'New delivery assigned',
-          body: `${customerName}, ${new Date(deliveryAt).toLocaleString()}.${todo}`,
+          title: 'New Delivery Created',
+          body: `${customerName} — ${new Date(deliveryAt).toLocaleString()}.${todo}`,
           data: { url: '/', deliveryId, type: 'delivery_assigned' },
         },
       }).catch(() => {});
