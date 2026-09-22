@@ -9,7 +9,6 @@ import { formatCents } from '@/lib/money';
 import { capitalizeWords } from '@/lib/text';
 import { CalendarIcon, PinIcon, DollarIcon, CarIcon, CheckCircleIcon, AlertIcon, CircleIcon, EditIcon, BellIcon, TrashIcon } from '@/components/Icons';
 import AdminHome from './AdminHome';
-import PushCard from '@/components/PushCard';
 
 export default function Deliveries() {
   const { profile, session } = useSession();
@@ -141,7 +140,6 @@ export default function Deliveries() {
         </div>
       )}
 
-      {!isManager && <PushCard />}
       {notice && <div className="card" style={{ fontSize: 13 }}>{notice}</div>}
 
       {customerNames.length > 1 && (
