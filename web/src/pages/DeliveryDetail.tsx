@@ -1,4 +1,4 @@
-import { useEffect, useState, useCallback, type ReactNode } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import { supabase } from '@/lib/supabase';
 import { useSession } from '@/lib/session';
@@ -276,39 +276,62 @@ export default function DeliveryDetail() {
       {requirements.length > 0 && (
         <div className="card">
           <h3 style={{ marginTop: 0, fontSize: 14 }}>Requirements</h3>
-          <div style={{ display: 'grid', gap: 9 }}>
+          <p style={{ color: 'var(--muted)', fontSize: 12, marginTop: -6, marginBottom: 10 }}>
+            Tap to mark complete, tap again to undo. Tap the ! badge to flag an exception instead.
+          </p>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(84px, 1fr))', gap: 8 }}>
             {requirements.map((r) => {
               const canEdit = !isManager && canComplete;
+              const tone = r.status === 'completed' ? { bg: '#eafaf0', fg: '#15803d', border: '#bfe8cf' }
+                : r.status === 'exception' ? { bg: '#fef3e2', fg: '#b45309', border: '#f6dba6' }
+                : { bg: 'var(--surface)', fg: 'var(--text)', border: 'var(--line)' };
+              const onTap = !canEdit ? undefined
+                : r.status === 'outstanding' ? () => resolveRequirement(r.id, 'completed')
+                : () => resolveRequirement(r.id, 'outstanding');
               return (
-                <div key={r.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
-                  <span style={{ fontSize: 13.5, color: 'var(--text)' }}>
-                    {r.label}
-                    {r.status === 'exception' && r.exception_reason && (
-                      <span style={{ color: 'var(--muted)' }}> — {r.exception_reason}</span>
-                    )}
-                  </span>
-                  <div style={{ display: 'flex', gap: 6, flexShrink: 0 }}>
-                    {r.status === 'outstanding' && canEdit && (
-                      <>
-                        <PillButton tone="green" onClick={() => resolveRequirement(r.id, 'completed')}>Complete</PillButton>
-                        <PillButton tone="amber" onClick={() => setExceptionFor(r.id)}>Exception</PillButton>
-                      </>
-                    )}
-                    {r.status === 'completed' && (
-                      <PillButton tone="green" filled onClick={canEdit ? () => resolveRequirement(r.id, 'outstanding') : undefined}>
-                        ✓ Complete{canEdit ? ' · Undo' : ''}
-                      </PillButton>
-                    )}
-                    {r.status === 'exception' && (
-                      <PillButton tone="amber" filled onClick={canEdit ? () => resolveRequirement(r.id, 'outstanding') : undefined}>
-                        ⚠ Exception{canEdit ? ' · Undo' : ''}
-                      </PillButton>
-                    )}
-                  </div>
+                <div key={r.id} style={{ position: 'relative' }}>
+                  <button
+                    type="button"
+                    disabled={!onTap}
+                    onClick={onTap}
+                    title={r.status === 'exception' && r.exception_reason ? r.exception_reason : undefined}
+                    style={{
+                      width: '100%', minHeight: 58, background: tone.bg, border: `1px solid ${tone.border}`,
+                      borderRadius: 12, color: tone.fg, fontSize: 11.5, fontWeight: 700, lineHeight: 1.2,
+                      padding: '8px 6px', display: 'flex', alignItems: 'center', justifyContent: 'center',
+                      textAlign: 'center', whiteSpace: 'normal', wordBreak: 'break-word', cursor: onTap ? 'pointer' : 'default',
+                    }}
+                  >
+                    {r.status === 'completed' && '✓ '}{r.status === 'exception' && '⚠ '}{r.label}
+                  </button>
+                  {r.status === 'outstanding' && canEdit && (
+                    <button
+                      type="button"
+                      aria-label={`Flag exception for ${r.label}`}
+                      onClick={(e) => { e.stopPropagation(); setExceptionFor(r.id); }}
+                      style={{
+                        position: 'absolute', top: -6, right: -6, width: 20, height: 20, borderRadius: '50%',
+                        background: '#fff', border: '1px solid #f6dba6', color: '#b45309', fontSize: 12, fontWeight: 800,
+                        display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 0, cursor: 'pointer',
+                        boxShadow: '0 1px 3px rgba(20,50,100,0.15)',
+                      }}
+                    >
+                      !
+                    </button>
+                  )}
                 </div>
               );
             })}
           </div>
+          {requirements.some((r) => r.status === 'exception' && r.exception_reason) && (
+            <div style={{ display: 'grid', gap: 3, marginTop: 10 }}>
+              {requirements.filter((r) => r.status === 'exception' && r.exception_reason).map((r) => (
+                <div key={r.id} style={{ fontSize: 11.5, color: 'var(--muted)' }}>
+                  <strong style={{ color: '#b45309' }}>{r.label}:</strong> {r.exception_reason}
+                </div>
+              ))}
+            </div>
+          )}
           {exceptionFor && requirements.some((r) => r.id === exceptionFor) && (
             <div style={{ marginTop: 10, display: 'grid', gap: 8 }}>
               <textarea placeholder="Reason this couldn't be completed" value={exceptionReason} onChange={(e) => setExceptionReason(e.target.value)} rows={2} />
@@ -395,35 +418,6 @@ export default function DeliveryDetail() {
         </div>
       </div>
     </div>
-  );
-}
-
-function PillButton({ tone, filled, onClick, children }: {
-  tone: 'green' | 'amber';
-  filled?: boolean;
-  onClick?: () => void;
-  children: ReactNode;
-}) {
-  const c = tone === 'green' ? { fg: '#15803d', bg: '#eafaf0' } : { fg: '#b45309', bg: '#fef3e2' };
-  return (
-    <button
-      type="button"
-      disabled={!onClick}
-      onClick={onClick}
-      style={{
-        border: filled ? 'none' : `1px solid ${c.fg}`,
-        background: filled ? c.bg : 'transparent',
-        color: c.fg,
-        borderRadius: 999,
-        padding: '5px 11px',
-        fontSize: 11.5,
-        fontWeight: 700,
-        cursor: onClick ? 'pointer' : 'default',
-        whiteSpace: 'nowrap',
-      }}
-    >
-      {children}
-    </button>
   );
 }
 
