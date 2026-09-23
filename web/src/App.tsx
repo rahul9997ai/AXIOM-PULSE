@@ -4,6 +4,7 @@ import { ActingRoleProvider, useActingRole } from '@/lib/actingRole';
 import { MANAGER_ROLES } from '@/lib/types';
 import SignIn from '@/pages/SignIn';
 import ForcePasswordChange from '@/pages/ForcePasswordChange';
+import Welcome from '@/pages/Welcome';
 import Layout from '@/pages/Layout';
 import Deliveries from '@/pages/Deliveries';
 import CalendarPage from '@/pages/Calendar';
@@ -18,6 +19,7 @@ export default function App() {
   if (loading) return null;
   if (!session) return <SignIn />;
   if (profile?.must_change_password) return <ForcePasswordChange />;
+  if (profile && !profile.has_seen_welcome) return <Welcome />;
 
   return (
     <ActingRoleProvider>

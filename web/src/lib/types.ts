@@ -8,6 +8,7 @@ export interface Profile {
   dealership_id: string | null;
   active: boolean;
   must_change_password: boolean;
+  has_seen_welcome: boolean;
 }
 
 export type RequirementStatus = 'outstanding' | 'completed' | 'exception';
