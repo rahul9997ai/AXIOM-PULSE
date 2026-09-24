@@ -8,6 +8,7 @@ import { useActingRole } from '@/lib/actingRole';
 import type { ApprovalStatus, Delivery, DueOnDeliveryType, Lender, RequirementTemplate } from '@/lib/types';
 
 interface Salesperson { id: string; name: string; }
+interface FinanceManager { id: string; name: string; }
 interface CustomRequirement { id?: string; label: string; }
 interface Dealership { id: string; name: string; }
 
@@ -31,6 +32,10 @@ export default function DeliveryForm({ existing, onSaved }: { existing?: Deliver
   const navigate = useNavigate();
   const isEdit = !!existing;
   const isMaster = profile?.role === 'Master Administrator';
+  // A General Manager (or Master) can hand a delivery to a different
+  // Finance Manager — an FSM editing their own delivery can't reassign it
+  // away from themselves through this form.
+  const canAssignFsm = isMaster || profile?.role === 'General Manager';
 
   const [dealerships, setDealerships] = useState<Dealership[]>([]);
   const [selectedDealershipId, setSelectedDealershipId] = useState(existing?.dealership_id ?? actingDealershipId ?? '');
@@ -48,6 +53,7 @@ export default function DeliveryForm({ existing, onSaved }: { existing?: Deliver
   const [deliveryTime, setDeliveryTime] = useState(existingLocal?.slice(11, 16) ?? '');
   const deliveryAt = deliveryDate && deliveryTime ? `${deliveryDate}T${deliveryTime}` : '';
   const [salesperson, setSalesperson] = useState(existing?.salesperson_id ?? '');
+  const [fsmId, setFsmId] = useState(existing?.fsm_id ?? (profile?.role === 'FSM' ? profile.id : ''));
   const [dueOnDelivery, setDueOnDelivery] = useState(existing?.due_on_delivery ?? false);
   const [dueType, setDueType] = useState<DueOnDeliveryType>(existing?.due_on_delivery_type ?? 'collection');
   const [dueAmount, setDueAmount] = useState(existing?.due_on_delivery_amount_cents ? centsToInput(existing.due_on_delivery_amount_cents) : '');
@@ -59,6 +65,7 @@ export default function DeliveryForm({ existing, onSaved }: { existing?: Deliver
   const [customReqs, setCustomReqs] = useState<CustomRequirement[]>([]);
   const [newCustomReq, setNewCustomReq] = useState('');
   const [salespeople, setSalespeople] = useState<Salesperson[]>([]);
+  const [financeManagers, setFinanceManagers] = useState<FinanceManager[]>([]);
 
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -74,14 +81,18 @@ export default function DeliveryForm({ existing, onSaved }: { existing?: Deliver
   }, [isMaster]);
 
   useEffect(() => {
-    if (!effectiveDealershipId) { setLenders([]); setTemplates([]); setSalespeople([]); return; }
+    if (!effectiveDealershipId) { setLenders([]); setTemplates([]); setSalespeople([]); setFinanceManagers([]); return; }
     supabase.from('lenders').select('*').eq('dealership_id', effectiveDealershipId).eq('active', true).order('name')
       .then(({ data }) => setLenders((data as Lender[]) || []));
     supabase.from('requirement_templates').select('*').eq('dealership_id', effectiveDealershipId).eq('active', true).order('sort_order')
       .then(({ data }) => setTemplates((data as RequirementTemplate[]) || []));
     supabase.from('profiles').select('id,name').eq('dealership_id', effectiveDealershipId).eq('role', 'Salesperson').eq('active', true)
       .then(({ data }) => setSalespeople((data as Salesperson[]) || []));
-  }, [effectiveDealershipId]);
+    if (canAssignFsm) {
+      supabase.from('profiles').select('id,name').eq('dealership_id', effectiveDealershipId).eq('role', 'FSM').eq('active', true)
+        .then(({ data }) => setFinanceManagers((data as FinanceManager[]) || []));
+    }
+  }, [effectiveDealershipId, canAssignFsm]);
 
   useEffect(() => {
     if (!existing) return;
@@ -114,8 +125,8 @@ export default function DeliveryForm({ existing, onSaved }: { existing?: Deliver
       setError(isMaster ? 'Select a dealership first.' : 'Your account has no dealership assigned.');
       return;
     }
-    if (!customer || !salesperson || !deliveryAt) {
-      setError('Customer, delivery time and salesperson are required.');
+    if (!customer || !salesperson || !deliveryAt || !fsmId) {
+      setError('Customer, delivery time, salesperson and Finance Manager are required.');
       return;
     }
     if (dueOnDelivery && (!dueAmount || inputToCents(dueAmount) <= 0)) {
@@ -126,9 +137,12 @@ export default function DeliveryForm({ existing, onSaved }: { existing?: Deliver
     setError(null);
 
     const customerName = capitalizeWords(customer.trim());
+    const fsmName = fsmId === session?.user.id ? (profile?.name ?? null) : (financeManagers.find((f) => f.id === fsmId)?.name ?? existing?.fsm_name ?? null);
     const payload = {
       dealership_id: effectiveDealershipId,
       salesperson_id: salesperson,
+      fsm_id: fsmId,
+      fsm_name: fsmName,
       customer_name: customerName,
       lender_id: lenderId || null,
       approval_status: approvalStatus,
@@ -150,14 +164,16 @@ export default function DeliveryForm({ existing, onSaved }: { existing?: Deliver
       if (payload.delivery_at !== existing.delivery_at) changedFields.push('delivery time');
       if ((fsmNotes.trim() || null) !== existing.fsm_notes) changedFields.push('notes');
       if (salesperson !== existing.salesperson_id) changedFields.push('assigned salesperson');
+      if (fsmId !== existing.fsm_id) changedFields.push('assigned finance manager');
     }
+    const fsmReassigned = isEdit && !!existing && fsmId !== existing.fsm_id;
 
     let deliveryId = existing?.id;
     if (isEdit) {
       const { error } = await supabase.from('deliveries').update(payload).eq('id', existing!.id);
       if (error) { setBusy(false); setError(error.message); return; }
     } else {
-      const { data, error } = await supabase.from('deliveries').insert({ ...payload, fsm_id: session!.user.id, fsm_name: profile?.name ?? null }).select().single();
+      const { data, error } = await supabase.from('deliveries').insert(payload).select().single();
       if (error) { setBusy(false); setError(error.message); return; }
       deliveryId = data.id;
     }
@@ -228,6 +244,18 @@ export default function DeliveryForm({ existing, onSaved }: { existing?: Deliver
           title: 'Delivery Updated',
           body: `${customerName}. ${fieldSummary}${requirementsChanged ? todo : ''}`.trim(),
           data: { url: `/delivery/${deliveryId}`, deliveryId, type: 'delivery_updated' },
+        },
+      }).catch(() => {});
+    }
+    if (fsmReassigned) {
+      // Reassignment is a separate notice to the newly assigned FSM, not
+      // just a line in the salesperson's "updated" push above.
+      await supabase.functions.invoke('send-webpush', {
+        body: {
+          profile_ids: [fsmId],
+          title: 'Delivery Assigned to You',
+          body: `${customerName} — ${new Date(deliveryAt).toLocaleString()}.`,
+          data: { url: `/delivery/${deliveryId}`, deliveryId, type: 'fsm_assigned' },
         },
       }).catch(() => {});
     }
@@ -309,6 +337,16 @@ export default function DeliveryForm({ existing, onSaved }: { existing?: Deliver
         <option value="">Select a salesperson</option>
         {salespeople.map((p) => <option key={p.id} value={p.id}>{p.name}</option>)}
       </select>
+
+      {canAssignFsm && (
+        <>
+          <div style={fieldLabel}>FINANCE MANAGER</div>
+          <select value={fsmId} onChange={(e) => setFsmId(e.target.value)}>
+            <option value="">Select a Finance Manager</option>
+            {financeManagers.map((f) => <option key={f.id} value={f.id}>{f.name}</option>)}
+          </select>
+        </>
+      )}
 
       <div style={fieldLabel}>COLLECTION REQUIREMENTS</div>
       <div className="card" style={{ display: 'grid', gap: 8, padding: 14 }}>
