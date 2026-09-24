@@ -75,14 +75,47 @@ export default function DeliveryDetail() {
       p_status: status,
       p_exception_reason: reason ?? null,
     });
-    if (error) setNotice(error.message);
-    else { setExceptionFor(null); setExceptionReason(''); load(); }
+    if (error) { setNotice(error.message); return; }
+    setExceptionFor(null);
+    setExceptionReason('');
+    // The FSM hears about it the moment the salesperson resolves a
+    // requirement — completed or flagged as an exception — not just when
+    // the whole delivery is marked done. Undoing back to outstanding stays
+    // quiet so toggling a mistake off doesn't spam a push.
+    if (!isManager && status !== 'outstanding') {
+      const req = requirements.find((r) => r.id === reqId);
+      if (req) {
+        await supabase.functions.invoke('send-webpush', {
+          body: {
+            profile_ids: [d.fsm_id],
+            delivery_id: d.id,
+            title: `${status === 'completed' ? 'Completed' : 'Exception'} — ${d.customer_name}`,
+            body: status === 'completed' ? `${req.label} marked complete.` : `${req.label}: ${reason}`,
+            data: { url: `/delivery/${d.id}`, deliveryId: d.id, type: 'requirement_update' },
+          },
+        }).catch(() => {});
+      }
+    }
+    load();
   };
 
   const complete = async () => {
     const { error } = await supabase.rpc('complete_delivery', { p_delivery_id: d.id });
-    if (error) setNotice(error.message);
-    else load();
+    if (error) { setNotice(error.message); return; }
+    const exceptions = requirements.filter((r) => r.status === 'exception');
+    const exceptionsBody = exceptions.length
+      ? `Delivery Complete for ${d.customer_name} — with exceptions: ${exceptions.map((r) => `${r.label}${r.exception_reason ? ` (${r.exception_reason})` : ''}`).join('; ')}.`
+      : `Delivery Complete for ${d.customer_name} — with no exceptions.`;
+    await supabase.functions.invoke('send-webpush', {
+      body: {
+        profile_ids: [d.fsm_id],
+        delivery_id: d.id,
+        title: `Delivery Complete — ${d.customer_name}`,
+        body: exceptionsBody,
+        data: { url: `/delivery/${d.id}`, deliveryId: d.id, type: 'delivery_complete' },
+      },
+    }).catch(() => {});
+    load();
   };
 
   const deleteDelivery = async () => {
