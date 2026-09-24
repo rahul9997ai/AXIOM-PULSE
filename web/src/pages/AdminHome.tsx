@@ -29,6 +29,9 @@ export default function AdminHome() {
   const [users, setUsers] = useState<AppUser[]>([]);
   const [loadingUsers, setLoadingUsers] = useState(true);
   const [deletingId, setDeletingId] = useState<string | null>(null);
+  const [resetId, setResetId] = useState<string | null>(null);
+  const [resetPassword, setResetPassword] = useState('');
+  const [resetting, setResetting] = useState(false);
 
   const loadDealerships = async () => {
     setLoadingDealerships(true);
@@ -65,6 +68,18 @@ export default function AdminHome() {
       tone: 'ok',
     });
     loadUsers();
+  };
+
+  const resetUserPassword = async (u: AppUser) => {
+    const password = resetPassword.trim();
+    if (password.length < 8) { setNotice({ text: 'Temporary password needs at least 8 characters.', tone: 'err' }); return; }
+    setResetting(true);
+    const { error } = await supabase.functions.invoke('admin-users', { body: { action: 'reset_password', id: u.id, password } });
+    setResetting(false);
+    if (error) { setNotice({ text: error.message, tone: 'err' }); return; }
+    setNotice({ text: `${u.name}'s password reset — share the new temporary password with them. They'll be asked to change it on next sign-in.`, tone: 'ok' });
+    setResetId(null);
+    setResetPassword('');
   };
 
   const createDealership = async () => {
@@ -224,22 +239,46 @@ export default function AdminHome() {
             {users.map((u) => {
               const dealership = dealerships.find((d) => d.id === u.dealership_id);
               return (
-                <div key={u.id} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8, borderBottom: '1px solid var(--line)', paddingBottom: 8 }}>
-                  <div>
-                    <div style={{ fontWeight: 700, fontSize: 14 }}>
-                      {u.name} {!u.active && <span style={{ color: '#a3261b', fontSize: 11, fontWeight: 700 }}>· Inactive</span>}
+                <div key={u.id} style={{ borderBottom: '1px solid var(--line)', paddingBottom: 8, display: 'grid', gap: 8 }}>
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8 }}>
+                    <div>
+                      <div style={{ fontWeight: 700, fontSize: 14 }}>
+                        {u.name} {!u.active && <span style={{ color: '#a3261b', fontSize: 11, fontWeight: 700 }}>· Inactive</span>}
+                      </div>
+                      <div style={{ color: 'var(--muted)', fontSize: 12 }}>{u.role} · {dealership?.name ?? 'No dealership'}</div>
                     </div>
-                    <div style={{ color: 'var(--muted)', fontSize: 12 }}>{u.role} · {dealership?.name ?? 'No dealership'}</div>
+                    <div style={{ display: 'flex', gap: 6, flexShrink: 0 }}>
+                      <button
+                        type="button"
+                        className="btn secondary"
+                        style={{ padding: '4px 10px', fontSize: 12 }}
+                        onClick={() => { setResetId(resetId === u.id ? null : u.id); setResetPassword(''); }}
+                      >
+                        Reset password
+                      </button>
+                      <button
+                        type="button"
+                        className="btn secondary"
+                        style={{ padding: '4px 10px', fontSize: 12, borderColor: '#dc2626', color: '#dc2626' }}
+                        disabled={deletingId === u.id}
+                        onClick={() => deleteUser(u)}
+                      >
+                        {deletingId === u.id ? 'Removing…' : 'Remove'}
+                      </button>
+                    </div>
                   </div>
-                  <button
-                    type="button"
-                    className="btn secondary"
-                    style={{ padding: '4px 10px', fontSize: 12, borderColor: '#dc2626', color: '#dc2626' }}
-                    disabled={deletingId === u.id}
-                    onClick={() => deleteUser(u)}
-                  >
-                    {deletingId === u.id ? 'Removing…' : 'Remove'}
-                  </button>
+                  {resetId === u.id && (
+                    <div style={{ display: 'flex', gap: 8 }}>
+                      <input
+                        placeholder="New temporary password (min 8 characters)"
+                        value={resetPassword}
+                        onChange={(e) => setResetPassword(e.target.value)}
+                      />
+                      <button className="btn" style={{ flexShrink: 0 }} disabled={resetting} onClick={() => resetUserPassword(u)}>
+                        {resetting ? 'Saving…' : 'Save'}
+                      </button>
+                    </div>
+                  )}
                 </div>
               );
             })}
@@ -248,8 +287,7 @@ export default function AdminHome() {
       </div>
 
       <p style={{ color: 'var(--muted)', fontSize: 12, textAlign: 'center' }}>
-        For password resets or full dealership settings (brand, tax, finance defaults), use Axiom
-        Command Center.
+        For full dealership settings (brand, tax, finance defaults), use Axiom Command Center.
       </p>
     </div>
   );
