@@ -153,7 +153,17 @@ export default function Deliveries() {
           >
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 8 }}>
               <div style={{ minWidth: 0 }}>
-                <div style={{ fontWeight: 800, fontSize: 17, lineHeight: 1.25 }}>{d.customer_name}</div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 7, flexWrap: 'wrap' }}>
+                  <span style={{ fontWeight: 800, fontSize: 17, lineHeight: 1.25 }}>{d.customer_name}</span>
+                  {d.stock_number && (
+                    <span style={{
+                      fontSize: 11, fontWeight: 800, letterSpacing: 0.3, color: 'var(--accent)',
+                      background: 'var(--surface)', border: '1px solid var(--line)', borderRadius: 6, padding: '2px 7px',
+                    }}>
+                      Stock #{d.stock_number}
+                    </span>
+                  )}
+                </div>
                 {isManager && d.salesperson_name && (
                   <div style={{ fontSize: 12, color: 'var(--muted)', marginTop: 2 }}>
                     Salesperson: {d.salesperson_name}

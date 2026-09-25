@@ -203,7 +203,17 @@ export default function DeliveryDetail() {
       <div className="card" style={{ borderLeft: `4px solid ${sc.border}` }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 8 }}>
           <div style={{ minWidth: 0 }}>
-            <div style={{ fontWeight: 800, fontSize: 20, lineHeight: 1.25 }}>{d.customer_name}</div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+              <span style={{ fontWeight: 800, fontSize: 20, lineHeight: 1.25 }}>{d.customer_name}</span>
+              {d.stock_number && (
+                <span style={{
+                  fontSize: 12, fontWeight: 800, letterSpacing: 0.3, color: 'var(--accent)',
+                  background: 'var(--surface)', border: '1px solid var(--line)', borderRadius: 7, padding: '3px 8px',
+                }}>
+                  Stock #{d.stock_number}
+                </span>
+              )}
+            </div>
             {(d.vehicle || d.vin) && (
               <div style={{ display: 'flex', alignItems: 'center', gap: 6, color: 'var(--muted)', marginTop: 3, fontSize: 13 }}>
                 <CarIcon size={13} />

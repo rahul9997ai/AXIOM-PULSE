@@ -132,7 +132,17 @@ export default function CalendarPage() {
               style={{ display: 'block', borderLeft: `4px solid ${sc.border}`, marginBottom: 10, textDecoration: 'none', color: 'inherit' }}
             >
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                <div style={{ fontWeight: 800, fontSize: 15 }}>{d.customer_name}</div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
+                  <span style={{ fontWeight: 800, fontSize: 15 }}>{d.customer_name}</span>
+                  {d.stock_number && (
+                    <span style={{
+                      fontSize: 10.5, fontWeight: 800, color: 'var(--accent)',
+                      background: 'var(--surface)', border: '1px solid var(--line)', borderRadius: 6, padding: '1px 6px',
+                    }}>
+                      #{d.stock_number}
+                    </span>
+                  )}
+                </div>
                 <div style={{ fontWeight: 700, fontSize: 13, color: '#15803d' }}>
                   {new Date(d.delivery_at).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })}
                 </div>

@@ -44,6 +44,7 @@ export default function DeliveryForm({ existing, onSaved }: { existing?: Deliver
   const effectiveDealershipId = isMaster ? selectedDealershipId : (profile?.dealership_id ?? '');
 
   const [customer, setCustomer] = useState(existing?.customer_name ?? '');
+  const [stockNumber, setStockNumber] = useState(existing?.stock_number ?? '');
   const [lenderId, setLenderId] = useState(existing?.lender_id ?? '');
   const [approvalStatus, setApprovalStatus] = useState<ApprovalStatus>(existing?.approval_status ?? 'pending');
   const existingLocal = existing ? toLocalInput(existing.delivery_at) : null;
@@ -150,6 +151,7 @@ export default function DeliveryForm({ existing, onSaved }: { existing?: Deliver
       fsm_id: fsmId,
       fsm_name: fsmName,
       customer_name: customerName,
+      stock_number: stockNumber.trim() || null,
       lender_id: lenderId || null,
       approval_status: approvalStatus,
       delivery_at: new Date(deliveryAt).toISOString(),
@@ -165,6 +167,7 @@ export default function DeliveryForm({ existing, onSaved }: { existing?: Deliver
     const changedFields: string[] = [];
     if (isEdit && existing) {
       if (customerName !== existing.customer_name) changedFields.push('customer name');
+      if ((stockNumber.trim() || null) !== existing.stock_number) changedFields.push('stock number');
       if ((lenderId || null) !== existing.lender_id) changedFields.push('lender/lessor');
       if (approvalStatus !== existing.approval_status) changedFields.push('approval status');
       if (payload.delivery_at !== existing.delivery_at) changedFields.push('delivery time');
@@ -290,6 +293,13 @@ export default function DeliveryForm({ existing, onSaved }: { existing?: Deliver
         value={customer}
         onChange={(e) => setCustomer(e.target.value)}
         style={{ textTransform: 'capitalize' }}
+      />
+
+      <input
+        placeholder="Stock # (so the salesperson can pull the right key)"
+        value={stockNumber}
+        onChange={(e) => setStockNumber(e.target.value)}
+        autoCapitalize="characters"
       />
 
       <div style={fieldLabel}>LENDER / LESSOR</div>
