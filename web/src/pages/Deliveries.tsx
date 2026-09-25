@@ -16,6 +16,7 @@ export default function Deliveries() {
   const [tab, setTab] = useState<'active' | 'delivered'>('active');
   const [customerFilter, setCustomerFilter] = useState('');
   const [fsmFilter, setFsmFilter] = useState('');
+  const [salespersonFilter, setSalespersonFilter] = useState('');
 
   // A Master Administrator has no operational role of their own — the delivery
   // board only makes sense once they've chosen a role+dealership to preview.
@@ -72,8 +73,13 @@ export default function Deliveries() {
     ? Array.from(new Map(rows.map((d) => [d.fsm_id, d.fsm_name || 'Unknown'])).entries())
       .sort((a, b) => a[1].localeCompare(b[1]))
     : [];
+  const salespersonOptions = isMaster
+    ? Array.from(new Map(rows.map((d) => [d.salesperson_id, d.salesperson_name || 'Unknown'])).entries())
+      .sort((a, b) => a[1].localeCompare(b[1]))
+    : [];
   const byCustomer = customerFilter ? visibleAll.filter((d) => d.customer_name === customerFilter) : visibleAll;
-  const visible = isMaster && fsmFilter ? byCustomer.filter((d) => d.fsm_id === fsmFilter) : byCustomer;
+  const byFsm = isMaster && fsmFilter ? byCustomer.filter((d) => d.fsm_id === fsmFilter) : byCustomer;
+  const visible = isMaster && salespersonFilter ? byFsm.filter((d) => d.salesperson_id === salespersonFilter) : byFsm;
 
   const outstandingCount = active.filter((d) => (d.delivery_requirements || []).some((r) => r.status === 'outstanding')).length;
 
@@ -110,6 +116,15 @@ export default function Deliveries() {
           <option value="">All Finance Managers</option>
           {fsmOptions.map(([fsmId, name]) => (
             <option key={fsmId} value={fsmId}>{name}{fsmId === session?.user.id ? ' (You)' : ''}</option>
+          ))}
+        </select>
+      )}
+
+      {isMaster && salespersonOptions.length > 1 && (
+        <select value={salespersonFilter} onChange={(e) => setSalespersonFilter(e.target.value)}>
+          <option value="">All Salespeople</option>
+          {salespersonOptions.map(([id, name]) => (
+            <option key={id} value={id}>{name}</option>
           ))}
         </select>
       )}
