@@ -8,17 +8,21 @@ import InstallAppCard from '@/components/InstallAppCard';
 import PushCard from '@/components/PushCard';
 import { LogOutIcon } from '@/components/Icons';
 import { applyTheme, getStoredTheme, type Theme } from '@/lib/theme';
+import { downloadMonthlyReport, shareMonthlyReport, type MonthlyReportRow } from '@/lib/monthlyReport';
 
 interface Dealership { id: string; name: string; }
 
 const FK_IN_USE = '23503';
 
 export default function Settings() {
-  const { profile } = useSession();
+  const { profile, session } = useSession();
   const { actingDealershipId } = useActingRole();
   const isMaster = profile?.role === 'Master Administrator';
   const canManageLists = profile ? MANAGER_ROLES.includes(profile.role) : false;
+  const isSalesperson = profile?.role === 'Salesperson';
   const [theme, setTheme] = useState<Theme>(getStoredTheme());
+  const [reportBusy, setReportBusy] = useState<'download' | 'share' | null>(null);
+  const [reportNotice, setReportNotice] = useState<string | null>(null);
 
   const onSetTheme = (t: Theme) => { setTheme(t); applyTheme(t); };
 
@@ -139,6 +143,52 @@ export default function Settings() {
     } else { setError(null); load(); }
   };
 
+  const thisMonthRange = () => {
+    const now = new Date();
+    const start = new Date(now.getFullYear(), now.getMonth(), 1);
+    const end = new Date(now.getFullYear(), now.getMonth() + 1, 1);
+    const label = now.toLocaleDateString(undefined, { month: 'long', year: 'numeric' });
+    return { start, end, label };
+  };
+
+  const fetchThisMonthDelivered = async (): Promise<{ rows: MonthlyReportRow[]; label: string } | null> => {
+    if (!session) return null;
+    const { start, end, label } = thisMonthRange();
+    const { data, error } = await supabase
+      .from('deliveries')
+      .select('customer_name, fsm_name, delivered_at')
+      .eq('salesperson_id', session.user.id)
+      .eq('status', 'delivered')
+      .gte('delivered_at', start.toISOString())
+      .lt('delivered_at', end.toISOString())
+      .order('delivered_at', { ascending: true });
+    if (error) { setReportNotice(error.message); return null; }
+    return { rows: (data as MonthlyReportRow[]) || [], label };
+  };
+
+  const runDownloadReport = async () => {
+    setReportBusy('download');
+    setReportNotice(null);
+    const result = await fetchThisMonthDelivered();
+    if (!result) { setReportBusy(null); return; }
+    if (result.rows.length === 0) { setReportBusy(null); setReportNotice('No deliveries marked complete yet this month.'); return; }
+    await downloadMonthlyReport(result.rows, profile?.name ?? 'Salesperson', result.label);
+    setReportBusy(null);
+  };
+
+  const runShareReport = async () => {
+    setReportBusy('share');
+    setReportNotice(null);
+    const result = await fetchThisMonthDelivered();
+    if (!result) { setReportBusy(null); return; }
+    if (result.rows.length === 0) { setReportBusy(null); setReportNotice('No deliveries marked complete yet this month.'); return; }
+    const outcome = await shareMonthlyReport(result.rows, profile?.name ?? 'Salesperson', result.label);
+    setReportBusy(null);
+    if (outcome === 'downloaded') {
+      setReportNotice('Your browser can\'t share files directly, so the PDF downloaded instead — attach it to an email yourself.');
+    }
+  };
+
   return (
     <div style={{ display: 'grid', gap: 16, maxWidth: 560, margin: '0 auto' }}>
       <h1 style={{ fontSize: 22, fontWeight: 700, letterSpacing: '-0.02em', margin: 0 }}>Settings</h1>
@@ -176,6 +226,24 @@ export default function Settings() {
           ))}
         </div>
       </div>
+
+      {isSalesperson && (
+        <div className="card">
+          <div style={{ color: 'var(--muted)', fontWeight: 800, fontSize: 12, letterSpacing: 1, marginBottom: 6 }}>MONTHLY REPORT</div>
+          <p style={{ color: 'var(--muted)', fontSize: 13, marginTop: 0, marginBottom: 12 }}>
+            A PDF of every delivery you've completed this month — customer name, Finance Manager and delivery date.
+          </p>
+          <div style={{ display: 'flex', gap: 8 }}>
+            <button type="button" className="btn secondary" style={{ flex: 1 }} disabled={reportBusy !== null} onClick={runDownloadReport}>
+              {reportBusy === 'download' ? 'Preparing…' : 'Download PDF'}
+            </button>
+            <button type="button" className="btn" style={{ flex: 1 }} disabled={reportBusy !== null} onClick={runShareReport}>
+              {reportBusy === 'share' ? 'Preparing…' : 'Share / Email'}
+            </button>
+          </div>
+          {reportNotice && <p style={{ color: 'var(--muted)', fontSize: 12.5, marginTop: 10, marginBottom: 0 }}>{reportNotice}</p>}
+        </div>
+      )}
 
       <InstallAppCard />
 
