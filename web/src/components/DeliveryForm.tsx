@@ -143,9 +143,11 @@ export default function DeliveryForm({ existing, onSaved }: { existing?: Deliver
 
     const customerName = capitalizeWords(customer.trim());
     const fsmName = fsmId === session?.user.id ? (profile?.name ?? null) : (financeManagers.find((f) => f.id === fsmId)?.name ?? existing?.fsm_name ?? null);
+    const salespersonName = salespeople.find((p) => p.id === salesperson)?.name ?? existing?.salesperson_name ?? null;
     const payload = {
       dealership_id: effectiveDealershipId,
       salesperson_id: salesperson,
+      salesperson_name: salespersonName,
       fsm_id: fsmId,
       fsm_name: fsmName,
       customer_name: customerName,

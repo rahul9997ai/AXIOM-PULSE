@@ -263,6 +263,7 @@ export default function DeliveryDetail() {
             </div>
           </div>
           <InfoRow label="Approval" value={capitalizeWords(d.approval_status)} />
+          {isManager && d.salesperson_name && <InfoRow label="Salesperson" value={d.salesperson_name} />}
           {d.fsm_name && <InfoRow label="Finance Manager" value={d.fsm_name} />}
         </div>
 

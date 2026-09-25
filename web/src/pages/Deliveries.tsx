@@ -154,6 +154,11 @@ export default function Deliveries() {
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 8 }}>
               <div style={{ minWidth: 0 }}>
                 <div style={{ fontWeight: 800, fontSize: 17, lineHeight: 1.25 }}>{d.customer_name}</div>
+                {isManager && d.salesperson_name && (
+                  <div style={{ fontSize: 12, color: 'var(--muted)', marginTop: 2 }}>
+                    Salesperson: {d.salesperson_name}
+                  </div>
+                )}
                 {isMaster && d.fsm_name && (
                   <div style={{ fontSize: 12, color: 'var(--muted)', marginTop: 2 }}>
                     Finance Manager: {d.fsm_name}{d.fsm_id === session?.user.id ? ' (You)' : ''}
