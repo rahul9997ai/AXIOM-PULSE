@@ -53,7 +53,12 @@ export default function DeliveryForm({ existing, onSaved }: { existing?: Deliver
   const [deliveryTime, setDeliveryTime] = useState(existingLocal?.slice(11, 16) ?? '');
   const deliveryAt = deliveryDate && deliveryTime ? `${deliveryDate}T${deliveryTime}` : '';
   const [salesperson, setSalesperson] = useState(existing?.salesperson_id ?? '');
-  const [fsmId, setFsmId] = useState(existing?.fsm_id ?? (profile?.role === 'FSM' ? profile.id : ''));
+  // Everyone who creates a delivery defaults to themselves as the Finance
+  // Manager — except Master Administrator, who moves between roles/dealerships
+  // as a creator and shouldn't get stuck on the delivery by accident. Master
+  // always starts blank and must pick one explicitly; a real FSM or GM still
+  // gets the fast default.
+  const [fsmId, setFsmId] = useState(existing?.fsm_id ?? (isMaster ? '' : (profile?.id ?? '')));
   const [dueOnDelivery, setDueOnDelivery] = useState(existing?.due_on_delivery ?? false);
   const [dueType, setDueType] = useState<DueOnDeliveryType>(existing?.due_on_delivery_type ?? 'collection');
   const [dueAmount, setDueAmount] = useState(existing?.due_on_delivery_amount_cents ? centsToInput(existing.due_on_delivery_amount_cents) : '');
