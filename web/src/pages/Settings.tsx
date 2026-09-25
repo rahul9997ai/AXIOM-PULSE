@@ -156,7 +156,7 @@ export default function Settings() {
     const { start, end, label } = thisMonthRange();
     const { data, error } = await supabase
       .from('deliveries')
-      .select('customer_name, fsm_name, delivered_at')
+      .select('customer_name, stock_number, fsm_name, delivered_at')
       .eq('salesperson_id', session.user.id)
       .eq('status', 'delivered')
       .gte('delivered_at', start.toISOString())

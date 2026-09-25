@@ -1,5 +1,6 @@
 export interface MonthlyReportRow {
   customer_name: string;
+  stock_number: string | null;
   fsm_name: string | null;
   delivered_at: string;
 }
@@ -28,15 +29,16 @@ async function buildPdf(rows: MonthlyReportRow[], salespersonName: string, month
 
   autoTable(doc, {
     startY: 96,
-    head: [['Customer Name', 'Finance Manager', 'Date of Delivery']],
+    head: [['Customer Name', 'Stock #', 'Finance Manager', 'Date of Delivery']],
     body: rows.map((r) => [
       r.customer_name,
+      r.stock_number || '—',
       r.fsm_name || '—',
       new Date(r.delivered_at).toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' }),
     ]),
     headStyles: { fillColor: [10, 108, 240] },
     styles: { fontSize: 10, cellPadding: 6 },
-    columnStyles: { 2: { cellWidth: 120 } },
+    columnStyles: { 3: { cellWidth: 120 } },
   });
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
