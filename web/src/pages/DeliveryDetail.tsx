@@ -7,6 +7,7 @@ import type { Delivery, DeliveryComment } from '@/lib/types';
 import { STATUS_LABEL, STATUS_COLOR, MANAGER_ROLES } from '@/lib/types';
 import { capitalizeWords } from '@/lib/text';
 import { downloadDeliveryIcs } from '@/lib/ics';
+import { useIsDesktop } from '@/lib/useIsDesktop';
 import {
   CalendarIcon, PinIcon, CarIcon,
   EditIcon, BellIcon, TrashIcon,
@@ -17,6 +18,7 @@ export default function DeliveryDetail() {
   const navigate = useNavigate();
   const { profile, session } = useSession();
   const { isMaster, actingRole } = useActingRole();
+  const isDesktop = useIsDesktop();
 
   const [delivery, setDelivery] = useState<Delivery | null>(null);
   const [comments, setComments] = useState<DeliveryComment[]>([]);
@@ -196,11 +198,23 @@ export default function DeliveryDetail() {
     load();
   };
 
-  return (
-    <div style={{ display: 'grid', gap: 14, maxWidth: 640, margin: '0 auto', background: 'var(--detail-bg)', padding: 16, borderRadius: 24 }}>
-      <Link to="/" style={{ fontSize: 13, color: 'var(--accent)', textDecoration: 'none', fontWeight: 700 }}>‹ Back to Deliveries</Link>
+  // Cancel .app-main's own padding so this page's background fills the
+  // screen edge to edge instead of floating as an inset, rounded panel —
+  // the negative margin has to match whichever shell (mobile vs desktop)
+  // is actually applying that padding.
+  const bleedY = isDesktop ? 30 : 18;
+  const bleedX = isDesktop ? 36 : 16;
 
-      <div className="card-3d">
+  return (
+    <div style={{
+      marginTop: -bleedY, marginLeft: -bleedX, marginRight: -bleedX,
+      paddingTop: bleedY, paddingLeft: bleedX, paddingRight: bleedX, paddingBottom: 28,
+      background: 'var(--detail-bg)',
+    }}>
+      <div style={{ display: 'grid', gap: 14, maxWidth: 640, margin: '0 auto' }}>
+        <Link to="/" style={{ fontSize: 13, color: 'var(--accent)', textDecoration: 'none', fontWeight: 700 }}>‹ Back to Deliveries</Link>
+
+        <div className="card-3d">
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 8 }}>
           <div style={{ minWidth: 0 }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
@@ -459,6 +473,7 @@ export default function DeliveryDetail() {
             {sendingComment ? 'Sending…' : !isManager ? 'Send for approval' : 'Send'}
           </button>
         </div>
+      </div>
       </div>
     </div>
   );
