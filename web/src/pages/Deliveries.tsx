@@ -3,20 +3,12 @@ import { Link } from 'react-router-dom';
 import { supabase } from '@/lib/supabase';
 import { useSession } from '@/lib/session';
 import { useActingRole } from '@/lib/actingRole';
-import type { Delivery } from '@/lib/types';
+import type { Delivery, DeliveryStatus } from '@/lib/types';
 import { STATUS_LABEL, MANAGER_ROLES, ROLE_LABEL } from '@/lib/types';
-import type { DeliveryStatus } from '@/lib/types';
 import { CalendarIcon, PinIcon } from '@/components/Icons';
 import ProgressRing from '@/components/ProgressRing';
 import AdminHome from './AdminHome';
 
-const TINT_CLASS: Record<DeliveryStatus, string> = {
-  new: 'tint-new',
-  requirements_outstanding: 'tint-outstanding',
-  ready: 'tint-ready',
-  delivered: 'tint-delivered',
-  cancelled: 'tint-cancelled',
-};
 const PILL_COLOR: Record<DeliveryStatus, string> = {
   new: '#0a6cf0',
   requirements_outstanding: '#f59e0b',
@@ -208,7 +200,7 @@ export default function Deliveries() {
           <Link
             key={d.id}
             to={`/delivery/${d.id}`}
-            className={`card ${TINT_CLASS[d.status]}`}
+            className="card-3d tint-blue"
             style={{ display: 'block', textDecoration: 'none', color: 'inherit' }}
           >
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 8 }}>
@@ -246,7 +238,8 @@ export default function Deliveries() {
 
             <div style={{
               display: 'flex', alignItems: 'center', gap: 7, marginTop: 10,
-              padding: '7px 11px', borderRadius: 9, background: '#eafaf0',
+              padding: '9px 13px', borderRadius: 12, background: '#eafaf0',
+              boxShadow: '-3px -3px 8px var(--neu-hi), 4px 5px 12px rgba(21,128,61,0.10)',
             }}>
               <span style={{ color: darkGreen, display: 'flex' }}><CalendarIcon size={16} /></span>
               <span style={{ fontSize: 14.5, fontWeight: 700, color: darkGreen }}>
