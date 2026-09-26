@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { Link } from 'react-router-dom';
 import { supabase } from '@/lib/supabase';
 import type { Role } from '@/lib/types';
 
@@ -160,6 +161,13 @@ export default function AdminHome() {
         Create dealerships and invite General Managers, FSMs and Salespeople. To preview or test any
         of it as a delivery, use the "Viewing as" switcher at the top of the screen.
       </p>
+
+      <Link to="/month-close" className="card" style={{ display: 'block', textDecoration: 'none', color: 'inherit' }}>
+        <div style={{ fontWeight: 700, fontSize: 14 }}>Closed Months</div>
+        <div style={{ color: 'var(--muted)', fontSize: 12.5, marginTop: 2 }}>
+          See which Finance Managers have closed which months, and reopen one if needed.
+        </div>
+      </Link>
 
       {notice && (
         <div className="card" style={{ fontSize: 13, color: notice.tone === 'err' ? '#a3261b' : '#15803d' }}>

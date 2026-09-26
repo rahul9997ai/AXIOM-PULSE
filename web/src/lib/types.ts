@@ -87,6 +87,16 @@ export interface DeliveryComment {
   created_at: string;
 }
 
+export interface MonthClosure {
+  id: string;
+  dealership_id: string;
+  fsm_id: string;
+  year: number;
+  month: number;
+  closed_at: string;
+  closed_by: string;
+}
+
 export interface DeliveryEvent {
   id: string;
   delivery_id: string;

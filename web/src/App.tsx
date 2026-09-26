@@ -12,6 +12,7 @@ import DeliveryDetail from '@/pages/DeliveryDetail';
 import NewDelivery from '@/pages/NewDelivery';
 import EditDelivery from '@/pages/EditDelivery';
 import Settings from '@/pages/Settings';
+import MonthClose from '@/pages/MonthClose';
 
 export default function App() {
   const { session, profile, loading } = useSession();
@@ -43,6 +44,7 @@ function AppRoutes() {
         <Route path="/new" element={canCreate ? <NewDelivery /> : <Navigate to="/" replace />} />
         <Route path="/edit/:id" element={canCreate ? <EditDelivery /> : <Navigate to="/" replace />} />
         <Route path="/settings" element={<Settings />} />
+        <Route path="/month-close" element={<MonthClose />} />
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
     </Layout>

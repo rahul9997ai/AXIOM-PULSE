@@ -6,6 +6,7 @@ import { useIsDesktop } from '@/lib/useIsDesktop';
 import { AxiomLockup } from '@/components/AxiomMark';
 import { MANAGER_ROLES } from '@/lib/types';
 import { HomeIcon, PlusCircleIcon, GearIcon, CalendarIcon } from '@/components/Icons';
+import MonthCloseBanner from '@/components/MonthCloseBanner';
 
 export default function Layout({ children }: { children: ReactNode }) {
   const { profile } = useSession();
@@ -76,6 +77,7 @@ export default function Layout({ children }: { children: ReactNode }) {
     return (
       <div className="app-shell desktop">
         {viewingAsBar}
+        <MonthCloseBanner />
         <div className="desktop-body">
           <aside className="desktop-sidebar">
             <AxiomLockup size={22} />
@@ -103,6 +105,7 @@ export default function Layout({ children }: { children: ReactNode }) {
         <AxiomLockup size={24} />
       </header>
       {viewingAsBar}
+      <MonthCloseBanner />
       <main className="app-main">{children}</main>
       <nav className="app-tabbar" aria-label="Primary">
         {navItems.map(({ to, label, icon: Icon, match }) => {
