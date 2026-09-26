@@ -339,7 +339,10 @@ export default function DeliveryDetail() {
                 ? { bg: 'linear-gradient(160deg, #4ade80, #15803d)', fg: '#fff', glow: 'rgba(21,128,61,0.28)' }
                 : r.status === 'exception'
                 ? { bg: 'linear-gradient(160deg, #fcd34d, #b45309)', fg: '#fff', glow: 'rgba(180,120,20,0.3)' }
-                : { bg: 'linear-gradient(160deg, #4fa8ff, #0a55e6)', fg: '#fff', glow: 'rgba(10,85,230,0.32)' };
+                // A deep navy instead of the same light blue as the card
+                // itself — stays in the blue family but reads as a distinct,
+                // higher-contrast "to do" tile against the tinted card.
+                : { bg: 'linear-gradient(160deg, #2f5fdb, #0f1f4d)', fg: '#fff', glow: 'rgba(15,31,77,0.38)' };
               const onTap = !canEdit ? undefined
                 : r.status === 'outstanding' ? () => resolveRequirement(r.id, 'completed')
                 : () => resolveRequirement(r.id, 'outstanding');
