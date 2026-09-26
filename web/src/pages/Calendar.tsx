@@ -42,6 +42,19 @@ export default function CalendarPage() {
 
   useEffect(() => { load(); }, [load]);
 
+  // Realtime: mirrors the Deliveries list's subscription so a delivery
+  // created/edited/completed elsewhere shows up here without navigating
+  // away and back.
+  useEffect(() => {
+    if (!profile) return;
+    const channel = supabase
+      .channel('pulse-calendar')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'deliveries' }, () => load())
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'delivery_requirements' }, () => load())
+      .subscribe();
+    return () => { supabase.removeChannel(channel); };
+  }, [profile, load]);
+
   const byDay = useMemo(() => {
     const map = new Map<string, Delivery[]>();
     for (const d of rows) {
@@ -70,9 +83,9 @@ export default function CalendarPage() {
 
       <div className="card">
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10 }}>
-          <button type="button" className="btn secondary" style={{ padding: '4px 10px' }} onClick={() => setCursor((c) => new Date(c.getFullYear(), c.getMonth() - 1, 1))}>‹</button>
+          <button type="button" aria-label="Previous month" className="btn secondary" style={{ padding: '4px 10px' }} onClick={() => setCursor((c) => new Date(c.getFullYear(), c.getMonth() - 1, 1))}>‹</button>
           <div style={{ fontWeight: 700, fontSize: 15 }}>{monthLabel}</div>
-          <button type="button" className="btn secondary" style={{ padding: '4px 10px' }} onClick={() => setCursor((c) => new Date(c.getFullYear(), c.getMonth() + 1, 1))}>›</button>
+          <button type="button" aria-label="Next month" className="btn secondary" style={{ padding: '4px 10px' }} onClick={() => setCursor((c) => new Date(c.getFullYear(), c.getMonth() + 1, 1))}>›</button>
         </div>
 
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', gap: 4, marginBottom: 4 }}>

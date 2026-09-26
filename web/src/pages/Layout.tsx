@@ -39,8 +39,9 @@ export default function Layout({ children }: { children: ReactNode }) {
   const viewingAsBar = isMaster && (
     <div style={{
       display: 'flex', flexWrap: 'wrap', gap: 8, alignItems: 'center',
-      padding: '8px 14px', background: isAdminMode ? 'transparent' : '#fef3e2',
-      borderBottom: isAdminMode ? 'none' : '1px solid #f5d59a', fontSize: 12.5,
+      padding: '8px 14px', background: isAdminMode ? 'transparent' : 'var(--banner-warn-bg)',
+      borderBottom: isAdminMode ? 'none' : '1px solid var(--banner-warn-border)', fontSize: 12.5,
+      color: isAdminMode ? undefined : 'var(--banner-warn-fg)',
     }}>
       <span style={{ fontWeight: 700, color: 'var(--muted)' }}>Viewing as</span>
       <select

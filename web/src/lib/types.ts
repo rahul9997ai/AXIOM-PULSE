@@ -97,15 +97,6 @@ export interface MonthClosure {
   closed_by: string;
 }
 
-export interface DeliveryEvent {
-  id: string;
-  delivery_id: string;
-  actor_id: string | null;
-  event_type: string;
-  detail: Record<string, unknown>;
-  created_at: string;
-}
-
 export const STATUS_LABEL: Record<DeliveryStatus, string> = {
   new: 'New',
   requirements_outstanding: 'Requirements Outstanding',
@@ -114,12 +105,16 @@ export const STATUS_LABEL: Record<DeliveryStatus, string> = {
   cancelled: 'Cancelled',
 };
 
-export const STATUS_COLOR: Record<DeliveryStatus, { bg: string; fg: string; border: string }> = {
-  new: { bg: '#eaf2ff', fg: '#0a55e6', border: '#0a6cf0' },
-  requirements_outstanding: { bg: '#fef3e2', fg: '#b45309', border: '#f59e0b' },
-  ready: { bg: '#eafaf0', fg: '#15803d', border: '#22c55e' },
-  delivered: { bg: '#eef2f7', fg: '#334155', border: '#94a3b8' },
-  cancelled: { bg: '#fdecea', fg: '#a3261b', border: '#ef4444' },
+// Single source of truth for status coloring — `solid` is the flat-fill
+// tone used for the Deliveries list pill, `bg`/`fg`/`border` the tinted
+// badge used on the detail page and calendar. Keeping both here means a
+// future palette tweak can't desync the list from the detail/calendar view.
+export const STATUS_COLOR: Record<DeliveryStatus, { bg: string; fg: string; border: string; solid: string }> = {
+  new: { bg: '#eaf2ff', fg: '#0a55e6', border: '#0a6cf0', solid: '#0a6cf0' },
+  requirements_outstanding: { bg: '#fef3e2', fg: '#b45309', border: '#f59e0b', solid: '#f59e0b' },
+  ready: { bg: '#eafaf0', fg: '#15803d', border: '#22c55e', solid: '#16a34a' },
+  delivered: { bg: '#eef2f7', fg: '#334155', border: '#94a3b8', solid: '#64748b' },
+  cancelled: { bg: '#fdecea', fg: '#a3261b', border: '#ef4444', solid: '#ef4444' },
 };
 
 export const MANAGER_ROLES: Role[] = ['FSM', 'General Manager', 'Master Administrator'];

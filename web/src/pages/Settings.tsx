@@ -30,6 +30,14 @@ export default function Settings() {
   const [selectedDealershipId, setSelectedDealershipId] = useState(actingDealershipId);
   const dealershipId = isMaster ? selectedDealershipId : (profile?.dealership_id ?? '');
 
+  // If the Master switches dealerships via the "Viewing as" bar elsewhere,
+  // this dropdown needs to follow — otherwise lender/template edits made
+  // here can silently target whichever dealership was selected when this
+  // page first mounted.
+  useEffect(() => {
+    if (isMaster && actingDealershipId) setSelectedDealershipId(actingDealershipId);
+  }, [isMaster, actingDealershipId]);
+
   const [lenders, setLenders] = useState<Lender[]>([]);
   const [templates, setTemplates] = useState<RequirementTemplate[]>([]);
   const [nameDrafts, setNameDrafts] = useState<Record<string, string>>({});
@@ -43,7 +51,8 @@ export default function Settings() {
   useEffect(() => {
     if (!isMaster) return;
     supabase.from('dealerships').select('id,name').order('name')
-      .then(({ data }) => {
+      .then(({ data, error }) => {
+        if (error) { setError(error.message); return; }
         const list = (data as Dealership[]) || [];
         setDealerships(list);
         setSelectedDealershipId((prev) => prev || list[0]?.id || '');
@@ -52,10 +61,11 @@ export default function Settings() {
 
   const load = async () => {
     if (!dealershipId) { setLenders([]); setTemplates([]); return; }
-    const [{ data: l }, { data: t }] = await Promise.all([
+    const [{ data: l, error: lErr }, { data: t, error: tErr }] = await Promise.all([
       supabase.from('lenders').select('*').eq('dealership_id', dealershipId).order('name'),
       supabase.from('requirement_templates').select('*').eq('dealership_id', dealershipId).order('sort_order'),
     ]);
+    if (lErr || tErr) { setError((lErr ?? tErr)!.message); return; }
     const lenderList = (l as Lender[]) || [];
     const templateList = (t as RequirementTemplate[]) || [];
     setLenders(lenderList);

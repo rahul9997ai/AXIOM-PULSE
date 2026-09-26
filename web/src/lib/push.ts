@@ -1,4 +1,7 @@
 import { supabase } from './supabase';
+import { isStandaloneDisplay, isIOS } from './platform';
+
+export { isStandaloneDisplay, isIOS };
 
 function base64UrlToUint8Array(base64Url: string): Uint8Array<ArrayBuffer> {
   const padding = '='.repeat((4 - (base64Url.length % 4)) % 4);
@@ -7,14 +10,6 @@ function base64UrlToUint8Array(base64Url: string): Uint8Array<ArrayBuffer> {
   const bytes = new Uint8Array(new ArrayBuffer(raw.length));
   for (let i = 0; i < raw.length; i++) bytes[i] = raw.charCodeAt(i);
   return bytes;
-}
-
-export function isStandaloneDisplay(): boolean {
-  return window.matchMedia?.('(display-mode: standalone)').matches || (window.navigator as any).standalone === true;
-}
-
-export function isIOS(): boolean {
-  return /iPhone|iPad|iPod/i.test(navigator.userAgent);
 }
 
 export function pushSupported(): boolean {

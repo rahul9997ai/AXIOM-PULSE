@@ -91,13 +91,33 @@ export default function DeliveryForm({ existing, onSaved }: { existing?: Deliver
       .then(({ data }) => setLenders((data as Lender[]) || []));
     supabase.from('requirement_templates').select('*').eq('dealership_id', effectiveDealershipId).eq('active', true).order('sort_order')
       .then(({ data }) => setTemplates((data as RequirementTemplate[]) || []));
+    // Editing a delivery whose assigned salesperson/FSM has since been
+    // deactivated must still show them in the dropdown (selected), so the
+    // form doesn't silently drop or reassign that field on save — fetch
+    // them by id alongside the active list if they're not already in it.
     supabase.from('profiles').select('id,name').eq('dealership_id', effectiveDealershipId).eq('role', 'Salesperson').eq('active', true)
-      .then(({ data }) => setSalespeople((data as Salesperson[]) || []));
+      .then(async ({ data }) => {
+        const list = (data as Salesperson[]) || [];
+        const assignedId = existing?.salesperson_id;
+        if (assignedId && !list.some((p) => p.id === assignedId)) {
+          const { data: assigned } = await supabase.from('profiles').select('id,name').eq('id', assignedId).eq('dealership_id', effectiveDealershipId).maybeSingle();
+          if (assigned) list.push(assigned as Salesperson);
+        }
+        setSalespeople(list);
+      });
     if (canAssignFsm) {
       supabase.from('profiles').select('id,name').eq('dealership_id', effectiveDealershipId).eq('role', 'FSM').eq('active', true)
-        .then(({ data }) => setFinanceManagers((data as FinanceManager[]) || []));
+        .then(async ({ data }) => {
+          const list = (data as FinanceManager[]) || [];
+          const assignedId = existing?.fsm_id;
+          if (assignedId && !list.some((p) => p.id === assignedId)) {
+            const { data: assigned } = await supabase.from('profiles').select('id,name').eq('id', assignedId).eq('dealership_id', effectiveDealershipId).maybeSingle();
+            if (assigned) list.push(assigned as FinanceManager);
+          }
+          setFinanceManagers(list);
+        });
     }
-  }, [effectiveDealershipId, canAssignFsm]);
+  }, [effectiveDealershipId, canAssignFsm, existing?.salesperson_id, existing?.fsm_id]);
 
   useEffect(() => {
     if (!existing) return;

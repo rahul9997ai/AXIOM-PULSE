@@ -77,15 +77,6 @@ export function PinIcon({ size = 15 }: IconProps) {
   );
 }
 
-export function DollarIcon({ size = 15 }: IconProps) {
-  return (
-    <svg viewBox="0 0 24 24" width={size} height={size} aria-hidden="true">
-      <path d="M12 3v18M16.5 7.5c0-1.9-2-3-4.5-3s-4.5 1.1-4.5 3 2 2.7 4.5 3 4.5 1.1 4.5 3-2 3-4.5 3-4.5-1.1-4.5-3"
-        fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" />
-    </svg>
-  );
-}
-
 export function CarIcon({ size = 15 }: IconProps) {
   return (
     <svg viewBox="0 0 24 24" width={size} height={size} aria-hidden="true">
@@ -94,33 +85,6 @@ export function CarIcon({ size = 15 }: IconProps) {
       <rect x="2.5" y="15.5" width="19" height="4.5" rx="1.5" fill="none" stroke="currentColor" strokeWidth="1.7" />
       <circle cx="7" cy="20" r="1.3" fill="currentColor" />
       <circle cx="17" cy="20" r="1.3" fill="currentColor" />
-    </svg>
-  );
-}
-
-export function CheckCircleIcon({ size = 15 }: IconProps) {
-  return (
-    <svg viewBox="0 0 24 24" width={size} height={size} aria-hidden="true">
-      <circle cx="12" cy="12" r="9.2" fill="none" stroke="currentColor" strokeWidth="1.7" />
-      <path d="M8 12.3l2.6 2.6L16.2 9" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round" />
-    </svg>
-  );
-}
-
-export function AlertIcon({ size = 15 }: IconProps) {
-  return (
-    <svg viewBox="0 0 24 24" width={size} height={size} aria-hidden="true">
-      <path d="M12 3.5L22 20.5H2z" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinejoin="round" />
-      <path d="M12 9.5v5" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" />
-      <circle cx="12" cy="17.3" r="1" fill="currentColor" />
-    </svg>
-  );
-}
-
-export function CircleIcon({ size = 15 }: IconProps) {
-  return (
-    <svg viewBox="0 0 24 24" width={size} height={size} aria-hidden="true">
-      <circle cx="12" cy="12" r="9.2" fill="none" stroke="currentColor" strokeWidth="1.7" />
     </svg>
   );
 }

@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { isStandaloneDisplay, isIOS } from './platform';
 
 interface BeforeInstallPromptEvent extends Event {
   prompt(): Promise<void>;
@@ -6,11 +7,7 @@ interface BeforeInstallPromptEvent extends Event {
 }
 
 export function isStandalone(): boolean {
-  return window.matchMedia?.('(display-mode: standalone)').matches || (window.navigator as any).standalone === true;
-}
-
-export function isIOS(): boolean {
-  return /iPhone|iPad|iPod/i.test(navigator.userAgent);
+  return isStandaloneDisplay();
 }
 
 export function usePwaInstall() {

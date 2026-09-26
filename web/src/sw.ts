@@ -29,7 +29,7 @@ self.addEventListener('push', (event: PushEvent) => {
     data: { url: payload.data?.url || '/', ...payload.data },
     tag: payload.data?.deliveryId,
     renotify: true,
-    requireInteraction: payload.data?.type === 'delivery_time' || payload.data?.type === 'urgent',
+    requireInteraction: payload.data?.type === 'urgent',
   };
 
   event.waitUntil(self.registration.showNotification(payload.title || 'AXIOM PULSE', options));

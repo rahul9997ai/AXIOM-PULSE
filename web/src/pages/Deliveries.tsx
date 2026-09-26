@@ -3,19 +3,12 @@ import { Link } from 'react-router-dom';
 import { supabase } from '@/lib/supabase';
 import { useSession } from '@/lib/session';
 import { useActingRole } from '@/lib/actingRole';
-import type { Delivery, DeliveryStatus } from '@/lib/types';
-import { STATUS_LABEL, MANAGER_ROLES, ROLE_LABEL } from '@/lib/types';
-import { CalendarIcon, PinIcon } from '@/components/Icons';
+import type { Delivery } from '@/lib/types';
+import { STATUS_LABEL, STATUS_COLOR, MANAGER_ROLES, ROLE_LABEL } from '@/lib/types';
+import { PinIcon } from '@/components/Icons';
 import ProgressRing from '@/components/ProgressRing';
+import DateTimePill from '@/components/DateTimePill';
 import AdminHome from './AdminHome';
-
-const PILL_COLOR: Record<DeliveryStatus, string> = {
-  new: '#0a6cf0',
-  requirements_outstanding: '#f59e0b',
-  ready: '#16a34a',
-  delivered: '#64748b',
-  cancelled: '#ef4444',
-};
 
 export default function Deliveries() {
   const { profile, session } = useSession();
@@ -175,7 +168,7 @@ export default function Deliveries() {
             onClick={() => setTab(t)}
             style={{
               flex: 1, border: 'none', borderRadius: 9, padding: '8px 0', fontSize: 13, fontWeight: 700,
-              cursor: 'pointer', background: tab === t ? '#fff' : 'transparent',
+              cursor: 'pointer', background: tab === t ? 'var(--card)' : 'transparent',
               color: tab === t ? 'var(--ink)' : 'var(--muted)',
               boxShadow: tab === t ? '0 1px 3px rgba(20,50,100,0.12)' : 'none',
             }}
@@ -194,7 +187,6 @@ export default function Deliveries() {
 
       {visible.map((d) => {
         const dt = new Date(d.delivery_at);
-        const darkGreen = '#15803d';
 
         return (
           <Link
@@ -229,25 +221,15 @@ export default function Deliveries() {
               </div>
               <span style={{
                 flexShrink: 0, fontSize: 10, fontWeight: 800, letterSpacing: 0.3, textTransform: 'uppercase',
-                background: PILL_COLOR[d.status], color: '#fff', padding: '5px 10px', borderRadius: 999,
-                boxShadow: `0 3px 8px ${PILL_COLOR[d.status]}55`,
+                background: STATUS_COLOR[d.status].solid, color: '#fff', padding: '5px 10px', borderRadius: 999,
+                boxShadow: `0 3px 8px ${STATUS_COLOR[d.status].solid}55`,
               }}>
                 {STATUS_LABEL[d.status]}
               </span>
             </div>
 
-            <div style={{
-              display: 'flex', alignItems: 'center', gap: 7, marginTop: 10,
-              padding: '9px 13px', borderRadius: 12, background: '#eafaf0',
-              boxShadow: '-3px -3px 8px var(--neu-hi), 4px 5px 12px rgba(21,128,61,0.10)',
-            }}>
-              <span style={{ color: darkGreen, display: 'flex' }}><CalendarIcon size={16} /></span>
-              <span style={{ fontSize: 14.5, fontWeight: 700, color: darkGreen }}>
-                {dt.toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric' })}
-              </span>
-              <span style={{ fontSize: 14.5, fontWeight: 700, color: darkGreen }}>
-                {dt.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })}
-              </span>
+            <div style={{ marginTop: 10 }}>
+              <DateTimePill date={dt} />
             </div>
 
             <div style={{ display: 'flex', alignItems: 'flex-start', gap: 7, marginTop: 10, fontSize: 13 }}>

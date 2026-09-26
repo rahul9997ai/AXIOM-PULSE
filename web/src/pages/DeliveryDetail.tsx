@@ -8,8 +8,9 @@ import { STATUS_LABEL, STATUS_COLOR, MANAGER_ROLES } from '@/lib/types';
 import { capitalizeWords } from '@/lib/text';
 import { downloadDeliveryIcs } from '@/lib/ics';
 import { useIsDesktop } from '@/lib/useIsDesktop';
+import DateTimePill from '@/components/DateTimePill';
 import {
-  CalendarIcon, PinIcon, CarIcon,
+  PinIcon, CarIcon,
   EditIcon, BellIcon, TrashIcon,
 } from '@/components/Icons';
 
@@ -69,7 +70,6 @@ export default function DeliveryDetail() {
   const canComplete = !isManager && d.status !== 'delivered' && d.status !== 'cancelled';
   const sc = STATUS_COLOR[d.status];
   const dt = new Date(d.delivery_at);
-  const darkGreen = '#15803d';
 
   const resolveRequirement = async (reqId: string, status: 'completed' | 'exception' | 'outstanding', reason?: string) => {
     const { error } = await supabase.rpc('set_requirement_status', {
@@ -243,27 +243,19 @@ export default function DeliveryDetail() {
           </span>
         </div>
 
-        <div style={{
-          display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 7, marginTop: 12,
-          padding: '10px 14px', borderRadius: 14, background: '#eafaf0',
-          boxShadow: '-3px -3px 8px var(--neu-hi), 4px 5px 12px rgba(21,128,61,0.10)',
-        }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 7 }}>
-            <span style={{ color: darkGreen, display: 'flex' }}><CalendarIcon size={16} /></span>
-            <span style={{ fontSize: 14.5, fontWeight: 700, color: darkGreen }}>
-              {dt.toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric' })}
-            </span>
-            <span style={{ fontSize: 14.5, fontWeight: 700, color: darkGreen }}>
-              {dt.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })}
-            </span>
-          </div>
-          <button
-            type="button"
-            onClick={() => downloadDeliveryIcs(d)}
-            style={{ border: 'none', color: darkGreen, background: '#fff', borderRadius: 9, padding: '4px 9px', fontSize: 11, fontWeight: 700, cursor: 'pointer', boxShadow: '0 2px 5px rgba(21,128,61,0.18)' }}
-          >
-            + Calendar
-          </button>
+        <div style={{ marginTop: 12 }}>
+          <DateTimePill
+            date={dt}
+            action={(
+              <button
+                type="button"
+                onClick={() => downloadDeliveryIcs(d)}
+                style={{ border: 'none', color: 'var(--pill-green-fg)', background: 'var(--card)', borderRadius: 9, padding: '4px 9px', fontSize: 11, fontWeight: 700, cursor: 'pointer', boxShadow: '0 2px 5px rgba(21,128,61,0.18)' }}
+              >
+                + Calendar
+              </button>
+            )}
+          />
         </div>
         {d.status === 'delivered' && d.delivered_at && (
           <div style={{ color: '#15803d', fontSize: 12.5, fontWeight: 700, marginTop: 6 }}>
@@ -370,13 +362,19 @@ export default function DeliveryDetail() {
                       aria-label={`Flag exception for ${r.label}`}
                       onClick={(e) => { e.stopPropagation(); setExceptionFor(r.id); }}
                       style={{
-                        position: 'absolute', top: -6, right: -6, width: 20, height: 20, borderRadius: '50%',
-                        background: '#fff', border: '1px solid #f6dba6', color: '#b45309', fontSize: 12, fontWeight: 800,
-                        display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 0, cursor: 'pointer',
-                        boxShadow: '0 1px 3px rgba(20,50,100,0.15)',
+                        position: 'absolute', top: -18, right: -18, width: 44, height: 44, borderRadius: '50%',
+                        background: 'transparent', border: 'none', padding: 0, cursor: 'pointer',
+                        display: 'flex', alignItems: 'center', justifyContent: 'center',
                       }}
                     >
-                      !
+                      <span style={{
+                        width: 20, height: 20, borderRadius: '50%',
+                        background: '#fff', border: '1px solid #f6dba6', color: '#b45309', fontSize: 12, fontWeight: 800,
+                        display: 'flex', alignItems: 'center', justifyContent: 'center',
+                        boxShadow: '0 1px 3px rgba(20,50,100,0.15)',
+                      }}>
+                        !
+                      </span>
                     </button>
                   )}
                 </div>

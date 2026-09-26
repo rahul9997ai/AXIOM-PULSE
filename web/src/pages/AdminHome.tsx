@@ -36,7 +36,8 @@ export default function AdminHome() {
 
   const loadDealerships = async () => {
     setLoadingDealerships(true);
-    const { data } = await supabase.from('dealerships').select('id,name,active').order('name');
+    const { data, error } = await supabase.from('dealerships').select('id,name,active').order('name');
+    if (error) { setNotice({ text: error.message, tone: 'err' }); setLoadingDealerships(false); return; }
     const list = (data as Dealership[]) || [];
     setDealerships(list);
     setInviteDealershipId((prev) => prev || list[0]?.id || '');
@@ -45,11 +46,12 @@ export default function AdminHome() {
 
   const loadUsers = async () => {
     setLoadingUsers(true);
-    const { data } = await supabase
+    const { data, error } = await supabase
       .from('profiles')
       .select('id,name,role,dealership_id,active')
       .neq('role', 'Master Administrator')
       .order('name');
+    if (error) { setNotice({ text: error.message, tone: 'err' }); setLoadingUsers(false); return; }
     setUsers((data as AppUser[]) || []);
     setLoadingUsers(false);
   };

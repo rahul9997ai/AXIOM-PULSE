@@ -65,7 +65,8 @@ export default function MonthCloseBanner() {
     return (
       <div style={{
         display: 'flex', flexWrap: 'wrap', gap: 8, alignItems: 'center', justifyContent: 'space-between',
-        padding: '9px 14px', background: '#fef3e2', borderBottom: '1px solid #f5d59a', fontSize: 12.5,
+        padding: '9px 14px', background: 'var(--banner-warn-bg)', borderBottom: '1px solid var(--banner-warn-border)',
+        fontSize: 12.5, color: 'var(--banner-warn-fg)',
       }}>
         <span><strong>{label}</strong> is ready to close — review and confirm.</span>
         <Link to="/month-close" className="btn" style={{ padding: '4px 12px', fontSize: 12 }}>Review &amp; Close</Link>
@@ -77,10 +78,11 @@ export default function MonthCloseBanner() {
     return (
       <div style={{
         display: 'flex', flexWrap: 'wrap', gap: 8, alignItems: 'center', justifyContent: 'space-between',
-        padding: '9px 14px', background: '#eafaf0', borderBottom: '1px solid #bfe8cf', fontSize: 12.5,
+        padding: '9px 14px', background: 'var(--banner-ok-bg)', borderBottom: '1px solid var(--banner-ok-border)',
+        fontSize: 12.5, color: 'var(--banner-ok-fg)',
       }}>
         <span>{label} closed by {salespersonClosedBy}.</span>
-        <button type="button" onClick={dismiss} style={{ background: 'none', border: 'none', color: '#15803d', fontWeight: 700, fontSize: 12, cursor: 'pointer' }}>Got it</button>
+        <button type="button" onClick={dismiss} style={{ background: 'none', border: 'none', color: 'var(--banner-ok-fg)', fontWeight: 700, fontSize: 12, cursor: 'pointer' }}>Got it</button>
       </div>
     );
   }
