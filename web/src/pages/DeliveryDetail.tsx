@@ -318,7 +318,7 @@ export default function DeliveryDetail() {
               const canEdit = !isManager && canComplete;
               const tone = r.status === 'completed' ? { bg: '#eafaf0', fg: '#15803d', border: '#bfe8cf' }
                 : r.status === 'exception' ? { bg: '#fef3e2', fg: '#b45309', border: '#f6dba6' }
-                : { bg: 'var(--blue)', fg: '#fff', border: 'var(--blue)' };
+                : { bg: 'linear-gradient(120deg, #0a6cf0 0%, #3b82f6 55%, #22d3ee 100%)', fg: '#fff', border: '#0a6cf0' };
               const onTap = !canEdit ? undefined
                 : r.status === 'outstanding' ? () => resolveRequirement(r.id, 'completed')
                 : () => resolveRequirement(r.id, 'outstanding');

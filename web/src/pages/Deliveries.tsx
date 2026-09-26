@@ -6,6 +6,7 @@ import { useActingRole } from '@/lib/actingRole';
 import type { Delivery } from '@/lib/types';
 import { STATUS_LABEL, STATUS_COLOR, MANAGER_ROLES, ROLE_LABEL } from '@/lib/types';
 import { CalendarIcon, PinIcon } from '@/components/Icons';
+import ProgressRing from '@/components/ProgressRing';
 import AdminHome from './AdminHome';
 
 export default function Deliveries() {
@@ -83,17 +84,46 @@ export default function Deliveries() {
 
   const outstandingCount = active.filter((d) => (d.delivery_requirements || []).some((r) => r.status === 'outstanding')).length;
 
+  // "This month" for the header ring: everyone's own scoped rows already
+  // (their own deliveries, their dealership, or their acting preview) — the
+  // same scheduled-this-month bucket the month-close review uses, so the
+  // number here and the one an FSM closes against always agree.
+  const now = new Date();
+  const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
+  const monthEnd = new Date(now.getFullYear(), now.getMonth() + 1, 1);
+  const scheduledThisMonth = rows.filter((d) => {
+    const at = new Date(d.delivery_at);
+    return at >= monthStart && at < monthEnd;
+  });
+  const deliveredThisMonth = scheduledThisMonth.filter((d) => d.status === 'delivered').length;
+  const monthPercent = scheduledThisMonth.length ? (deliveredThisMonth / scheduledThisMonth.length) * 100 : 0;
+  const greeting = now.getHours() < 12 ? 'Good morning' : now.getHours() < 18 ? 'Good afternoon' : 'Good evening';
+
   if (isAdminMode) return <AdminHome />;
 
   return (
     <div style={{ display: 'grid', gap: 14, maxWidth: 640, margin: '0 auto' }}>
-      <div>
-        <h1 style={{ fontSize: 22, fontWeight: 700, letterSpacing: '-0.02em', margin: 0 }}>
-          {!isManager && tab === 'active' ? "Today's Deliveries" : 'Deliveries'}
-        </h1>
-        <div style={{ color: 'var(--accent)', fontWeight: 700, fontSize: 12, letterSpacing: '0.08em', textTransform: 'uppercase', marginTop: 2 }}>
-          {effectiveRole ? ROLE_LABEL[effectiveRole] : ''}{isMaster ? ' (previewed by Master Administrator)' : ''}
+      <div style={{
+        borderRadius: 20, padding: '20px 20px 22px', position: 'relative', overflow: 'hidden',
+        background: 'linear-gradient(120deg, #0a6cf0 0%, #3b82f6 55%, #22d3ee 100%)', color: '#fff',
+      }}>
+        <div style={{ position: 'absolute', top: -40, right: -30, width: 160, height: 160, borderRadius: '50%', background: 'rgba(255,255,255,0.12)' }} />
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, position: 'relative' }}>
+          <div style={{ minWidth: 0 }}>
+            <div style={{ fontSize: 13, fontWeight: 600, color: 'rgba(255,255,255,0.85)' }}>{greeting}</div>
+            <div style={{ fontSize: 19, fontWeight: 800, marginTop: 2, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{profile?.name}</div>
+            <div style={{ fontSize: 11.5, fontWeight: 600, color: 'rgba(255,255,255,0.85)', marginTop: 8 }}>
+              {scheduledThisMonth.length
+                ? `${deliveredThisMonth} of ${scheduledThisMonth.length} delivered this month`
+                : 'No deliveries scheduled this month yet'}
+            </div>
+          </div>
+          <ProgressRing percent={monthPercent} />
         </div>
+      </div>
+
+      <div style={{ color: 'var(--accent)', fontWeight: 700, fontSize: 12, letterSpacing: '0.08em', textTransform: 'uppercase' }}>
+        {!isManager && tab === 'active' ? "Today's Deliveries" : 'Deliveries'} · {effectiveRole ? ROLE_LABEL[effectiveRole] : ''}{isMaster ? ' (previewed)' : ''}
       </div>
 
       {isManager && !loading && (
