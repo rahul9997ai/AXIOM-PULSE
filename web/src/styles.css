@@ -218,6 +218,23 @@ button { font-family: inherit; }
   box-shadow: 0 1px 2px rgba(20, 50, 100, 0.04), 0 8px 24px rgba(20, 50, 100, 0.04);
 }
 
+/* Delivery list cards: a soft gradient wash of the delivery's status color
+   instead of a flat white card with a colored left border. Each status
+   gets its own light-mode wash and a matching dark-mode translucent tint,
+   set as a class (not inline styles) so the theme override can actually
+   win the cascade. */
+.card.tint-new { background: linear-gradient(165deg, #eaf2ff 0%, #f7fafe 65%); border-color: #bcd6fb; }
+.card.tint-outstanding { background: linear-gradient(165deg, #fef3e2 0%, #fffaf0 65%); border-color: #f6dba6; }
+.card.tint-ready { background: linear-gradient(165deg, #eafaf0 0%, #f6fef9 65%); border-color: #bfe8cf; }
+.card.tint-delivered { background: linear-gradient(165deg, #eef2f7 0%, #f8fafc 65%); border-color: #d7dee6; }
+.card.tint-cancelled { background: linear-gradient(165deg, #fdecea 0%, #fff7f6 65%); border-color: #f5c2c0; }
+
+:root[data-theme="dark"] .card.tint-new { background: linear-gradient(165deg, rgba(90, 162, 255, 0.16), rgba(90, 162, 255, 0.04)); border-color: rgba(90, 162, 255, 0.32); }
+:root[data-theme="dark"] .card.tint-outstanding { background: linear-gradient(165deg, rgba(245, 158, 11, 0.18), rgba(245, 158, 11, 0.05)); border-color: rgba(245, 158, 11, 0.32); }
+:root[data-theme="dark"] .card.tint-ready { background: linear-gradient(165deg, rgba(74, 222, 128, 0.16), rgba(74, 222, 128, 0.04)); border-color: rgba(74, 222, 128, 0.32); }
+:root[data-theme="dark"] .card.tint-delivered { background: linear-gradient(165deg, rgba(148, 163, 184, 0.16), rgba(148, 163, 184, 0.04)); border-color: rgba(148, 163, 184, 0.3); }
+:root[data-theme="dark"] .card.tint-cancelled { background: linear-gradient(165deg, rgba(248, 113, 113, 0.16), rgba(248, 113, 113, 0.05)); border-color: rgba(248, 113, 113, 0.32); }
+
 /* Elevated/neumorphic card used on the delivery detail page — a floating
    panel with a soft light-source highlight and a diffuse ambient shadow,
    instead of a flat drop shadow. Tokens swap per theme so it reads as a

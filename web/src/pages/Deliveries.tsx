@@ -4,10 +4,26 @@ import { supabase } from '@/lib/supabase';
 import { useSession } from '@/lib/session';
 import { useActingRole } from '@/lib/actingRole';
 import type { Delivery } from '@/lib/types';
-import { STATUS_LABEL, STATUS_COLOR, MANAGER_ROLES, ROLE_LABEL } from '@/lib/types';
+import { STATUS_LABEL, MANAGER_ROLES, ROLE_LABEL } from '@/lib/types';
+import type { DeliveryStatus } from '@/lib/types';
 import { CalendarIcon, PinIcon } from '@/components/Icons';
 import ProgressRing from '@/components/ProgressRing';
 import AdminHome from './AdminHome';
+
+const TINT_CLASS: Record<DeliveryStatus, string> = {
+  new: 'tint-new',
+  requirements_outstanding: 'tint-outstanding',
+  ready: 'tint-ready',
+  delivered: 'tint-delivered',
+  cancelled: 'tint-cancelled',
+};
+const PILL_COLOR: Record<DeliveryStatus, string> = {
+  new: '#0a6cf0',
+  requirements_outstanding: '#f59e0b',
+  ready: '#16a34a',
+  delivered: '#64748b',
+  cancelled: '#ef4444',
+};
 
 export default function Deliveries() {
   const { profile, session } = useSession();
@@ -185,7 +201,6 @@ export default function Deliveries() {
       )}
 
       {visible.map((d) => {
-        const sc = STATUS_COLOR[d.status];
         const dt = new Date(d.delivery_at);
         const darkGreen = '#15803d';
 
@@ -193,8 +208,8 @@ export default function Deliveries() {
           <Link
             key={d.id}
             to={`/delivery/${d.id}`}
-            className="card"
-            style={{ display: 'block', borderLeft: `4px solid ${sc.border}`, textDecoration: 'none', color: 'inherit' }}
+            className={`card ${TINT_CLASS[d.status]}`}
+            style={{ display: 'block', textDecoration: 'none', color: 'inherit' }}
           >
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 8 }}>
               <div style={{ minWidth: 0 }}>
@@ -222,7 +237,8 @@ export default function Deliveries() {
               </div>
               <span style={{
                 flexShrink: 0, fontSize: 10, fontWeight: 800, letterSpacing: 0.3, textTransform: 'uppercase',
-                background: sc.bg, color: sc.fg, padding: '4px 9px', borderRadius: 999,
+                background: PILL_COLOR[d.status], color: '#fff', padding: '5px 10px', borderRadius: 999,
+                boxShadow: `0 3px 8px ${PILL_COLOR[d.status]}55`,
               }}>
                 {STATUS_LABEL[d.status]}
               </span>
