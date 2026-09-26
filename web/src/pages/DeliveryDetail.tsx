@@ -214,7 +214,7 @@ export default function DeliveryDetail() {
       <div style={{ display: 'grid', gap: 14, maxWidth: 640, margin: '0 auto' }}>
         <Link to="/" style={{ fontSize: 13, color: 'var(--accent)', textDecoration: 'none', fontWeight: 700 }}>‹ Back to Deliveries</Link>
 
-        <div className="card-3d">
+        <div className="card-3d tint-blue">
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 8 }}>
           <div style={{ minWidth: 0 }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
@@ -324,10 +324,10 @@ export default function DeliveryDetail() {
         )}
       </div>
 
-      {notice && <div className="card-3d" style={{ fontSize: 13 }}>{notice}</div>}
+      {notice && <div className="card-3d tint-blue" style={{ fontSize: 13 }}>{notice}</div>}
 
       {requirements.length > 0 && (
-        <div className="card-3d">
+        <div className="card-3d tint-blue">
           <h3 style={{ marginTop: 0, fontSize: 14 }}>Requirements</h3>
           <p style={{ color: 'var(--muted)', fontSize: 12, marginTop: -6, marginBottom: 10 }}>
             Tap to mark complete, tap again to undo. Tap the ! badge to flag an exception instead.
@@ -407,7 +407,7 @@ export default function DeliveryDetail() {
         <button className="btn" onClick={complete}>Mark delivered</button>
       )}
 
-      <div className="card-3d">
+      <div className="card-3d tint-blue">
         <h3 style={{ marginTop: 0, fontSize: 14 }}>Comments</h3>
         <p style={{ color: 'var(--muted)', fontSize: 12.5, marginTop: -6 }}>
           A salesperson's request here needs a Finance Manager decision — approve or deny (with a reason).
