@@ -197,10 +197,10 @@ export default function DeliveryDetail() {
   };
 
   return (
-    <div style={{ display: 'grid', gap: 14, maxWidth: 640, margin: '0 auto' }}>
+    <div style={{ display: 'grid', gap: 14, maxWidth: 640, margin: '0 auto', background: 'var(--detail-bg)', padding: 16, borderRadius: 24 }}>
       <Link to="/" style={{ fontSize: 13, color: 'var(--accent)', textDecoration: 'none', fontWeight: 700 }}>‹ Back to Deliveries</Link>
 
-      <div className="card" style={{ borderLeft: `4px solid ${sc.border}` }}>
+      <div className="card-3d">
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 8 }}>
           <div style={{ minWidth: 0 }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
@@ -231,7 +231,8 @@ export default function DeliveryDetail() {
 
         <div style={{
           display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 7, marginTop: 12,
-          padding: '8px 12px', borderRadius: 10, background: '#eafaf0',
+          padding: '10px 14px', borderRadius: 14, background: '#eafaf0',
+          boxShadow: '-3px -3px 8px var(--neu-hi), 4px 5px 12px rgba(21,128,61,0.10)',
         }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 7 }}>
             <span style={{ color: darkGreen, display: 'flex' }}><CalendarIcon size={16} /></span>
@@ -245,7 +246,7 @@ export default function DeliveryDetail() {
           <button
             type="button"
             onClick={() => downloadDeliveryIcs(d)}
-            style={{ border: `1px solid ${darkGreen}`, color: darkGreen, background: 'transparent', borderRadius: 7, padding: '3px 8px', fontSize: 11, fontWeight: 700, cursor: 'pointer' }}
+            style={{ border: 'none', color: darkGreen, background: '#fff', borderRadius: 9, padding: '4px 9px', fontSize: 11, fontWeight: 700, cursor: 'pointer', boxShadow: '0 2px 5px rgba(21,128,61,0.18)' }}
           >
             + Calendar
           </button>
@@ -273,8 +274,12 @@ export default function DeliveryDetail() {
             </div>
           </div>
           <InfoRow label="Approval" value={capitalizeWords(d.approval_status)} />
-          {isManager && d.salesperson_name && <InfoRow label="Salesperson" value={d.salesperson_name} />}
-          {d.fsm_name && <InfoRow label="Finance Manager" value={d.fsm_name} />}
+          {isManager && d.salesperson_name && (
+            <InfoRow label="Salesperson" value={d.salesperson_name} avatar={<AvatarBadge name={d.salesperson_name} from="#5aa2ff" to="#0a55e6" />} />
+          )}
+          {d.fsm_name && (
+            <InfoRow label="Finance Manager" value={d.fsm_name} avatar={<AvatarBadge name={d.fsm_name} from="#fcd34d" to="#f59e0b" dark="#5a3a05" />} />
+          )}
         </div>
 
         {d.fsm_notes && (
@@ -282,14 +287,14 @@ export default function DeliveryDetail() {
         )}
 
         {isManager && (
-          <div style={{ display: 'flex', gap: 6, marginTop: 14, borderTop: '1px solid var(--line)', paddingTop: 12 }}>
-            <Link to={`/edit/${d.id}`} className="btn secondary" style={{ display: 'flex', alignItems: 'center', gap: 5, textDecoration: 'none', padding: '5px 11px', fontSize: 12 }}>
+          <div style={{ display: 'flex', gap: 8, marginTop: 16, borderTop: '1px solid var(--line)', paddingTop: 14 }}>
+            <Link to={`/edit/${d.id}`} className="btn-3d" style={{ textDecoration: 'none' }}>
               <EditIcon size={14} /> Edit
             </Link>
-            <button type="button" className="btn secondary" style={{ display: 'flex', alignItems: 'center', gap: 5, padding: '5px 11px', fontSize: 12 }} onClick={() => setNotifyOpen((v) => !v)}>
+            <button type="button" className="btn-3d" onClick={() => setNotifyOpen((v) => !v)}>
               <BellIcon size={14} /> Notify
             </button>
-            <button type="button" className="btn secondary" style={{ display: 'flex', alignItems: 'center', gap: 5, padding: '5px 11px', fontSize: 12, borderColor: '#dc2626', color: '#dc2626', marginLeft: 'auto' }} onClick={deleteDelivery}>
+            <button type="button" className="btn-3d" style={{ color: '#dc2626', marginLeft: 'auto' }} onClick={deleteDelivery}>
               <TrashIcon size={14} /> Delete
             </button>
           </div>
@@ -305,10 +310,10 @@ export default function DeliveryDetail() {
         )}
       </div>
 
-      {notice && <div className="card" style={{ fontSize: 13 }}>{notice}</div>}
+      {notice && <div className="card-3d" style={{ fontSize: 13 }}>{notice}</div>}
 
       {requirements.length > 0 && (
-        <div className="card">
+        <div className="card-3d">
           <h3 style={{ marginTop: 0, fontSize: 14 }}>Requirements</h3>
           <p style={{ color: 'var(--muted)', fontSize: 12, marginTop: -6, marginBottom: 10 }}>
             Tap to mark complete, tap again to undo. Tap the ! badge to flag an exception instead.
@@ -316,9 +321,11 @@ export default function DeliveryDetail() {
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(84px, 1fr))', gap: 8 }}>
             {requirements.map((r) => {
               const canEdit = !isManager && canComplete;
-              const tone = r.status === 'completed' ? { bg: '#eafaf0', fg: '#15803d', border: '#bfe8cf' }
-                : r.status === 'exception' ? { bg: '#fef3e2', fg: '#b45309', border: '#f6dba6' }
-                : { bg: 'linear-gradient(120deg, #0a6cf0 0%, #3b82f6 55%, #22d3ee 100%)', fg: '#fff', border: '#0a6cf0' };
+              const tone = r.status === 'completed'
+                ? { bg: 'linear-gradient(160deg, #4ade80, #15803d)', fg: '#fff', glow: 'rgba(21,128,61,0.28)' }
+                : r.status === 'exception'
+                ? { bg: 'linear-gradient(160deg, #fcd34d, #b45309)', fg: '#fff', glow: 'rgba(180,120,20,0.3)' }
+                : { bg: 'linear-gradient(160deg, #4fa8ff, #0a55e6)', fg: '#fff', glow: 'rgba(10,85,230,0.32)' };
               const onTap = !canEdit ? undefined
                 : r.status === 'outstanding' ? () => resolveRequirement(r.id, 'completed')
                 : () => resolveRequirement(r.id, 'outstanding');
@@ -330,13 +337,15 @@ export default function DeliveryDetail() {
                     onClick={onTap}
                     title={r.status === 'exception' && r.exception_reason ? r.exception_reason : undefined}
                     style={{
-                      width: '100%', minHeight: 58, background: tone.bg, border: `1px solid ${tone.border}`,
-                      borderRadius: 12, color: tone.fg, fontSize: 11.5, fontWeight: 700, lineHeight: 1.2,
+                      position: 'relative', overflow: 'hidden', width: '100%', minHeight: 58, background: tone.bg, border: 'none',
+                      borderRadius: 14, color: tone.fg, fontSize: 11.5, fontWeight: 700, lineHeight: 1.2,
                       padding: '8px 6px', display: 'flex', alignItems: 'center', justifyContent: 'center',
                       textAlign: 'center', whiteSpace: 'normal', wordBreak: 'break-word', cursor: onTap ? 'pointer' : 'default',
+                      boxShadow: `0 8px 16px ${tone.glow}, 0 1px 0 rgba(255,255,255,0.3) inset`,
                     }}
                   >
-                    {r.status === 'completed' && '✓ '}{r.status === 'exception' && '⚠ '}{r.label}
+                    <div className="tile-3d-shine" />
+                    <span style={{ position: 'relative' }}>{r.status === 'completed' && '✓ '}{r.status === 'exception' && '⚠ '}{r.label}</span>
                   </button>
                   {r.status === 'outstanding' && canEdit && (
                     <button
@@ -384,7 +393,7 @@ export default function DeliveryDetail() {
         <button className="btn" onClick={complete}>Mark delivered</button>
       )}
 
-      <div className="card">
+      <div className="card-3d">
         <h3 style={{ marginTop: 0, fontSize: 14 }}>Comments</h3>
         <p style={{ color: 'var(--muted)', fontSize: 12.5, marginTop: -6 }}>
           A salesperson's request here needs a Finance Manager decision — approve or deny (with a reason).
@@ -455,10 +464,32 @@ export default function DeliveryDetail() {
   );
 }
 
-function InfoRow({ label, value }: { label: string; value: string }) {
+function InfoRow({ label, value, avatar }: { label: string; value: string; avatar?: React.ReactNode }) {
+  if (!avatar) {
+    return (
+      <div style={{ color: 'var(--muted)' }}>
+        {label}: <strong style={{ color: 'var(--text)', fontWeight: 700 }}>{value}</strong>
+      </div>
+    );
+  }
   return (
-    <div style={{ color: 'var(--muted)' }}>
-      {label}: <strong style={{ color: 'var(--text)', fontWeight: 700 }}>{value}</strong>
+    <div style={{ display: 'flex', alignItems: 'center', gap: 8, color: 'var(--muted)' }}>
+      {avatar}
+      <span>{label}: <strong style={{ color: 'var(--text)', fontWeight: 700 }}>{value}</strong></span>
     </div>
+  );
+}
+
+function AvatarBadge({ name, from, to, dark }: { name: string; from: string; to: string; dark?: string }) {
+  const initials = name.split(' ').map((p) => p[0]).slice(0, 2).join('').toUpperCase();
+  return (
+    <span style={{
+      width: 22, height: 22, borderRadius: '50%', flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center',
+      fontSize: 9.5, fontWeight: 800, color: dark ?? '#fff',
+      background: `radial-gradient(circle at 35% 30%, ${from}, ${to})`,
+      boxShadow: `0 2px 5px ${to}66`,
+    }}>
+      {initials}
+    </span>
   );
 }

@@ -13,6 +13,10 @@
   --focus-bg: #ffffff;
   --header-bg: rgba(255, 255, 255, 0.9);
   --tabbar-bg: rgba(255, 255, 255, 0.92);
+  --detail-bg: #eef1f6;
+  --neu-hi: rgba(255, 255, 255, 0.9);
+  --neu-lo: rgba(30, 41, 59, 0.12);
+  --tile-shine: rgba(255, 255, 255, 0.4);
 }
 
 :root[data-theme="dark"] {
@@ -30,6 +34,10 @@
   --focus-bg: #1a2238;
   --header-bg: rgba(11, 15, 26, 0.9);
   --tabbar-bg: rgba(11, 15, 26, 0.92);
+  --detail-bg: #0d1330;
+  --neu-hi: rgba(255, 255, 255, 0.07);
+  --neu-lo: rgba(0, 0, 0, 0.5);
+  --tile-shine: rgba(255, 255, 255, 0.15);
 }
 
 :root[data-theme="dark"] body {
@@ -208,6 +216,43 @@ button { font-family: inherit; }
   border-radius: 16px;
   padding: 16px;
   box-shadow: 0 1px 2px rgba(20, 50, 100, 0.04), 0 8px 24px rgba(20, 50, 100, 0.04);
+}
+
+/* Elevated/neumorphic card used on the delivery detail page — a floating
+   panel with a soft light-source highlight and a diffuse ambient shadow,
+   instead of a flat drop shadow. Tokens swap per theme so it reads as a
+   raised light panel in light mode and a glowing dark panel in dark mode. */
+.card-3d {
+  background: var(--card);
+  border-radius: 22px;
+  padding: 18px;
+  box-shadow: -8px -8px 18px var(--neu-hi), 10px 12px 26px var(--neu-lo);
+}
+
+.tile-3d-shine {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 46%;
+  background: linear-gradient(180deg, var(--tile-shine), rgba(255, 255, 255, 0));
+  pointer-events: none;
+  border-radius: 12px 12px 0 0;
+}
+
+.btn-3d {
+  border-radius: 12px;
+  padding: 8px 14px;
+  font-size: 12px;
+  font-weight: 700;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  background: var(--card);
+  color: var(--accent);
+  border: none;
+  cursor: pointer;
+  box-shadow: -3px -3px 8px var(--neu-hi), 4px 5px 12px var(--neu-lo);
 }
 
 .btn {
