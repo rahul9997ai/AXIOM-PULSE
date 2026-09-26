@@ -331,10 +331,10 @@ export default function DeliveryDetail() {
                 ? { bg: 'linear-gradient(160deg, #4ade80, #15803d)', fg: '#fff', glow: 'rgba(21,128,61,0.28)' }
                 : r.status === 'exception'
                 ? { bg: 'linear-gradient(160deg, #fcd34d, #b45309)', fg: '#fff', glow: 'rgba(180,120,20,0.3)' }
-                // A deep navy instead of the same light blue as the card
-                // itself — stays in the blue family but reads as a distinct,
-                // higher-contrast "to do" tile against the tinted card.
-                : { bg: 'linear-gradient(160deg, #2f5fdb, #0f1f4d)', fg: '#fff', glow: 'rgba(15,31,77,0.38)' };
+                // A muted slate instead of a saturated blue — reads clearly
+                // as "not done" against the tinted card without being the
+                // brightest thing on the page.
+                : { bg: 'linear-gradient(160deg, #94a3b8, #475569)', fg: '#fff', glow: 'rgba(51,65,85,0.28)' };
               const onTap = !canEdit ? undefined
                 : r.status === 'outstanding' ? () => resolveRequirement(r.id, 'completed')
                 : () => resolveRequirement(r.id, 'outstanding');
