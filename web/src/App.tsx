@@ -13,11 +13,22 @@ import NewDelivery from '@/pages/NewDelivery';
 import EditDelivery from '@/pages/EditDelivery';
 import Settings from '@/pages/Settings';
 import MonthClose from '@/pages/MonthClose';
+import InstallPrompt from '@/components/InstallPrompt';
 
 export default function App() {
   const { session, profile, loading } = useSession();
 
   if (loading) return null;
+
+  return (
+    <>
+      <AppBody session={session} profile={profile} />
+      <InstallPrompt />
+    </>
+  );
+}
+
+function AppBody({ session, profile }: { session: ReturnType<typeof useSession>['session']; profile: ReturnType<typeof useSession>['profile'] }) {
   if (!session) return <SignIn />;
   if (profile?.must_change_password) return <ForcePasswordChange />;
   if (profile && !profile.has_seen_welcome) return <Welcome />;

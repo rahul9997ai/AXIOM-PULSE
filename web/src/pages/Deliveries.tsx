@@ -19,6 +19,23 @@ export default function Deliveries() {
   const [customerFilter, setCustomerFilter] = useState('');
   const [fsmFilter, setFsmFilter] = useState('');
   const [salespersonFilter, setSalespersonFilter] = useState('');
+  // Installed PWAs get foregrounded from the background rather than
+  // reloaded, so a `new Date()` computed only at render time can go stale
+  // (e.g. "Good afternoon" still showing hours later) if nothing else
+  // triggers a re-render in between. Refresh it on a timer and whenever the
+  // tab/app becomes visible again.
+  const [now, setNow] = useState(() => new Date());
+  useEffect(() => {
+    const tick = () => setNow(new Date());
+    const interval = setInterval(tick, 60_000);
+    document.addEventListener('visibilitychange', tick);
+    window.addEventListener('focus', tick);
+    return () => {
+      clearInterval(interval);
+      document.removeEventListener('visibilitychange', tick);
+      window.removeEventListener('focus', tick);
+    };
+  }, []);
 
   // A Master Administrator has no operational role of their own — the delivery
   // board only makes sense once they've chosen a role+dealership to preview.
@@ -89,7 +106,6 @@ export default function Deliveries() {
   // (their own deliveries, their dealership, or their acting preview) — the
   // same scheduled-this-month bucket the month-close review uses, so the
   // number here and the one an FSM closes against always agree.
-  const now = new Date();
   const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
   const monthEnd = new Date(now.getFullYear(), now.getMonth() + 1, 1);
   const scheduledThisMonth = rows.filter((d) => {
