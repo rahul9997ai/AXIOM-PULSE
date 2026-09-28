@@ -120,22 +120,16 @@ export default function Deliveries() {
 
   return (
     <div style={{ display: 'grid', gap: 14, maxWidth: 640, margin: '0 auto' }}>
-      <div style={{
-        borderRadius: 20, padding: '20px 20px 22px', position: 'relative', overflow: 'hidden',
-        background: 'linear-gradient(120deg, #0a6cf0 0%, #3b82f6 55%, #22d3ee 100%)', color: '#fff',
-      }}>
-        <div style={{ position: 'absolute', top: -40, right: -30, width: 160, height: 160, borderRadius: '50%', background: 'rgba(255,255,255,0.12)' }} />
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, position: 'relative' }}>
-          <div style={{ minWidth: 0 }}>
-            <div style={{ fontSize: 13, fontWeight: 600, color: 'rgba(255,255,255,0.85)' }}>{greeting}</div>
-            <div style={{ fontSize: 19, fontWeight: 800, marginTop: 2, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{profile?.name}</div>
-            <div style={{ fontSize: 11.5, fontWeight: 600, color: 'rgba(255,255,255,0.85)', marginTop: 8 }}>
-              {scheduledThisMonth.length
-                ? `${deliveredThisMonth} of ${scheduledThisMonth.length} delivered this month`
-                : 'No deliveries scheduled this month yet'}
-            </div>
+      <div className="card-3d" style={{ padding: '20px 20px 22px' }}>
+        <div style={{ fontSize: 12.5, fontWeight: 600, color: 'var(--muted)', textTransform: 'uppercase', letterSpacing: '0.06em' }}>{greeting}</div>
+        <div style={{ fontSize: 20, fontWeight: 800, marginTop: 2, color: 'var(--ink)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{profile?.name}</div>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, marginTop: 14 }}>
+          <div style={{ minWidth: 0, fontSize: 12, fontWeight: 600, color: 'var(--muted)' }}>
+            {scheduledThisMonth.length
+              ? `${deliveredThisMonth} of ${scheduledThisMonth.length} delivered this month`
+              : 'No deliveries scheduled this month yet'}
           </div>
-          <ProgressRing percent={monthPercent} />
+          <ProgressRing percent={monthPercent} trackColor="var(--line)" fillColor="var(--accent)" textColor="var(--ink)" />
         </div>
       </div>
 
