@@ -94,7 +94,7 @@ export default function DeliveryDetail() {
     const exceptionsBody = exceptions.length
       ? `Delivery Complete for ${d.customer_name} — with exceptions: ${exceptions.map((r) => `${r.label}${r.exception_reason ? ` (${r.exception_reason})` : ''}`).join('; ')}.`
       : `Delivery Complete for ${d.customer_name} — with no exceptions.`;
-    await supabase.functions.invoke('send-webpush', {
+    const { data: pushData, error: pushError } = await supabase.functions.invoke('send-webpush', {
       body: {
         profile_ids: [d.fsm_id],
         delivery_id: d.id,
@@ -102,7 +102,13 @@ export default function DeliveryDetail() {
         body: exceptionsBody,
         data: { url: `/delivery/${d.id}`, deliveryId: d.id, type: 'delivery_complete' },
       },
-    }).catch(() => {});
+    }).catch(() => ({ data: null, error: null }));
+    // Push is best-effort, but a silent no-op (no device enrolled) is worth
+    // surfacing here — otherwise the FSM just never hears about it and no
+    // one finds out why.
+    if (!pushError && !pushData?.sent) {
+      setNotice('Marked delivered — the Finance Manager has no device enrolled for push notifications yet.');
+    }
     load();
   };
 
@@ -154,7 +160,7 @@ export default function DeliveryDetail() {
     setNewComment('');
     setCommentNeedsApproval(false);
     if (requiresDecision) {
-      await supabase.functions.invoke('send-webpush', {
+      const { data: pushData, error: pushError } = await supabase.functions.invoke('send-webpush', {
         body: {
           profile_ids: [d.fsm_id],
           delivery_id: d.id,
@@ -162,12 +168,15 @@ export default function DeliveryDetail() {
           body,
           data: { url: `/delivery/${d.id}`, deliveryId: d.id, type: 'question' },
         },
-      }).catch(() => {});
+      }).catch(() => ({ data: null, error: null }));
+      if (!pushError && !pushData?.sent) {
+        setNotice('Sent for approval — the Finance Manager has no device enrolled for push notifications yet.');
+      }
     } else {
       // A manager replying or asking something in the comments should reach
       // the salesperson right away too — not just decisions on their own
       // questions.
-      await supabase.functions.invoke('send-webpush', {
+      const { data: pushData, error: pushError } = await supabase.functions.invoke('send-webpush', {
         body: {
           profile_ids: [d.salesperson_id],
           delivery_id: d.id,
@@ -175,7 +184,10 @@ export default function DeliveryDetail() {
           body,
           data: { url: `/delivery/${d.id}`, deliveryId: d.id, type: 'comment' },
         },
-      }).catch(() => {});
+      }).catch(() => ({ data: null, error: null }));
+      if (!pushError && !pushData?.sent) {
+        setNotice('Comment posted — the salesperson has no device enrolled for push notifications yet.');
+      }
     }
     load();
   };
@@ -191,14 +203,17 @@ export default function DeliveryDetail() {
     if (error) { setNotice(error.message); return; }
     setDenyFor(null);
     setDenyReason('');
-    await supabase.functions.invoke('send-webpush', {
+    const { data: pushData, error: pushError } = await supabase.functions.invoke('send-webpush', {
       body: {
         profile_ids: [comment.author_id],
         title: status === 'approved' ? 'Question Approved' : 'Question Denied',
         body: status === 'denied' ? `${comment.body} — ${reason}` : comment.body,
         data: { url: `/delivery/${d.id}`, deliveryId: d.id, type: 'question_decided' },
       },
-    }).catch(() => {});
+    }).catch(() => ({ data: null, error: null }));
+    if (!pushError && !pushData?.sent) {
+      setNotice(`${status === 'approved' ? 'Approved' : 'Denied'} — ${comment.author_name} has no device enrolled for push notifications yet.`);
+    }
     load();
   };
 
