@@ -172,6 +172,19 @@ export default function DeliveryDetail() {
           data: { url: `/delivery/${d.id}`, deliveryId: d.id, type: 'question' },
         },
       }).catch(() => {});
+    } else {
+      // A manager replying or asking something in the comments should reach
+      // the salesperson right away too — not just decisions on their own
+      // questions.
+      await supabase.functions.invoke('send-webpush', {
+        body: {
+          profile_ids: [d.salesperson_id],
+          delivery_id: d.id,
+          title: `New comment — ${d.customer_name}`,
+          body,
+          data: { url: `/delivery/${d.id}`, deliveryId: d.id, type: 'comment' },
+        },
+      }).catch(() => {});
     }
     load();
   };
