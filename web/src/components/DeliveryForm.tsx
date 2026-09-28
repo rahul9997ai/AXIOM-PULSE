@@ -14,12 +14,16 @@ interface Dealership { id: string; name: string; }
 
 const APPROVAL_OPTIONS: ApprovalStatus[] = ['pending', 'approved', 'conditional', 'declined'];
 
-// Delivery slots only ever need quarter-hour granularity — build the full
-// list once instead of relying on a native time picker's step behavior,
-// which mobile browsers apply inconsistently.
-const QUARTER_HOUR_OPTIONS = Array.from({ length: 24 * 4 }, (_, i) => {
-  const hour24 = Math.floor(i / 4);
-  const minute = (i % 4) * 15;
+// Delivery slots only ever need quarter-hour granularity, within the
+// dealership's operating hours (9 AM to 9 PM) — build the full list once
+// instead of relying on a native time picker's step behavior, which mobile
+// browsers apply inconsistently.
+const DELIVERY_WINDOW_START_HOUR = 9;
+const DELIVERY_WINDOW_END_HOUR = 21;
+const QUARTER_HOUR_OPTIONS = Array.from({ length: (DELIVERY_WINDOW_END_HOUR - DELIVERY_WINDOW_START_HOUR) * 4 + 1 }, (_, i) => {
+  const totalMinutes = DELIVERY_WINDOW_START_HOUR * 60 + i * 15;
+  const hour24 = Math.floor(totalMinutes / 60);
+  const minute = totalMinutes % 60;
   const value = `${String(hour24).padStart(2, '0')}:${String(minute).padStart(2, '0')}`;
   const hour12 = hour24 % 12 === 0 ? 12 : hour24 % 12;
   const label = `${hour12}:${String(minute).padStart(2, '0')} ${hour24 < 12 ? 'AM' : 'PM'}`;
