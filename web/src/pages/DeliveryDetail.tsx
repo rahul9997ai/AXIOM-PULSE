@@ -80,24 +80,9 @@ export default function DeliveryDetail() {
     if (error) { setNotice(error.message); return; }
     setExceptionFor(null);
     setExceptionReason('');
-    // The FSM hears about it the moment the salesperson resolves a
-    // requirement — completed or flagged as an exception — not just when
-    // the whole delivery is marked done. Undoing back to outstanding stays
-    // quiet so toggling a mistake off doesn't spam a push.
-    if (!isManager && status !== 'outstanding') {
-      const req = requirements.find((r) => r.id === reqId);
-      if (req) {
-        await supabase.functions.invoke('send-webpush', {
-          body: {
-            profile_ids: [d.fsm_id],
-            delivery_id: d.id,
-            title: `${status === 'completed' ? 'Completed' : 'Exception'} — ${d.customer_name}`,
-            body: status === 'completed' ? `${req.label} marked complete.` : `${req.label}: ${reason}`,
-            data: { url: `/delivery/${d.id}`, deliveryId: d.id, type: 'requirement_update' },
-          },
-        }).catch(() => {});
-      }
-    }
+    // The FSM is only pushed once, when the whole delivery is marked
+    // delivered (see complete() below) — a push per requirement checked
+    // off was too easy to miss or get lost among several in a row.
     load();
   };
 
