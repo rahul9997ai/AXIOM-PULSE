@@ -30,6 +30,7 @@ export default function DeliveryDetail() {
   const [notifyOpen, setNotifyOpen] = useState(false);
   const [notifyMessage, setNotifyMessage] = useState('');
   const [newComment, setNewComment] = useState('');
+  const [commentNeedsApproval, setCommentNeedsApproval] = useState(false);
   const [sendingComment, setSendingComment] = useState(false);
   const [denyFor, setDenyFor] = useState<string | null>(null);
   const [denyReason, setDenyReason] = useState('');
@@ -135,7 +136,11 @@ export default function DeliveryDetail() {
     const body = newComment.trim();
     if (!body || !profile || !session) return;
     setSendingComment(true);
-    const requiresDecision = effectiveRole === 'Salesperson';
+    // Only a salesperson can flag a comment as needing a decision — and
+    // only when they've explicitly chosen that with the toggle, not just
+    // because they're the one posting (a "for your info" comment shouldn't
+    // force an approve/deny).
+    const requiresDecision = !isManager && commentNeedsApproval;
     const { error } = await supabase.from('delivery_comments').insert({
       delivery_id: d.id,
       author_id: session.user.id,
@@ -147,6 +152,7 @@ export default function DeliveryDetail() {
     setSendingComment(false);
     if (error) { setNotice(error.message); return; }
     setNewComment('');
+    setCommentNeedsApproval(false);
     if (requiresDecision) {
       await supabase.functions.invoke('send-webpush', {
         body: {
@@ -409,7 +415,7 @@ export default function DeliveryDetail() {
       <div className="card-3d tint-blue">
         <h3 style={{ marginTop: 0, fontSize: 14 }}>Comments</h3>
         <p style={{ color: 'var(--muted)', fontSize: 12.5, marginTop: -6 }}>
-          A salesperson's request here needs a Finance Manager decision — approve or deny (with a reason).
+          A comment flagged "Needs approval" gets a Finance Manager decision — approve or deny (with a reason).
         </p>
         <div style={{ display: 'grid', gap: 10, marginBottom: 12 }}>
           {comments.length === 0 && <div style={{ color: 'var(--muted)', fontSize: 13 }}>No comments yet.</div>}
@@ -421,10 +427,16 @@ export default function DeliveryDetail() {
               </div>
               <div style={{ fontSize: 13.5, marginTop: 3, color: 'var(--text)' }}>{c.body}</div>
 
-              {c.requires_decision && (
+              {c.requires_decision ? (
                 <div style={{ marginTop: 6 }}>
                   {c.status === 'pending' && (
-                    <span style={{ fontSize: 11, fontWeight: 700, color: '#b45309' }}>Awaiting decision</span>
+                    <span style={{
+                      fontSize: 9.5, fontWeight: 800, letterSpacing: 0.3, textTransform: 'uppercase',
+                      color: '#92400e', background: 'var(--banner-warn-bg)', border: '1px solid var(--banner-warn-border)',
+                      padding: '3px 8px', borderRadius: 6,
+                    }}>
+                      Needs approval · Awaiting decision
+                    </span>
                   )}
                   {c.status === 'approved' && (
                     <span style={{ fontSize: 11, fontWeight: 700, color: '#15803d' }}>✓ Approved by {c.decided_by_name}</span>
@@ -435,6 +447,14 @@ export default function DeliveryDetail() {
                     </div>
                   )}
                 </div>
+              ) : (
+                <span style={{
+                  display: 'inline-block', marginTop: 6, fontSize: 9.5, fontWeight: 800, letterSpacing: 0.3, textTransform: 'uppercase',
+                  color: 'var(--muted)', background: 'var(--surface)', border: '1px solid var(--line)',
+                  padding: '3px 8px', borderRadius: 6,
+                }}>
+                  General · No action needed
+                </span>
               )}
 
               {isManager && c.requires_decision && c.status === 'pending' && (
@@ -460,16 +480,47 @@ export default function DeliveryDetail() {
         </div>
 
         <div style={{ display: 'grid', gap: 8 }}>
+          {!isManager && (
+            <>
+              <div style={{ display: 'flex', gap: 6, background: 'var(--surface)', borderRadius: 12, padding: 4 }}>
+                {([false, true] as const).map((needsApproval) => (
+                  <button
+                    key={String(needsApproval)}
+                    type="button"
+                    onClick={() => setCommentNeedsApproval(needsApproval)}
+                    style={{
+                      flex: 1, border: 'none', borderRadius: 9, padding: '8px 0', fontSize: 12.5, fontWeight: 700,
+                      cursor: 'pointer',
+                      background: commentNeedsApproval === needsApproval ? 'var(--card)' : 'transparent',
+                      color: commentNeedsApproval === needsApproval
+                        ? (needsApproval ? '#92400e' : 'var(--ink)')
+                        : 'var(--muted)',
+                      boxShadow: commentNeedsApproval === needsApproval ? '0 1px 3px rgba(20,50,100,0.12)' : 'none',
+                    }}
+                  >
+                    {needsApproval ? 'Needs approval' : 'General comment'}
+                  </button>
+                ))}
+              </div>
+              <p style={{ color: 'var(--muted)', fontSize: 11.5, margin: '-2px 0 0' }}>
+                {commentNeedsApproval
+                  ? 'This pushes an approval request to the Finance Manager and shows Approve/Deny until they decide.'
+                  : 'This just posts and notifies the Finance Manager — no decision required.'}
+              </p>
+            </>
+          )}
           <textarea
-            placeholder={!isManager
+            placeholder={!isManager && commentNeedsApproval
               ? 'What do you need approved? Be specific — this goes to the Finance Manager for a decision…'
+              : !isManager
+              ? 'Ask a question or leave a note for the Finance Manager…'
               : 'Reply to the salesperson…'}
             value={newComment}
             onChange={(e) => setNewComment(e.target.value)}
             rows={2}
           />
           <button className="btn" disabled={sendingComment || !newComment.trim()} onClick={postComment}>
-            {sendingComment ? 'Sending…' : !isManager ? 'Send for approval' : 'Send'}
+            {sendingComment ? 'Sending…' : !isManager && commentNeedsApproval ? 'Send for approval' : 'Send'}
           </button>
         </div>
       </div>
