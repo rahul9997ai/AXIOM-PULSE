@@ -2,7 +2,10 @@ export interface MonthlyReportRow {
   customer_name: string;
   stock_number: string | null;
   fsm_name: string | null;
-  delivered_at: string;
+  // The scheduled delivery date, not when it was actually marked
+  // delivered — a vehicle scheduled for Sep 30 but only marked delivered
+  // on Oct 1 still belongs to, and reports under, September.
+  delivery_at: string;
 }
 
 // jsPDF drags in a heavy dependency chain (html2canvas, dompurify) that
@@ -22,7 +25,7 @@ async function buildPdf(rows: MonthlyReportRow[], salespersonName: string, month
 
   doc.setFontSize(11);
   doc.setFont('helvetica', 'normal');
-  doc.text(`${salespersonName} · Deliveries this month · ${monthLabel}`, 40, 64);
+  doc.text(`${salespersonName} · Deliveries scheduled in ${monthLabel}`, 40, 64);
   doc.setTextColor(120);
   doc.text(`Generated ${new Date().toLocaleString()}`, 40, 80);
   doc.setTextColor(0);
@@ -34,7 +37,7 @@ async function buildPdf(rows: MonthlyReportRow[], salespersonName: string, month
       r.customer_name,
       r.stock_number || '—',
       r.fsm_name || '—',
-      new Date(r.delivered_at).toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' }),
+      new Date(r.delivery_at).toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' }),
     ]),
     headStyles: { fillColor: [10, 108, 240] },
     styles: { fontSize: 10, cellPadding: 6 },
@@ -45,7 +48,7 @@ async function buildPdf(rows: MonthlyReportRow[], salespersonName: string, month
   const finalY = (doc as any).lastAutoTable?.finalY ?? 96;
   doc.setFontSize(11);
   doc.setFont('helvetica', 'bold');
-  doc.text(`Total delivered this month: ${rows.length}`, 40, finalY + 24);
+  doc.text(`Total delivered: ${rows.length}`, 40, finalY + 24);
 
   return doc;
 }

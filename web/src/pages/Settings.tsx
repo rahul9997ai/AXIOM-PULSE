@@ -9,6 +9,7 @@ import PushCard from '@/components/PushCard';
 import { LogOutIcon } from '@/components/Icons';
 import { applyTheme, getStoredTheme, type Theme } from '@/lib/theme';
 import { downloadMonthlyReport, shareMonthlyReport, type MonthlyReportRow } from '@/lib/monthlyReport';
+import { monthLabel, monthRange } from '@/lib/monthClose';
 
 interface Dealership { id: string; name: string; }
 
@@ -23,6 +24,11 @@ export default function Settings() {
   const [theme, setTheme] = useState<Theme>(getStoredTheme());
   const [reportBusy, setReportBusy] = useState<'download' | 'share' | null>(null);
   const [reportNotice, setReportNotice] = useState<string | null>(null);
+  const now = new Date();
+  const [reportMonthKey, setReportMonthKey] = useState(`${now.getFullYear()}-${now.getMonth() + 1}`);
+  const [reportMonthOptions, setReportMonthOptions] = useState<{ year: number; month: number }[]>([
+    { year: now.getFullYear(), month: now.getMonth() + 1 },
+  ]);
 
   const onSetTheme = (t: Theme) => { setTheme(t); applyTheme(t); };
 
@@ -76,6 +82,31 @@ export default function Settings() {
   };
 
   useEffect(() => { load(); }, [dealershipId]);
+
+  // The report's month picker only needs to go back as far as this
+  // salesperson's very first delivery — no point offering empty months
+  // from before they started using Pulse.
+  useEffect(() => {
+    if (!isSalesperson || !session) return;
+    supabase
+      .from('deliveries')
+      .select('delivery_at')
+      .eq('salesperson_id', session.user.id)
+      .order('delivery_at', { ascending: true })
+      .limit(1)
+      .then(({ data }) => {
+        const earliest = data?.[0]?.delivery_at ? new Date(data[0].delivery_at) : now;
+        const options: { year: number; month: number }[] = [];
+        const cursor = new Date(now.getFullYear(), now.getMonth(), 1);
+        const floor = new Date(earliest.getFullYear(), earliest.getMonth(), 1);
+        while (cursor >= floor) {
+          options.push({ year: cursor.getFullYear(), month: cursor.getMonth() + 1 });
+          cursor.setMonth(cursor.getMonth() - 1);
+        }
+        setReportMonthOptions(options.length ? options : [{ year: now.getFullYear(), month: now.getMonth() + 1 }]);
+      });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isSalesperson, session]);
 
   const addLender = async () => {
     const name = newLender.trim();
@@ -153,25 +184,25 @@ export default function Settings() {
     } else { setError(null); load(); }
   };
 
-  const thisMonthRange = () => {
-    const now = new Date();
-    const start = new Date(now.getFullYear(), now.getMonth(), 1);
-    const end = new Date(now.getFullYear(), now.getMonth() + 1, 1);
-    const label = now.toLocaleDateString(undefined, { month: 'long', year: 'numeric' });
-    return { start, end, label };
-  };
-
-  const fetchThisMonthDelivered = async (): Promise<{ rows: MonthlyReportRow[]; label: string } | null> => {
+  // Bucketed by the delivery's scheduled date (delivery_at), not when it
+  // was actually marked delivered — a vehicle scheduled for Sep 30 but
+  // only marked delivered Oct 1 still belongs in the September report,
+  // not October's.
+  const fetchReportForSelectedMonth = async (): Promise<{ rows: MonthlyReportRow[]; label: string } | null> => {
     if (!session) return null;
-    const { start, end, label } = thisMonthRange();
+    const [yearStr, monthStr] = reportMonthKey.split('-');
+    const year = Number(yearStr);
+    const month = Number(monthStr);
+    const { start, end } = monthRange(year, month);
+    const label = monthLabel(year, month);
     const { data, error } = await supabase
       .from('deliveries')
-      .select('customer_name, stock_number, fsm_name, delivered_at')
+      .select('customer_name, stock_number, fsm_name, delivery_at')
       .eq('salesperson_id', session.user.id)
       .eq('status', 'delivered')
-      .gte('delivered_at', start.toISOString())
-      .lt('delivered_at', end.toISOString())
-      .order('delivered_at', { ascending: true });
+      .gte('delivery_at', start.toISOString())
+      .lt('delivery_at', end.toISOString())
+      .order('delivery_at', { ascending: true });
     if (error) { setReportNotice(error.message); return null; }
     return { rows: (data as MonthlyReportRow[]) || [], label };
   };
@@ -179,9 +210,9 @@ export default function Settings() {
   const runDownloadReport = async () => {
     setReportBusy('download');
     setReportNotice(null);
-    const result = await fetchThisMonthDelivered();
+    const result = await fetchReportForSelectedMonth();
     if (!result) { setReportBusy(null); return; }
-    if (result.rows.length === 0) { setReportBusy(null); setReportNotice('No deliveries marked complete yet this month.'); return; }
+    if (result.rows.length === 0) { setReportBusy(null); setReportNotice(`No deliveries marked complete for ${result.label} yet.`); return; }
     await downloadMonthlyReport(result.rows, profile?.name ?? 'Salesperson', result.label);
     setReportBusy(null);
   };
@@ -189,9 +220,9 @@ export default function Settings() {
   const runShareReport = async () => {
     setReportBusy('share');
     setReportNotice(null);
-    const result = await fetchThisMonthDelivered();
+    const result = await fetchReportForSelectedMonth();
     if (!result) { setReportBusy(null); return; }
-    if (result.rows.length === 0) { setReportBusy(null); setReportNotice('No deliveries marked complete yet this month.'); return; }
+    if (result.rows.length === 0) { setReportBusy(null); setReportNotice(`No deliveries marked complete for ${result.label} yet.`); return; }
     const outcome = await shareMonthlyReport(result.rows, profile?.name ?? 'Salesperson', result.label);
     setReportBusy(null);
     if (outcome === 'downloaded') {
@@ -241,8 +272,17 @@ export default function Settings() {
         <div className="card">
           <div style={{ color: 'var(--muted)', fontWeight: 800, fontSize: 12, letterSpacing: 1, marginBottom: 6 }}>MONTHLY REPORT</div>
           <p style={{ color: 'var(--muted)', fontSize: 13, marginTop: 0, marginBottom: 12 }}>
-            A PDF of every delivery you've completed this month — customer name, Finance Manager and delivery date.
+            A PDF of every delivery completed for the selected month — customer name, Finance Manager and delivery date.
           </p>
+          <select
+            value={reportMonthKey}
+            onChange={(e) => setReportMonthKey(e.target.value)}
+            style={{ marginBottom: 10 }}
+          >
+            {reportMonthOptions.map(({ year, month }) => (
+              <option key={`${year}-${month}`} value={`${year}-${month}`}>{monthLabel(year, month)}</option>
+            ))}
+          </select>
           <div style={{ display: 'flex', gap: 8 }}>
             <button type="button" className="btn secondary" style={{ flex: 1 }} disabled={reportBusy !== null} onClick={runDownloadReport}>
               {reportBusy === 'download' ? 'Preparing…' : 'Download PDF'}
