@@ -88,18 +88,21 @@ export default function Deliveries() {
   const todayKey = new Date().toDateString();
   const todaysActive = !isManager ? active.filter((d) => new Date(d.delivery_at).toDateString() === todayKey) : active;
   const deliveredAll = rows.filter((d) => d.status === 'delivered');
-  // Every month that actually has a delivered unit, newest first — plus the
-  // current month even when it's still empty, so the picker never starts on
-  // a month with nothing to select.
+  // Bucketed — and the picker's months built — by delivery_at (the
+  // scheduled date), not delivered_at (when it was actually marked
+  // complete): each row displays delivery_at, so bucketing by delivered_at
+  // instead could show a vehicle under "October" while its row still reads
+  // a September date whenever it was scheduled one month but completed the
+  // next. This also matches how the monthly PDF report buckets.
   const deliveredMonthOptions = Array.from(new Set([
     monthKeyOf(new Date()),
-    ...deliveredAll.map((d) => monthKeyOf(new Date(d.delivered_at ?? d.delivery_at))),
+    ...deliveredAll.map((d) => monthKeyOf(new Date(d.delivery_at))),
   ])).sort((a, b) => {
     const [ay, am] = a.split('-').map(Number);
     const [by, bm] = b.split('-').map(Number);
     return by - ay || bm - am;
   });
-  const deliveredThisSelection = deliveredAll.filter((d) => monthKeyOf(new Date(d.delivered_at ?? d.delivery_at)) === deliveredMonthKey);
+  const deliveredThisSelection = deliveredAll.filter((d) => monthKeyOf(new Date(d.delivery_at)) === deliveredMonthKey);
   const visibleAll = (tab === 'delivered' ? deliveredThisSelection : todaysActive)
     .sort((a, b) => tab === 'delivered'
       ? new Date(b.delivered_at ?? b.delivery_at).getTime() - new Date(a.delivered_at ?? a.delivery_at).getTime()
