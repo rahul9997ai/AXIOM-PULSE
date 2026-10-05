@@ -11,7 +11,10 @@ import MonthCloseBanner from '@/components/MonthCloseBanner';
 export default function Layout({ children }: { children: ReactNode }) {
   const { profile } = useSession();
   const { pathname } = useLocation();
-  const { isMaster, actingRole, setActingRole, dealerships, actingDealershipId, setActingDealershipId, isAdminMode, effectiveRole } = useActingRole();
+  const {
+    isMaster, actingRole, setActingRole, dealerships, actingDealershipId, setActingDealershipId, isAdminMode, effectiveRole,
+    salespeople, actingSalespersonId, setActingSalespersonId,
+  } = useActingRole();
   const isDesktop = useIsDesktop();
   const isManager = profile ? MANAGER_ROLES.includes(profile.role) : false;
   const canCreate = isManager && !isAdminMode;
@@ -59,6 +62,16 @@ export default function Layout({ children }: { children: ReactNode }) {
           style={{ padding: '3px 6px', fontSize: 12.5, width: 'auto' }}
         >
           {dealerships.map((d) => <option key={d.id} value={d.id}>{d.name}</option>)}
+        </select>
+      )}
+      {!isAdminMode && actingRole === 'Salesperson' && (
+        <select
+          value={actingSalespersonId}
+          onChange={(e) => setActingSalespersonId(e.target.value)}
+          style={{ padding: '3px 6px', fontSize: 12.5, width: 'auto' }}
+        >
+          {salespeople.length === 0 && <option value="">No salespeople in this dealership</option>}
+          {salespeople.map((s) => <option key={s.id} value={s.id}>{s.name}</option>)}
         </select>
       )}
       {!isAdminMode && (

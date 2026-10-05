@@ -17,8 +17,8 @@ const FK_IN_USE = '23503';
 const EMPTY_DEALERSHIP: DealershipDetails = { name: '', address: '', city: '', phone: '', dealerCode: '' };
 
 export default function Settings() {
-  const { profile, session } = useSession();
-  const { actingDealershipId, effectiveRole } = useActingRole();
+  const { profile } = useSession();
+  const { actingDealershipId, effectiveRole, effectiveSalespersonId, salespeople, actingSalespersonId } = useActingRole();
   const isMaster = profile?.role === 'Master Administrator';
   const canManageLists = profile ? MANAGER_ROLES.includes(profile.role) : false;
   // A Master previewing the app as "Salesperson" (via the Viewing-as bar)
@@ -26,6 +26,12 @@ export default function Settings() {
   // already resolves to the previewed role for a Master, or the real role
   // for everyone else.
   const isSalesperson = effectiveRole === 'Salesperson';
+  // The report's "whose data" — effectiveSalespersonId already resolves to
+  // whichever salesperson the Master picked in the Viewing-as bar, or the
+  // real signed-in user otherwise.
+  const reportSalespersonName = (isMaster && effectiveRole === 'Salesperson')
+    ? (salespeople.find((s) => s.id === actingSalespersonId)?.name ?? 'Salesperson')
+    : (profile?.name ?? 'Salesperson');
   const [theme, setTheme] = useState<Theme>(getStoredTheme());
   const [reportBusy, setReportBusy] = useState<'download' | 'share' | null>(null);
   const [reportNotice, setReportNotice] = useState<string | null>(null);
@@ -96,11 +102,11 @@ export default function Settings() {
   // salesperson's very first delivery — no point offering empty months
   // from before they started using Pulse.
   useEffect(() => {
-    if (!isSalesperson || !session) return;
+    if (!isSalesperson || !effectiveSalespersonId) return;
     supabase
       .from('deliveries')
       .select('delivery_at')
-      .eq('salesperson_id', session.user.id)
+      .eq('salesperson_id', effectiveSalespersonId)
       .order('delivery_at', { ascending: true })
       .limit(1)
       .then(({ data }) => {
@@ -115,7 +121,7 @@ export default function Settings() {
         setReportMonthOptions(options.length ? options : [{ year: now.getFullYear(), month: now.getMonth() + 1 }]);
       });
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isSalesperson, session]);
+  }, [isSalesperson, effectiveSalespersonId]);
 
   // Dealership details for the report footer. Uses dealershipId (not
   // profile.dealership_id directly) so a Master previewing as Salesperson
@@ -222,7 +228,7 @@ export default function Settings() {
   // only marked delivered Oct 1 still belongs in the September report,
   // not October's.
   const fetchReportForSelectedMonth = async (): Promise<{ rows: MonthlyReportRow[]; label: string } | null> => {
-    if (!session) return null;
+    if (!effectiveSalespersonId) return null;
     const [yearStr, monthStr] = reportMonthKey.split('-');
     const year = Number(yearStr);
     const month = Number(monthStr);
@@ -231,7 +237,7 @@ export default function Settings() {
     const { data, error } = await supabase
       .from('deliveries')
       .select('id, customer_name, stock_number, fsm_name, delivery_at')
-      .eq('salesperson_id', session.user.id)
+      .eq('salesperson_id', effectiveSalespersonId)
       .eq('status', 'delivered')
       .gte('delivery_at', start.toISOString())
       .lt('delivery_at', end.toISOString())
@@ -241,10 +247,11 @@ export default function Settings() {
   };
 
   // Reloads the delivery list (for the hat-trick checkboxes) whenever the
-  // selected month changes — the bonus selection doesn't carry over between
-  // months, since it's a per-month, hand-picked flag.
+  // selected month — or, for a Master, the previewed salesperson — changes.
+  // The bonus selection doesn't carry over between months or salespeople,
+  // since it's a per-month, hand-picked flag.
   useEffect(() => {
-    if (!isSalesperson || !session) return;
+    if (!isSalesperson || !effectiveSalespersonId) { setReportRows([]); return; }
     setReportLoading(true);
     setReportNotice(null);
     fetchReportForSelectedMonth().then((result) => {
@@ -253,7 +260,7 @@ export default function Settings() {
       setReportLoading(false);
     });
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isSalesperson, session, reportMonthKey]);
+  }, [isSalesperson, effectiveSalespersonId, reportMonthKey]);
 
   const toggleBonus = (id: string) => {
     setBonusIds((prev) => {
@@ -274,7 +281,7 @@ export default function Settings() {
       const [y, m] = reportMonthKey.split('-').map(Number);
       return monthLabel(y, m);
     })();
-    await downloadMonthlyReport(rowsWithBonus(), profile?.name ?? 'Salesperson', label, reportDealership ?? EMPTY_DEALERSHIP);
+    await downloadMonthlyReport(rowsWithBonus(), reportSalespersonName, label, reportDealership ?? EMPTY_DEALERSHIP);
     setReportBusy(null);
   };
 
@@ -286,7 +293,7 @@ export default function Settings() {
       const [y, m] = reportMonthKey.split('-').map(Number);
       return monthLabel(y, m);
     })();
-    const outcome = await shareMonthlyReport(rowsWithBonus(), profile?.name ?? 'Salesperson', label, reportDealership ?? EMPTY_DEALERSHIP);
+    const outcome = await shareMonthlyReport(rowsWithBonus(), reportSalespersonName, label, reportDealership ?? EMPTY_DEALERSHIP);
     setReportBusy(null);
     if (outcome === 'downloaded') {
       setReportNotice('Your browser can\'t share files directly, so the PDF downloaded instead — attach it to an email yourself.');
@@ -336,6 +343,7 @@ export default function Settings() {
           <div style={{ color: 'var(--muted)', fontWeight: 800, fontSize: 12, letterSpacing: 1, marginBottom: 6 }}>MONTHLY REPORT</div>
           <p style={{ color: 'var(--muted)', fontSize: 13, marginTop: 0, marginBottom: 12 }}>
             A PDF of every delivery completed for the selected month — customer name, Finance Manager and delivery date.
+            {isMaster && ` Viewing ${reportSalespersonName}'s report.`}
           </p>
           <select
             value={reportMonthKey}
