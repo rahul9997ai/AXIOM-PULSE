@@ -349,14 +349,14 @@ export default function Settings() {
               <div style={{ color: 'var(--muted)', fontSize: 11.5, marginBottom: 6 }}>
                 Tick any deliveries that qualify for the hat-trick bonus — they'll be highlighted on the PDF.
               </div>
-              <div style={{ display: 'grid', gap: 6, maxHeight: 220, overflowY: 'auto' }}>
+              <div style={{ display: 'grid', gap: 6, maxHeight: 220, overflowY: 'auto', overflowX: 'hidden' }}>
                 {reportRows.map((r) => (
-                  <label key={r.id} style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 12.5, cursor: 'pointer' }}>
-                    <input type="checkbox" checked={bonusIds.has(r.id)} onChange={() => toggleBonus(r.id)} />
-                    <span style={{ flex: 1 }}>
+                  <label key={r.id} style={{ display: 'flex', alignItems: 'flex-start', gap: 8, fontSize: 12.5, cursor: 'pointer', width: '100%' }}>
+                    <input type="checkbox" checked={bonusIds.has(r.id)} onChange={() => toggleBonus(r.id)} style={{ flexShrink: 0, marginTop: 2 }} />
+                    <span style={{ flex: 1, minWidth: 0, wordBreak: 'break-word' }}>
                       {r.customer_name}{r.stock_number ? ` · #${r.stock_number}` : ''}
                     </span>
-                    <span style={{ color: 'var(--muted)' }}>
+                    <span style={{ color: 'var(--muted)', flexShrink: 0, whiteSpace: 'nowrap' }}>
                       {new Date(r.delivery_at).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}
                     </span>
                   </label>
