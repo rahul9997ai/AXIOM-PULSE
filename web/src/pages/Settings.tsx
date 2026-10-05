@@ -8,7 +8,7 @@ import InstallAppCard from '@/components/InstallAppCard';
 import PushCard from '@/components/PushCard';
 import { LogOutIcon } from '@/components/Icons';
 import { applyTheme, getStoredTheme, type Theme } from '@/lib/theme';
-import { downloadMonthlyReport, shareMonthlyReport, type DealershipDetails, type HattrickGroup, type MonthlyReportRow } from '@/lib/monthlyReport';
+import { downloadMonthlyReport, shareMonthlyReport, type DealershipDetails, type HattrickGroup, type HattrickPendingGroup, type MonthlyReportRow } from '@/lib/monthlyReport';
 import { monthLabel, monthRange } from '@/lib/monthClose';
 
 interface Dealership { id: string; name: string; }
@@ -210,6 +210,10 @@ export default function Settings() {
     completed_at: g.completedAt!,
     members: g.members.map((m) => ({ id: m.id, customer_name: m.customer_name, stock_number: m.stock_number, delivery_at: m.delivery_at })),
   }));
+  const reportPendingHattricks: HattrickPendingGroup[] = pendingHattricks.map((g) => ({
+    sold_at: g.soldAt,
+    members: g.members.map((m) => ({ customer_name: m.customer_name, stock_number: m.stock_number, delivered: m.status === 'delivered' })),
+  }));
 
   const addLender = async () => {
     const name = newLender.trim();
@@ -333,7 +337,7 @@ export default function Settings() {
       const [y, m] = reportMonthKey.split('-').map(Number);
       return monthLabel(y, m);
     })();
-    await downloadMonthlyReport(reportRows, reportSalespersonName, label, reportDealership ?? EMPTY_DEALERSHIP, reportHattrickGroups);
+    await downloadMonthlyReport(reportRows, reportSalespersonName, label, reportDealership ?? EMPTY_DEALERSHIP, reportHattrickGroups, reportPendingHattricks);
     setReportBusy(null);
   };
 
@@ -345,7 +349,7 @@ export default function Settings() {
       const [y, m] = reportMonthKey.split('-').map(Number);
       return monthLabel(y, m);
     })();
-    const outcome = await shareMonthlyReport(reportRows, reportSalespersonName, label, reportDealership ?? EMPTY_DEALERSHIP, reportHattrickGroups);
+    const outcome = await shareMonthlyReport(reportRows, reportSalespersonName, label, reportDealership ?? EMPTY_DEALERSHIP, reportHattrickGroups, reportPendingHattricks);
     setReportBusy(null);
     if (outcome === 'downloaded') {
       setReportNotice('Your browser can\'t share files directly, so the PDF downloaded instead — attach it to an email yourself.');
@@ -439,7 +443,7 @@ export default function Settings() {
         <div className="card">
           <div style={{ color: 'var(--muted)', fontWeight: 800, fontSize: 12, letterSpacing: 1, marginBottom: 6 }}>PENDING HAT-TRICKS</div>
           <p style={{ color: 'var(--muted)', fontSize: 13, marginTop: 0, marginBottom: 10 }}>
-            3+ vehicles sold the same day — the bonus shows on a report once every one of them is delivered.
+            3+ vehicles sold the same day — included on the PDF as a status snapshot, and the bonus itself moves into the report once every one of them is delivered.
           </p>
           <div style={{ display: 'grid', gap: 10 }}>
             {pendingHattricks.map((g) => {

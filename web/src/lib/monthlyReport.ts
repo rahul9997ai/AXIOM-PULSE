@@ -27,6 +27,20 @@ export interface HattrickGroup {
   members: HattrickMember[];
 }
 
+export interface HattrickPendingMember {
+  customer_name: string;
+  stock_number: string | null;
+  delivered: boolean;
+}
+
+// A hat-trick group that's still short one or more deliveries — shown so
+// the salesperson (and accounting) have a printed record of what's still
+// in progress, not just what's already been paid out.
+export interface HattrickPendingGroup {
+  sold_at: string;
+  members: HattrickPendingMember[];
+}
+
 export interface DealershipDetails {
   name: string;
   address: string;
@@ -62,6 +76,7 @@ async function buildPdf(
   monthLabel: string,
   dealership: DealershipDetails,
   hattrickGroups: HattrickGroup[],
+  pendingHattricks: HattrickPendingGroup[],
 ) {
   const { jsPDF } = await import('jspdf');
   const doc = new jsPDF({ unit: 'pt' });
@@ -261,6 +276,47 @@ async function buildPdf(
     y += 4;
   }
 
+  // ---- pending hat-tricks ----
+  // Not yet payable — printed as a status snapshot so a group that's still
+  // waiting on a delivery doesn't get forgotten between reports.
+  if (pendingHattricks.length > 0) {
+    const lineH = 13;
+    const groupHeaderH = 20;
+    const groupGap = 8;
+    const totalMemberLines = pendingHattricks.reduce((n, g) => n + g.members.length, 0);
+    const boxH = 16 + pendingHattricks.length * groupHeaderH + totalMemberLines * lineH + (pendingHattricks.length - 1) * groupGap;
+
+    doc.setFillColor(...LIGHT_GRAY);
+    doc.rect(margin, y, contentW, boxH, 'F');
+    doc.setDrawColor(...MID_GRAY);
+    doc.setLineWidth(0.8);
+    doc.rect(margin, y, contentW, boxH, 'S');
+
+    let py = y + 16;
+    pendingHattricks.forEach((group, gi) => {
+      const deliveredCount = group.members.filter((m) => m.delivered).length;
+      doc.setFillColor(...MUTED);
+      doc.circle(margin + 15, py, 3.5, 'F');
+      doc.setFont('helvetica', 'bold');
+      doc.setFontSize(10);
+      doc.setTextColor(...SLATE);
+      const soldLabel = parseDateOnly(group.sold_at).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' });
+      doc.text(`PENDING HAT-TRICK — SOLD ${soldLabel.toUpperCase()} · ${deliveredCount}/${group.members.length} DELIVERED`, margin + 24, py + 4);
+      py += groupHeaderH;
+
+      doc.setFont('helvetica', 'normal');
+      doc.setFontSize(8.5);
+      doc.setTextColor(...MUTED);
+      group.members.forEach((m) => {
+        doc.text(`${m.customer_name}${m.stock_number ? ` · #${m.stock_number}` : ''} — ${m.delivered ? 'delivered' : 'not yet delivered'}`, margin + 24, py + 3);
+        py += lineH;
+      });
+      if (gi < pendingHattricks.length - 1) py += groupGap;
+    });
+
+    y += boxH + 24;
+  }
+
   // ---- authorization signatures ----
   doc.setFont('helvetica', 'bold');
   doc.setFontSize(10);
@@ -316,8 +372,9 @@ export async function downloadMonthlyReport(
   monthLabel: string,
   dealership: DealershipDetails,
   hattrickGroups: HattrickGroup[] = [],
+  pendingHattricks: HattrickPendingGroup[] = [],
 ): Promise<void> {
-  const doc = await buildPdf(rows, salespersonName, monthLabel, dealership, hattrickGroups);
+  const doc = await buildPdf(rows, salespersonName, monthLabel, dealership, hattrickGroups, pendingHattricks);
   doc.save(filenameFor(monthLabel));
 }
 
@@ -331,8 +388,9 @@ export async function shareMonthlyReport(
   monthLabel: string,
   dealership: DealershipDetails,
   hattrickGroups: HattrickGroup[] = [],
+  pendingHattricks: HattrickPendingGroup[] = [],
 ): Promise<'shared' | 'downloaded'> {
-  const doc = await buildPdf(rows, salespersonName, monthLabel, dealership, hattrickGroups);
+  const doc = await buildPdf(rows, salespersonName, monthLabel, dealership, hattrickGroups, pendingHattricks);
   const filename = filenameFor(monthLabel);
   const blob = doc.output('blob');
   const file = new File([blob], filename, { type: 'application/pdf' });
