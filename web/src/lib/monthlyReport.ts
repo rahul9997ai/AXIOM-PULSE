@@ -58,6 +58,28 @@ const GOLD_BG: [number, number, number] = [254, 243, 199];
 const MUTED: [number, number, number] = [107, 114, 128];
 const DARK: [number, number, number] = [26, 26, 26];
 
+// $150 per completed hat-trick group, and a stepped (not per-car) volume
+// bonus on total vehicles delivered in the month — highest threshold met
+// wins, no bonus below 10.
+const HATTRICK_BONUS_CENTS = 15000;
+const VOLUME_BONUS_TIERS: { count: number; cents: number }[] = [
+  { count: 25, cents: 200000 },
+  { count: 20, cents: 150000 },
+  { count: 15, cents: 100000 },
+  { count: 10, cents: 50000 },
+];
+
+function volumeBonusFor(deliveredCount: number): { tierCount: number; cents: number } | null {
+  for (const tier of VOLUME_BONUS_TIERS) {
+    if (deliveredCount >= tier.count) return { tierCount: tier.count, cents: tier.cents };
+  }
+  return null;
+}
+
+function formatCents(cents: number): string {
+  return `$${(cents / 100).toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 0 })}`;
+}
+
 // Parses a plain YYYY-MM-DD (no time component, e.g. a `date` column) as a
 // local calendar date — new Date("2026-09-28") parses as UTC midnight,
 // which can display as the previous day in western-hemisphere timezones.
@@ -229,7 +251,35 @@ async function buildPdf(
   doc.setTextColor(...NAVY);
   doc.text(`TOTAL DELIVERED: ${rows.length}`, margin, y);
 
-  y += 20;
+  y += 18;
+
+  // ---- bonus summary (volume + hat-trick, this month's totals) ----
+  const volume = volumeBonusFor(rows.length);
+  const hattrickTotalCents = hattrickGroups.length * HATTRICK_BONUS_CENTS;
+  const totalBonusCents = (volume?.cents ?? 0) + hattrickTotalCents;
+  if (volume) {
+    doc.setFont('helvetica', 'normal');
+    doc.setFontSize(9.5);
+    doc.setTextColor(...DARK);
+    doc.text(`Volume bonus (${volume.tierCount}+ delivered): ${formatCents(volume.cents)}`, margin, y);
+    y += 15;
+  }
+  if (hattrickGroups.length > 0) {
+    doc.setFont('helvetica', 'normal');
+    doc.setFontSize(9.5);
+    doc.setTextColor(...DARK);
+    doc.text(`Hat-trick bonus: ${formatCents(HATTRICK_BONUS_CENTS)} × ${hattrickGroups.length} = ${formatCents(hattrickTotalCents)}`, margin, y);
+    y += 15;
+  }
+  if (totalBonusCents > 0) {
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(12);
+    doc.setTextColor(...NAVY);
+    doc.text(`TOTAL BONUS THIS MONTH: ${formatCents(totalBonusCents)}`, margin, y + 2);
+    y += 24;
+  } else {
+    y += 6;
+  }
 
   // ---- hat-trick bonus summary ----
   // Each group lists every one of its members, even ones scheduled or
