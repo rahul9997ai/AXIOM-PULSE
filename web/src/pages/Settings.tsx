@@ -8,12 +8,13 @@ import InstallAppCard from '@/components/InstallAppCard';
 import PushCard from '@/components/PushCard';
 import { LogOutIcon } from '@/components/Icons';
 import { applyTheme, getStoredTheme, type Theme } from '@/lib/theme';
-import { downloadMonthlyReport, shareMonthlyReport, type MonthlyReportRow } from '@/lib/monthlyReport';
+import { downloadMonthlyReport, shareMonthlyReport, type DealershipDetails, type MonthlyReportRow } from '@/lib/monthlyReport';
 import { monthLabel, monthRange } from '@/lib/monthClose';
 
 interface Dealership { id: string; name: string; }
 
 const FK_IN_USE = '23503';
+const EMPTY_DEALERSHIP: DealershipDetails = { name: '', address: '', city: '', phone: '', dealerCode: '' };
 
 export default function Settings() {
   const { profile, session } = useSession();
@@ -29,6 +30,10 @@ export default function Settings() {
   const [reportMonthOptions, setReportMonthOptions] = useState<{ year: number; month: number }[]>([
     { year: now.getFullYear(), month: now.getMonth() + 1 },
   ]);
+  const [reportRows, setReportRows] = useState<MonthlyReportRow[]>([]);
+  const [reportLoading, setReportLoading] = useState(false);
+  const [bonusIds, setBonusIds] = useState<Set<string>>(new Set());
+  const [reportDealership, setReportDealership] = useState<DealershipDetails | null>(null);
 
   const onSetTheme = (t: Theme) => { setTheme(t); applyTheme(t); };
 
@@ -107,6 +112,29 @@ export default function Settings() {
       });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isSalesperson, session]);
+
+  // Dealership details for the report footer — fetched once per salesperson's
+  // own dealership, not the Master's "viewing as" selector (a salesperson
+  // only ever belongs to one dealership).
+  useEffect(() => {
+    if (!isSalesperson || !profile?.dealership_id) return;
+    supabase
+      .from('dealerships')
+      .select('name, data')
+      .eq('id', profile.dealership_id)
+      .maybeSingle()
+      .then(({ data }) => {
+        if (!data) return;
+        const d = (data.data as Record<string, string>) || {};
+        setReportDealership({
+          name: data.name,
+          address: d.address || '',
+          city: d.city || '',
+          phone: d.phone || '',
+          dealerCode: d.dealerCode || '',
+        });
+      });
+  }, [isSalesperson, profile?.dealership_id]);
 
   const addLender = async () => {
     const name = newLender.trim();
@@ -197,7 +225,7 @@ export default function Settings() {
     const label = monthLabel(year, month);
     const { data, error } = await supabase
       .from('deliveries')
-      .select('customer_name, stock_number, fsm_name, delivery_at')
+      .select('id, customer_name, stock_number, fsm_name, delivery_at')
       .eq('salesperson_id', session.user.id)
       .eq('status', 'delivered')
       .gte('delivery_at', start.toISOString())
@@ -207,23 +235,53 @@ export default function Settings() {
     return { rows: (data as MonthlyReportRow[]) || [], label };
   };
 
+  // Reloads the delivery list (for the hat-trick checkboxes) whenever the
+  // selected month changes — the bonus selection doesn't carry over between
+  // months, since it's a per-month, hand-picked flag.
+  useEffect(() => {
+    if (!isSalesperson || !session) return;
+    setReportLoading(true);
+    setReportNotice(null);
+    fetchReportForSelectedMonth().then((result) => {
+      setReportRows(result?.rows ?? []);
+      setBonusIds(new Set());
+      setReportLoading(false);
+    });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isSalesperson, session, reportMonthKey]);
+
+  const toggleBonus = (id: string) => {
+    setBonusIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id); else next.add(id);
+      return next;
+    });
+  };
+
+  const rowsWithBonus = (): MonthlyReportRow[] =>
+    reportRows.map((r) => ({ ...r, hattrick_bonus: bonusIds.has(r.id) }));
+
   const runDownloadReport = async () => {
+    if (reportRows.length === 0) { setReportNotice('No deliveries marked complete for this month yet.'); return; }
     setReportBusy('download');
     setReportNotice(null);
-    const result = await fetchReportForSelectedMonth();
-    if (!result) { setReportBusy(null); return; }
-    if (result.rows.length === 0) { setReportBusy(null); setReportNotice(`No deliveries marked complete for ${result.label} yet.`); return; }
-    await downloadMonthlyReport(result.rows, profile?.name ?? 'Salesperson', result.label);
+    const label = (() => {
+      const [y, m] = reportMonthKey.split('-').map(Number);
+      return monthLabel(y, m);
+    })();
+    await downloadMonthlyReport(rowsWithBonus(), profile?.name ?? 'Salesperson', label, reportDealership ?? EMPTY_DEALERSHIP);
     setReportBusy(null);
   };
 
   const runShareReport = async () => {
+    if (reportRows.length === 0) { setReportNotice('No deliveries marked complete for this month yet.'); return; }
     setReportBusy('share');
     setReportNotice(null);
-    const result = await fetchReportForSelectedMonth();
-    if (!result) { setReportBusy(null); return; }
-    if (result.rows.length === 0) { setReportBusy(null); setReportNotice(`No deliveries marked complete for ${result.label} yet.`); return; }
-    const outcome = await shareMonthlyReport(result.rows, profile?.name ?? 'Salesperson', result.label);
+    const label = (() => {
+      const [y, m] = reportMonthKey.split('-').map(Number);
+      return monthLabel(y, m);
+    })();
+    const outcome = await shareMonthlyReport(rowsWithBonus(), profile?.name ?? 'Salesperson', label, reportDealership ?? EMPTY_DEALERSHIP);
     setReportBusy(null);
     if (outcome === 'downloaded') {
       setReportNotice('Your browser can\'t share files directly, so the PDF downloaded instead — attach it to an email yourself.');
@@ -283,6 +341,30 @@ export default function Settings() {
               <option key={`${year}-${month}`} value={`${year}-${month}`}>{monthLabel(year, month)}</option>
             ))}
           </select>
+
+          {reportLoading && <div style={{ color: 'var(--muted)', fontSize: 12.5, marginBottom: 10 }}>Loading deliveries…</div>}
+
+          {!reportLoading && reportRows.length > 0 && (
+            <div style={{ marginBottom: 12 }}>
+              <div style={{ color: 'var(--muted)', fontSize: 11.5, marginBottom: 6 }}>
+                Tick any deliveries that qualify for the hat-trick bonus — they'll be highlighted on the PDF.
+              </div>
+              <div style={{ display: 'grid', gap: 6, maxHeight: 220, overflowY: 'auto' }}>
+                {reportRows.map((r) => (
+                  <label key={r.id} style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 12.5, cursor: 'pointer' }}>
+                    <input type="checkbox" checked={bonusIds.has(r.id)} onChange={() => toggleBonus(r.id)} />
+                    <span style={{ flex: 1 }}>
+                      {r.customer_name}{r.stock_number ? ` · #${r.stock_number}` : ''}
+                    </span>
+                    <span style={{ color: 'var(--muted)' }}>
+                      {new Date(r.delivery_at).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}
+                    </span>
+                  </label>
+                ))}
+              </div>
+            </div>
+          )}
+
           <div style={{ display: 'flex', gap: 8 }}>
             <button type="button" className="btn secondary" style={{ flex: 1 }} disabled={reportBusy !== null} onClick={runDownloadReport}>
               {reportBusy === 'download' ? 'Preparing…' : 'Download PDF'}
