@@ -34,6 +34,8 @@ export default function DeliveryDetail() {
   const [sendingComment, setSendingComment] = useState(false);
   const [denyFor, setDenyFor] = useState<string | null>(null);
   const [denyReason, setDenyReason] = useState('');
+  const [soldAtDraft, setSoldAtDraft] = useState(() => new Date().toISOString().slice(0, 10));
+  const [savingSoldAt, setSavingSoldAt] = useState(false);
 
   const effectiveRole = isMaster ? actingRole : profile?.role;
   const isManager = effectiveRole ? MANAGER_ROLES.includes(effectiveRole) : false;
@@ -71,6 +73,21 @@ export default function DeliveryDetail() {
   const canComplete = !isManager && d.status !== 'delivered' && d.status !== 'cancelled';
   const sc = STATUS_COLOR[d.status];
   const dt = new Date(d.delivery_at);
+  // The sold date drives hat-trick bonus eligibility and is the
+  // salesperson's own to enter — never the FSM's, and never prompted while
+  // a Master is only previewing the role. Keeps asking every time they open
+  // this delivery until it's filled in; cancelled deals don't need one.
+  const needsSoldDate = profile?.role === 'Salesperson' && session?.user.id === d.salesperson_id
+    && !d.sold_at && d.status !== 'cancelled';
+
+  const saveSoldDate = async () => {
+    if (!soldAtDraft) return;
+    setSavingSoldAt(true);
+    const { error } = await supabase.from('deliveries').update({ sold_at: soldAtDraft }).eq('id', d.id);
+    setSavingSoldAt(false);
+    if (error) { setNotice(error.message); return; }
+    load();
+  };
 
   const resolveRequirement = async (reqId: string, status: 'completed' | 'exception' | 'outstanding', reason?: string) => {
     const { error } = await supabase.rpc('set_requirement_status', {
@@ -232,6 +249,36 @@ export default function DeliveryDetail() {
     }}>
       <div style={{ display: 'grid', gap: 14, maxWidth: 640, margin: '0 auto' }}>
         <Link to="/" style={{ fontSize: 13, color: 'var(--accent)', textDecoration: 'none', fontWeight: 700 }}>‹ Back to Deliveries</Link>
+
+        {needsSoldDate && (
+          <div style={{
+            padding: '12px 14px', background: 'var(--banner-warn-bg)', border: '1px solid var(--banner-warn-border)',
+            borderRadius: 12, color: 'var(--banner-warn-fg)',
+          }}>
+            <div style={{ fontWeight: 800, fontSize: 13.5 }}>What date did this vehicle sell?</div>
+            <div style={{ fontSize: 12, marginTop: 2, marginBottom: 10, opacity: 0.9 }}>
+              Used for hat-trick bonus tracking — separate from the delivery date, since a deal sold one day doesn't
+              always deliver the same day.
+            </div>
+            <div style={{ display: 'flex', gap: 8 }}>
+              <input
+                type="date"
+                value={soldAtDraft}
+                onChange={(e) => setSoldAtDraft(e.target.value)}
+                style={{ flex: 1 }}
+              />
+              <button
+                type="button"
+                className="btn"
+                style={{ padding: '8px 16px', fontSize: 13 }}
+                disabled={savingSoldAt || !soldAtDraft}
+                onClick={saveSoldDate}
+              >
+                {savingSoldAt ? 'Saving…' : 'Save'}
+              </button>
+            </div>
+          </div>
+        )}
 
         <div className="card-3d tint-blue">
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 8 }}>

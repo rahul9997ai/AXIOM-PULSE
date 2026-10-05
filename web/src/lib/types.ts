@@ -66,6 +66,10 @@ export interface Delivery {
   delivered_at: string | null;
   fsm_name: string | null;
   salesperson_name: string | null;
+  // The date the deal was actually sold/written — set by the salesperson
+  // themselves (never the FSM), since it drives hat-trick bonus eligibility
+  // and can differ from delivery_at (the scheduled handover date).
+  sold_at: string | null;
   lenders?: Lender | null;
   delivery_requirements?: DeliveryRequirement[];
 }
