@@ -7,11 +7,24 @@ export interface MonthlyReportRow {
   // delivered — a vehicle scheduled for Sep 30 but only marked delivered
   // on Oct 1 still belongs to, and reports under, September.
   delivery_at: string;
-  // Hand-ticked by the salesperson in Settings — a day with 3+ deliveries
-  // qualifying for the hat-trick bonus isn't always obvious from the date
-  // alone (e.g. deliveries logged a day late), so this is manual, not
-  // auto-detected from grouping by date.
-  hattrick_bonus?: boolean;
+}
+
+export interface HattrickMember {
+  id: string;
+  customer_name: string;
+  stock_number: string | null;
+  delivery_at: string;
+}
+
+// A hat-trick group is 3+ vehicles sold the same day (sold_at), detected
+// automatically — never hand-picked. It only belongs on a report once every
+// member has delivered, which can land in a later month than when some (or
+// all) of its members were scheduled — so members are carried here in
+// full, independent of which month's reportRows they also appear in.
+export interface HattrickGroup {
+  sold_at: string;
+  completed_at: string;
+  members: HattrickMember[];
 }
 
 export interface DealershipDetails {
@@ -31,6 +44,14 @@ const GOLD_BG: [number, number, number] = [254, 243, 199];
 const MUTED: [number, number, number] = [107, 114, 128];
 const DARK: [number, number, number] = [26, 26, 26];
 
+// Parses a plain YYYY-MM-DD (no time component, e.g. a `date` column) as a
+// local calendar date — new Date("2026-09-28") parses as UTC midnight,
+// which can display as the previous day in western-hemisphere timezones.
+function parseDateOnly(s: string): Date {
+  const [y, m, d] = s.split('-').map(Number);
+  return new Date(y, m - 1, d);
+}
+
 // jsPDF drags in a heavy dependency chain (html2canvas, dompurify) that
 // would otherwise bloat this PWA's precached bundle for a feature only
 // salespeople use, occasionally. Loaded on demand instead, so it's a
@@ -40,12 +61,14 @@ async function buildPdf(
   salespersonName: string,
   monthLabel: string,
   dealership: DealershipDetails,
+  hattrickGroups: HattrickGroup[],
 ) {
   const { jsPDF } = await import('jspdf');
   const doc = new jsPDF({ unit: 'pt' });
   const pageW = doc.internal.pageSize.getWidth();
   const margin = 40;
   const contentW = pageW - margin * 2;
+  const bonusRowIds = new Set(hattrickGroups.flatMap((g) => g.members.map((m) => m.id)));
 
   // ---- header band ----
   const headerH = 92;
@@ -148,7 +171,8 @@ async function buildPdf(
   doc.setFont('helvetica', 'normal');
   doc.setFontSize(9.5);
   rows.forEach((r, i) => {
-    if (r.hattrick_bonus) {
+    const isBonus = bonusRowIds.has(r.id);
+    if (isBonus) {
       doc.setFillColor(...GOLD_BG);
       doc.rect(margin, ry, contentW, rowH, 'F');
     } else if (i % 2 === 1) {
@@ -164,7 +188,7 @@ async function buildPdf(
       new Date(r.delivery_at).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' }),
     ];
     values.forEach((v, idx) => { doc.text(v, cellX, ry + 14); cellX += cols[idx].w; });
-    if (r.hattrick_bonus) {
+    if (isBonus) {
       // A unicode star glyph isn't in Helvetica's base encoding and
       // silently renders as the wrong character — a drawn dot avoids
       // the font gotcha entirely, and "BONUS" alone (vs. "HAT-TRICK")
@@ -193,34 +217,45 @@ async function buildPdf(
   y += 20;
 
   // ---- hat-trick bonus summary ----
-  const bonusRows = rows.filter((r) => r.hattrick_bonus);
-  if (bonusRows.length > 0) {
-    const byDate = new Map<string, MonthlyReportRow[]>();
-    bonusRows.forEach((r) => {
-      const key = new Date(r.delivery_at).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' });
-      byDate.set(key, [...(byDate.get(key) ?? []), r]);
-    });
-    const lineH = 15;
-    const boxH = 28 + byDate.size * lineH;
+  // Each group lists every one of its members, even ones scheduled or
+  // delivered in an earlier month — the group only appears here, on the
+  // report for the month its LAST member was delivered, which is when the
+  // bonus actually becomes payable.
+  if (hattrickGroups.length > 0) {
+    const lineH = 13;
+    const groupHeaderH = 20;
+    const groupGap = 8;
+    const totalMemberLines = hattrickGroups.reduce((n, g) => n + g.members.length, 0);
+    const boxH = 16 + hattrickGroups.length * groupHeaderH + totalMemberLines * lineH + (hattrickGroups.length - 1) * groupGap;
+
     doc.setFillColor(...GOLD_BG);
     doc.rect(margin, y, contentW, boxH, 'F');
     doc.setDrawColor(...GOLD);
     doc.setLineWidth(0.8);
     doc.rect(margin, y, contentW, boxH, 'S');
-    doc.setFillColor(...GOLD);
-    doc.circle(margin + 15, y + 15, 3.5, 'F');
-    doc.setFont('helvetica', 'bold');
-    doc.setFontSize(10.5);
-    doc.setTextColor(...GOLD);
-    doc.text(`HAT-TRICK BONUS — ${bonusRows.length} DELIVERIES SELECTED`, margin + 24, y + 19);
-    doc.setFont('helvetica', 'normal');
-    doc.setFontSize(9);
-    doc.setTextColor(...DARK);
-    let lineY2 = y + 19;
-    byDate.forEach((group, date) => {
-      lineY2 += lineH;
-      doc.text(`${date} — ${group.length} deliveries: ${group.map((g) => g.customer_name).join(', ')}`, margin + 10, lineY2);
+
+    let gy = y + 16;
+    hattrickGroups.forEach((group, gi) => {
+      doc.setFillColor(...GOLD);
+      doc.circle(margin + 15, gy, 3.5, 'F');
+      doc.setFont('helvetica', 'bold');
+      doc.setFontSize(10);
+      doc.setTextColor(...GOLD);
+      const soldLabel = parseDateOnly(group.sold_at).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' });
+      doc.text(`HAT-TRICK BONUS — SOLD ${soldLabel.toUpperCase()} · ${group.members.length} VEHICLES`, margin + 24, gy + 4);
+      gy += groupHeaderH;
+
+      doc.setFont('helvetica', 'normal');
+      doc.setFontSize(8.5);
+      doc.setTextColor(...DARK);
+      group.members.forEach((m) => {
+        const deliveredLabel = new Date(m.delivery_at).toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
+        doc.text(`${m.customer_name}${m.stock_number ? ` · #${m.stock_number}` : ''} · Delivered ${deliveredLabel}`, margin + 24, gy + 3);
+        gy += lineH;
+      });
+      if (gi < hattrickGroups.length - 1) gy += groupGap;
     });
+
     y += boxH + 24;
   } else {
     y += 4;
@@ -280,8 +315,9 @@ export async function downloadMonthlyReport(
   salespersonName: string,
   monthLabel: string,
   dealership: DealershipDetails,
+  hattrickGroups: HattrickGroup[] = [],
 ): Promise<void> {
-  const doc = await buildPdf(rows, salespersonName, monthLabel, dealership);
+  const doc = await buildPdf(rows, salespersonName, monthLabel, dealership, hattrickGroups);
   doc.save(filenameFor(monthLabel));
 }
 
@@ -294,8 +330,9 @@ export async function shareMonthlyReport(
   salespersonName: string,
   monthLabel: string,
   dealership: DealershipDetails,
+  hattrickGroups: HattrickGroup[] = [],
 ): Promise<'shared' | 'downloaded'> {
-  const doc = await buildPdf(rows, salespersonName, monthLabel, dealership);
+  const doc = await buildPdf(rows, salespersonName, monthLabel, dealership, hattrickGroups);
   const filename = filenameFor(monthLabel);
   const blob = doc.output('blob');
   const file = new File([blob], filename, { type: 'application/pdf' });

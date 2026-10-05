@@ -8,10 +8,31 @@ import InstallAppCard from '@/components/InstallAppCard';
 import PushCard from '@/components/PushCard';
 import { LogOutIcon } from '@/components/Icons';
 import { applyTheme, getStoredTheme, type Theme } from '@/lib/theme';
-import { downloadMonthlyReport, shareMonthlyReport, type DealershipDetails, type MonthlyReportRow } from '@/lib/monthlyReport';
+import { downloadMonthlyReport, shareMonthlyReport, type DealershipDetails, type HattrickGroup, type MonthlyReportRow } from '@/lib/monthlyReport';
 import { monthLabel, monthRange } from '@/lib/monthClose';
 
 interface Dealership { id: string; name: string; }
+
+interface HattrickRow {
+  id: string;
+  customer_name: string;
+  stock_number: string | null;
+  delivery_at: string;
+  delivered_at: string | null;
+  sold_at: string;
+  status: string;
+}
+
+interface HattrickCandidate {
+  soldAt: string;
+  members: HattrickRow[];
+  allDelivered: boolean;
+  completedAt: string | null;
+}
+
+function monthKeyOf(d: Date): string {
+  return `${d.getFullYear()}-${d.getMonth() + 1}`;
+}
 
 const FK_IN_USE = '23503';
 const EMPTY_DEALERSHIP: DealershipDetails = { name: '', address: '', city: '', phone: '', dealerCode: '' };
@@ -42,7 +63,7 @@ export default function Settings() {
   ]);
   const [reportRows, setReportRows] = useState<MonthlyReportRow[]>([]);
   const [reportLoading, setReportLoading] = useState(false);
-  const [bonusIds, setBonusIds] = useState<Set<string>>(new Set());
+  const [hattrickRows, setHattrickRows] = useState<HattrickRow[]>([]);
   const [reportDealership, setReportDealership] = useState<DealershipDetails | null>(null);
 
   const onSetTheme = (t: Theme) => { setTheme(t); applyTheme(t); };
@@ -146,6 +167,49 @@ export default function Settings() {
         });
       });
   }, [isSalesperson, dealershipId]);
+
+  // Every sold-dated delivery for this salesperson, regardless of month or
+  // status — a hat-trick group's membership and completion state can span
+  // months, so it can't be computed from a single month's rows the way the
+  // main report table is.
+  useEffect(() => {
+    if (!isSalesperson || !effectiveSalespersonId) { setHattrickRows([]); return; }
+    supabase
+      .from('deliveries')
+      .select('id, customer_name, stock_number, delivery_at, delivered_at, sold_at, status')
+      .eq('salesperson_id', effectiveSalespersonId)
+      .not('sold_at', 'is', null)
+      .then(({ data }) => setHattrickRows((data as HattrickRow[]) || []));
+  }, [isSalesperson, effectiveSalespersonId]);
+
+  // Grouped by sold date — 3+ vehicles sold the same day is a hat-trick
+  // candidate, complete only once every member has been delivered.
+  const hattrickGroupsBySoldAt = new Map<string, HattrickRow[]>();
+  hattrickRows.forEach((r) => {
+    hattrickGroupsBySoldAt.set(r.sold_at, [...(hattrickGroupsBySoldAt.get(r.sold_at) ?? []), r]);
+  });
+  const hattrickCandidates: HattrickCandidate[] = Array.from(hattrickGroupsBySoldAt.entries())
+    .filter(([, members]) => members.length >= 3)
+    .map(([soldAt, members]) => {
+      const allDelivered = members.every((m) => m.status === 'delivered');
+      const completedAt = allDelivered
+        ? members.reduce<string | null>((max, m) => (m.delivered_at && (!max || m.delivered_at > max) ? m.delivered_at : max), null)
+        : null;
+      return { soldAt, members, allDelivered, completedAt };
+    })
+    .sort((a, b) => b.soldAt.localeCompare(a.soldAt));
+  // Only groups that finished delivering IN the selected report month
+  // belong on that month's PDF — the bonus is paid once, when the group
+  // completes, not split across the months its members happened to deliver in.
+  const completedThisMonth = hattrickCandidates.filter(
+    (g) => g.allDelivered && g.completedAt && monthKeyOf(new Date(g.completedAt)) === reportMonthKey,
+  );
+  const pendingHattricks = hattrickCandidates.filter((g) => !g.allDelivered);
+  const reportHattrickGroups: HattrickGroup[] = completedThisMonth.map((g) => ({
+    sold_at: g.soldAt,
+    completed_at: g.completedAt!,
+    members: g.members.map((m) => ({ id: m.id, customer_name: m.customer_name, stock_number: m.stock_number, delivery_at: m.delivery_at })),
+  }));
 
   const addLender = async () => {
     const name = newLender.trim();
@@ -256,22 +320,10 @@ export default function Settings() {
     setReportNotice(null);
     fetchReportForSelectedMonth().then((result) => {
       setReportRows(result?.rows ?? []);
-      setBonusIds(new Set());
       setReportLoading(false);
     });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isSalesperson, effectiveSalespersonId, reportMonthKey]);
-
-  const toggleBonus = (id: string) => {
-    setBonusIds((prev) => {
-      const next = new Set(prev);
-      if (next.has(id)) next.delete(id); else next.add(id);
-      return next;
-    });
-  };
-
-  const rowsWithBonus = (): MonthlyReportRow[] =>
-    reportRows.map((r) => ({ ...r, hattrick_bonus: bonusIds.has(r.id) }));
 
   const runDownloadReport = async () => {
     if (reportRows.length === 0) { setReportNotice('No deliveries marked complete for this month yet.'); return; }
@@ -281,7 +333,7 @@ export default function Settings() {
       const [y, m] = reportMonthKey.split('-').map(Number);
       return monthLabel(y, m);
     })();
-    await downloadMonthlyReport(rowsWithBonus(), reportSalespersonName, label, reportDealership ?? EMPTY_DEALERSHIP);
+    await downloadMonthlyReport(reportRows, reportSalespersonName, label, reportDealership ?? EMPTY_DEALERSHIP, reportHattrickGroups);
     setReportBusy(null);
   };
 
@@ -293,7 +345,7 @@ export default function Settings() {
       const [y, m] = reportMonthKey.split('-').map(Number);
       return monthLabel(y, m);
     })();
-    const outcome = await shareMonthlyReport(rowsWithBonus(), reportSalespersonName, label, reportDealership ?? EMPTY_DEALERSHIP);
+    const outcome = await shareMonthlyReport(reportRows, reportSalespersonName, label, reportDealership ?? EMPTY_DEALERSHIP, reportHattrickGroups);
     setReportBusy(null);
     if (outcome === 'downloaded') {
       setReportNotice('Your browser can\'t share files directly, so the PDF downloaded instead — attach it to an email yourself.');
@@ -357,23 +409,16 @@ export default function Settings() {
 
           {reportLoading && <div style={{ color: 'var(--muted)', fontSize: 12.5, marginBottom: 10 }}>Loading deliveries…</div>}
 
-          {!reportLoading && reportRows.length > 0 && (
-            <div style={{ marginBottom: 12 }}>
-              <div style={{ color: 'var(--muted)', fontSize: 11.5, marginBottom: 6 }}>
-                Tick any deliveries that qualify for the hat-trick bonus — they'll be highlighted on the PDF.
+          {!reportLoading && completedThisMonth.length > 0 && (
+            <div style={{
+              marginBottom: 12, padding: 10, borderRadius: 10,
+              background: 'var(--banner-ok-bg)', border: '1px solid var(--banner-ok-border)',
+            }}>
+              <div style={{ fontWeight: 800, fontSize: 12.5, color: 'var(--banner-ok-fg)' }}>
+                {completedThisMonth.length === 1 ? '1 hat-trick bonus' : `${completedThisMonth.length} hat-trick bonuses`} complete this month
               </div>
-              <div style={{ display: 'grid', gap: 6, maxHeight: 220, overflowY: 'auto', overflowX: 'hidden' }}>
-                {reportRows.map((r) => (
-                  <label key={r.id} style={{ display: 'flex', alignItems: 'flex-start', gap: 8, fontSize: 12.5, cursor: 'pointer', width: '100%' }}>
-                    <input type="checkbox" checked={bonusIds.has(r.id)} onChange={() => toggleBonus(r.id)} style={{ width: 'auto', flexShrink: 0, marginTop: 2 }} />
-                    <span style={{ flex: 1, minWidth: 0, wordBreak: 'break-word' }}>
-                      {r.customer_name}{r.stock_number ? ` · #${r.stock_number}` : ''}
-                    </span>
-                    <span style={{ color: 'var(--muted)', flexShrink: 0, whiteSpace: 'nowrap' }}>
-                      {new Date(r.delivery_at).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}
-                    </span>
-                  </label>
-                ))}
+              <div style={{ fontSize: 11.5, color: 'var(--banner-ok-fg)', marginTop: 3, opacity: 0.9 }}>
+                Detected automatically from sold dates — included on the PDF below.
               </div>
             </div>
           )}
@@ -387,6 +432,30 @@ export default function Settings() {
             </button>
           </div>
           {reportNotice && <p style={{ color: 'var(--muted)', fontSize: 12.5, marginTop: 10, marginBottom: 0 }}>{reportNotice}</p>}
+        </div>
+      )}
+
+      {isSalesperson && pendingHattricks.length > 0 && (
+        <div className="card">
+          <div style={{ color: 'var(--muted)', fontWeight: 800, fontSize: 12, letterSpacing: 1, marginBottom: 6 }}>PENDING HAT-TRICKS</div>
+          <p style={{ color: 'var(--muted)', fontSize: 13, marginTop: 0, marginBottom: 10 }}>
+            3+ vehicles sold the same day — the bonus shows on a report once every one of them is delivered.
+          </p>
+          <div style={{ display: 'grid', gap: 10 }}>
+            {pendingHattricks.map((g) => {
+              const outstanding = g.members.filter((m) => m.status !== 'delivered');
+              return (
+                <div key={g.soldAt} style={{ borderBottom: '1px solid var(--line)', paddingBottom: 8 }}>
+                  <div style={{ fontWeight: 700, fontSize: 13 }}>
+                    Sold {new Date(`${g.soldAt}T00:00:00`).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' })} · {g.members.length} vehicles
+                  </div>
+                  <div style={{ fontSize: 12, color: 'var(--muted)', marginTop: 2 }}>
+                    Still waiting on: {outstanding.map((m) => m.customer_name).join(', ')}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
         </div>
       )}
 
