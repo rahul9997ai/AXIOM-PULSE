@@ -18,10 +18,14 @@ const EMPTY_DEALERSHIP: DealershipDetails = { name: '', address: '', city: '', p
 
 export default function Settings() {
   const { profile, session } = useSession();
-  const { actingDealershipId } = useActingRole();
+  const { actingDealershipId, effectiveRole } = useActingRole();
   const isMaster = profile?.role === 'Master Administrator';
   const canManageLists = profile ? MANAGER_ROLES.includes(profile.role) : false;
-  const isSalesperson = profile?.role === 'Salesperson';
+  // A Master previewing the app as "Salesperson" (via the Viewing-as bar)
+  // should see this feature too, not just a real Salesperson — effectiveRole
+  // already resolves to the previewed role for a Master, or the real role
+  // for everyone else.
+  const isSalesperson = effectiveRole === 'Salesperson';
   const [theme, setTheme] = useState<Theme>(getStoredTheme());
   const [reportBusy, setReportBusy] = useState<'download' | 'share' | null>(null);
   const [reportNotice, setReportNotice] = useState<string | null>(null);
@@ -113,15 +117,16 @@ export default function Settings() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isSalesperson, session]);
 
-  // Dealership details for the report footer — fetched once per salesperson's
-  // own dealership, not the Master's "viewing as" selector (a salesperson
-  // only ever belongs to one dealership).
+  // Dealership details for the report footer. Uses dealershipId (not
+  // profile.dealership_id directly) so a Master previewing as Salesperson
+  // gets the dealership they're currently viewing as, since a Master's own
+  // profile isn't tied to any single dealership.
   useEffect(() => {
-    if (!isSalesperson || !profile?.dealership_id) return;
+    if (!isSalesperson || !dealershipId) return;
     supabase
       .from('dealerships')
       .select('name, data')
-      .eq('id', profile.dealership_id)
+      .eq('id', dealershipId)
       .maybeSingle()
       .then(({ data }) => {
         if (!data) return;
@@ -134,7 +139,7 @@ export default function Settings() {
           dealerCode: d.dealerCode || '',
         });
       });
-  }, [isSalesperson, profile?.dealership_id]);
+  }, [isSalesperson, dealershipId]);
 
   const addLender = async () => {
     const name = newLender.trim();
@@ -352,7 +357,7 @@ export default function Settings() {
               <div style={{ display: 'grid', gap: 6, maxHeight: 220, overflowY: 'auto', overflowX: 'hidden' }}>
                 {reportRows.map((r) => (
                   <label key={r.id} style={{ display: 'flex', alignItems: 'flex-start', gap: 8, fontSize: 12.5, cursor: 'pointer', width: '100%' }}>
-                    <input type="checkbox" checked={bonusIds.has(r.id)} onChange={() => toggleBonus(r.id)} style={{ flexShrink: 0, marginTop: 2 }} />
+                    <input type="checkbox" checked={bonusIds.has(r.id)} onChange={() => toggleBonus(r.id)} style={{ width: 'auto', flexShrink: 0, marginTop: 2 }} />
                     <span style={{ flex: 1, minWidth: 0, wordBreak: 'break-word' }}>
                       {r.customer_name}{r.stock_number ? ` · #${r.stock_number}` : ''}
                     </span>
