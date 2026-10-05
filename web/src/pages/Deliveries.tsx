@@ -5,10 +5,15 @@ import { useSession } from '@/lib/session';
 import { useActingRole } from '@/lib/actingRole';
 import type { Delivery } from '@/lib/types';
 import { STATUS_LABEL, STATUS_COLOR, MANAGER_ROLES, ROLE_LABEL } from '@/lib/types';
+import { monthLabel } from '@/lib/monthClose';
 import { PinIcon } from '@/components/Icons';
 import ProgressRing from '@/components/ProgressRing';
 import DateTimePill from '@/components/DateTimePill';
 import AdminHome from './AdminHome';
+
+function monthKeyOf(d: Date): string {
+  return `${d.getFullYear()}-${d.getMonth() + 1}`;
+}
 
 export default function Deliveries() {
   const { profile, session } = useSession();
@@ -19,6 +24,10 @@ export default function Deliveries() {
   const [customerFilter, setCustomerFilter] = useState('');
   const [fsmFilter, setFsmFilter] = useState('');
   const [salespersonFilter, setSalespersonFilter] = useState('');
+  // The Delivered tab defaults to the current month — without this, it's
+  // every delivery ever completed, in one long list that only gets longer.
+  // Older months are still one tap away via the month picker.
+  const [deliveredMonthKey, setDeliveredMonthKey] = useState(() => monthKeyOf(new Date()));
   // Installed PWAs get foregrounded from the background rather than
   // reloaded, so a `new Date()` computed only at render time can go stale
   // (e.g. "Good afternoon" still showing hours later) if nothing else
@@ -78,7 +87,20 @@ export default function Deliveries() {
   // calendar lookup away, on the Calendar tab.
   const todayKey = new Date().toDateString();
   const todaysActive = !isManager ? active.filter((d) => new Date(d.delivery_at).toDateString() === todayKey) : active;
-  const visibleAll = (tab === 'delivered' ? rows.filter((d) => d.status === 'delivered') : todaysActive)
+  const deliveredAll = rows.filter((d) => d.status === 'delivered');
+  // Every month that actually has a delivered unit, newest first — plus the
+  // current month even when it's still empty, so the picker never starts on
+  // a month with nothing to select.
+  const deliveredMonthOptions = Array.from(new Set([
+    monthKeyOf(new Date()),
+    ...deliveredAll.map((d) => monthKeyOf(new Date(d.delivered_at ?? d.delivery_at))),
+  ])).sort((a, b) => {
+    const [ay, am] = a.split('-').map(Number);
+    const [by, bm] = b.split('-').map(Number);
+    return by - ay || bm - am;
+  });
+  const deliveredThisSelection = deliveredAll.filter((d) => monthKeyOf(new Date(d.delivered_at ?? d.delivery_at)) === deliveredMonthKey);
+  const visibleAll = (tab === 'delivered' ? deliveredThisSelection : todaysActive)
     .sort((a, b) => tab === 'delivered'
       ? new Date(b.delivered_at ?? b.delivery_at).getTime() - new Date(a.delivered_at ?? a.delivery_at).getTime()
       : new Date(a.delivery_at).getTime() - new Date(b.delivery_at).getTime());
@@ -188,10 +210,19 @@ export default function Deliveries() {
         ))}
       </div>
 
+      {tab === 'delivered' && deliveredMonthOptions.length > 1 && (
+        <select value={deliveredMonthKey} onChange={(e) => setDeliveredMonthKey(e.target.value)}>
+          {deliveredMonthOptions.map((key) => {
+            const [y, m] = key.split('-').map(Number);
+            return <option key={key} value={key}>{monthLabel(y, m)}</option>;
+          })}
+        </select>
+      )}
+
       {loading && <div style={{ color: 'var(--muted)' }}>Loading…</div>}
       {!loading && visible.length === 0 && (
         <div style={{ color: 'var(--muted)', textAlign: 'center', marginTop: 40 }}>
-          {tab === 'delivered' ? 'No delivered units yet.' : !isManager ? 'Nothing scheduled for today. Check Calendar for upcoming deliveries.' : 'No deliveries scheduled yet.'}
+          {tab === 'delivered' ? 'No delivered units for this month.' : !isManager ? 'Nothing scheduled for today. Check Calendar for upcoming deliveries.' : 'No deliveries scheduled yet.'}
         </div>
       )}
 
