@@ -53,8 +53,8 @@ const NAVY: [number, number, number] = [30, 58, 138];
 const SLATE: [number, number, number] = [51, 65, 85];
 const LIGHT_GRAY: [number, number, number] = [238, 241, 244];
 const MID_GRAY: [number, number, number] = [204, 210, 217];
-const GOLD: [number, number, number] = [180, 83, 9];
-const GOLD_BG: [number, number, number] = [254, 243, 199];
+const ACCENT: [number, number, number] = NAVY; // one accent color throughout — subtle, not gold
+const ACCENT_BG: [number, number, number] = [230, 238, 252]; // soft pale blue tint
 const MUTED: [number, number, number] = [107, 114, 128];
 const DARK: [number, number, number] = [26, 26, 26];
 
@@ -88,6 +88,17 @@ function parseDateOnly(s: string): Date {
   return new Date(y, m - 1, d);
 }
 
+// Shared by both the hat-trick and pending-hat-trick boxes (and by the
+// one-page size budget below, which needs these heights before anything
+// is drawn).
+function groupsBoxHeight(groupCount: number, totalMemberLines: number): number {
+  if (groupCount === 0) return 0;
+  const lineH = 13;
+  const groupHeaderH = 20;
+  const groupGap = 8;
+  return 16 + groupCount * groupHeaderH + totalMemberLines * lineH + (groupCount - 1) * groupGap;
+}
+
 // jsPDF drags in a heavy dependency chain (html2canvas, dompurify) that
 // would otherwise bloat this PWA's precached bundle for a feature only
 // salespeople use, occasionally. Loaded on demand instead, so it's a
@@ -103,6 +114,7 @@ async function buildPdf(
   const { jsPDF } = await import('jspdf');
   const doc = new jsPDF({ unit: 'pt' });
   const pageW = doc.internal.pageSize.getWidth();
+  const pageH = doc.internal.pageSize.getHeight();
   const margin = 40;
   const contentW = pageW - margin * 2;
   const bonusRowIds = new Set(hattrickGroups.flatMap((g) => g.members.map((m) => m.id)));
@@ -185,7 +197,7 @@ async function buildPdf(
 
   y += barH + 16;
 
-  // ---- table ----
+  // ---- table (row height/font adapt to fit everything on one page) ----
   const cols: { label: string; w: number }[] = [
     { label: 'Customer Name', w: contentW * 0.32 },
     { label: 'Stock #', w: contentW * 0.13 },
@@ -193,8 +205,66 @@ async function buildPdf(
     { label: 'Date of Delivery', w: contentW * 0.17 },
     { label: 'Bonus', w: contentW * 0.12 },
   ];
-  const rowH = 20;
   const headH = 22;
+
+  // Gaps between sections below the table — kept as named constants so the
+  // size estimate (afterTableH, used to pick the row height) and the actual
+  // drawing never drift apart.
+  const GAP_TABLE_TO_TOTAL = 14;
+  const GAP_AFTER_DELIVERED = 14;
+  const BANNER_H = 78;
+  const BANNER_GAP = 14;
+  const HATTRICK_GAP = 18;
+  const PENDING_GAP = 18;
+  const AUTH_BLOCK_H = 81; // title + signature lines, see the drawing below
+
+  const volume = volumeBonusFor(rows.length);
+  const hattrickTotalCents = hattrickGroups.length * HATTRICK_BONUS_CENTS;
+  const totalBonusCents = (volume?.cents ?? 0) + hattrickTotalCents;
+
+  // Each group's members print as one wrapped line (not one line per
+  // member) to save vertical space — computed once here so the box-height
+  // estimate and the actual drawing use the exact same wrapped lines.
+  const maxLineWidth = contentW - 48;
+  doc.setFont('helvetica', 'normal');
+  doc.setFontSize(8.5);
+  const hattrickLineSets = hattrickGroups.map((g) => {
+    const text = g.members.map((m) => {
+      const d = new Date(m.delivery_at).toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
+      return `${m.customer_name}${m.stock_number ? ` #${m.stock_number}` : ''} · ${d}`;
+    }).join('   ·   ');
+    return doc.splitTextToSize(text, maxLineWidth) as string[];
+  });
+  const pendingLineSets = pendingHattricks.map((g) => {
+    const text = g.members.map((m) => `${m.customer_name}${m.stock_number ? ` #${m.stock_number}` : ''} · ${m.delivered ? 'delivered' : 'pending'}`).join('   ·   ');
+    return doc.splitTextToSize(text, maxLineWidth) as string[];
+  });
+
+  const hattrickBoxH = groupsBoxHeight(hattrickGroups.length, hattrickLineSets.reduce((n, lines) => n + lines.length, 0));
+  const pendingBoxH = groupsBoxHeight(pendingHattricks.length, pendingLineSets.reduce((n, lines) => n + lines.length, 0));
+
+  // Everything that comes after the table, at its fixed (non-shrinking)
+  // size — known before a single row is drawn, since none of it depends on
+  // how tall the table rows end up being.
+  const afterTableH =
+    GAP_TABLE_TO_TOTAL
+    + GAP_AFTER_DELIVERED
+    + (totalBonusCents > 0 ? BANNER_H + BANNER_GAP : 6)
+    + (hattrickGroups.length > 0 ? hattrickBoxH + HATTRICK_GAP : 4)
+    + (pendingHattricks.length > 0 ? pendingBoxH + PENDING_GAP : 0)
+    + AUTH_BLOCK_H;
+
+  const FOOTER_RESERVE = 48;
+  const DEFAULT_ROW_H = 20;
+  const MIN_ROW_H = 8;
+  const DEFAULT_FONT = 9.5;
+  const MIN_FONT = 5.5;
+  const usableBottom = pageH - FOOTER_RESERVE;
+  const availableForTable = usableBottom - y - headH - afterTableH;
+  const idealRowH = rows.length > 0 ? availableForTable / rows.length : DEFAULT_ROW_H;
+  const rowH = Math.min(DEFAULT_ROW_H, Math.max(MIN_ROW_H, idealRowH));
+  const rowFont = Math.max(MIN_FONT, DEFAULT_FONT * (rowH / DEFAULT_ROW_H));
+  const rowTextOffset = Math.max(rowH - 6, rowH * 0.65);
 
   doc.setFillColor(...SLATE);
   doc.rect(margin, y, contentW, headH, 'F');
@@ -206,11 +276,11 @@ async function buildPdf(
 
   let ry = y + headH;
   doc.setFont('helvetica', 'normal');
-  doc.setFontSize(9.5);
+  doc.setFontSize(rowFont);
   rows.forEach((r, i) => {
     const isBonus = bonusRowIds.has(r.id);
     if (isBonus) {
-      doc.setFillColor(...GOLD_BG);
+      doc.setFillColor(...ACCENT_BG);
       doc.rect(margin, ry, contentW, rowH, 'F');
     } else if (i % 2 === 1) {
       doc.setFillColor(248, 249, 250);
@@ -224,20 +294,20 @@ async function buildPdf(
       r.fsm_name || '—',
       new Date(r.delivery_at).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' }),
     ];
-    values.forEach((v, idx) => { doc.text(v, cellX, ry + 14); cellX += cols[idx].w; });
+    values.forEach((v, idx) => { doc.text(v, cellX, ry + rowTextOffset); cellX += cols[idx].w; });
     if (isBonus) {
       // A unicode star glyph isn't in Helvetica's base encoding and
       // silently renders as the wrong character — a drawn dot avoids
       // the font gotcha entirely, and "BONUS" alone (vs. "HAT-TRICK")
       // comfortably fits this narrow column without running off the page.
-      doc.setFillColor(...GOLD);
-      doc.circle(cellX + 3, ry + 10, 2.5, 'F');
+      doc.setFillColor(...ACCENT);
+      doc.circle(cellX + 3, ry + rowH / 2, Math.min(2.5, rowH / 4), 'F');
       doc.setFont('helvetica', 'bold');
-      doc.setFontSize(7.5);
-      doc.setTextColor(...GOLD);
-      doc.text('BONUS', cellX + 9, ry + 13);
+      doc.setFontSize(Math.max(MIN_FONT, 7.5 * (rowH / DEFAULT_ROW_H)));
+      doc.setTextColor(...ACCENT);
+      doc.text('BONUS', cellX + 9, ry + rowTextOffset);
       doc.setFont('helvetica', 'normal');
-      doc.setFontSize(9.5);
+      doc.setFontSize(rowFont);
     }
     ry += rowH;
   });
@@ -245,38 +315,54 @@ async function buildPdf(
   doc.setLineWidth(0.6);
   doc.line(margin, ry, margin + contentW, ry);
 
-  y = ry + 20;
+  y = ry + GAP_TABLE_TO_TOTAL;
   doc.setFont('helvetica', 'bold');
   doc.setFontSize(11);
   doc.setTextColor(...NAVY);
   doc.text(`TOTAL DELIVERED: ${rows.length}`, margin, y);
 
-  y += 18;
+  y += GAP_AFTER_DELIVERED;
 
-  // ---- bonus summary (volume + hat-trick, this month's totals) ----
-  const volume = volumeBonusFor(rows.length);
-  const hattrickTotalCents = hattrickGroups.length * HATTRICK_BONUS_CENTS;
-  const totalBonusCents = (volume?.cents ?? 0) + hattrickTotalCents;
-  if (volume) {
-    doc.setFont('helvetica', 'normal');
-    doc.setFontSize(9.5);
-    doc.setTextColor(...DARK);
-    doc.text(`Volume bonus (${volume.tierCount}+ delivered): ${formatCents(volume.cents)}`, margin, y);
-    y += 15;
-  }
-  if (hattrickGroups.length > 0) {
-    doc.setFont('helvetica', 'normal');
-    doc.setFontSize(9.5);
-    doc.setTextColor(...DARK);
-    doc.text(`Hat-trick bonus: ${formatCents(HATTRICK_BONUS_CENTS)} × ${hattrickGroups.length} = ${formatCents(hattrickTotalCents)}`, margin, y);
-    y += 15;
-  }
+  // ---- bonus banner ----
+  // A light fill with a crisp double navy border reads as a certificate,
+  // not a solid ink block — much cheaper (and better-looking) to print
+  // than a filled band.
   if (totalBonusCents > 0) {
+    const BANNER_BG: [number, number, number] = [247, 250, 255];
+
+    doc.setFillColor(...BANNER_BG);
+    doc.rect(margin, y, contentW, BANNER_H, 'F');
+    doc.setDrawColor(...ACCENT);
+    doc.setLineWidth(1.3);
+    doc.rect(margin, y, contentW, BANNER_H, 'S');
+    doc.setLineWidth(0.5);
+    doc.rect(margin + 5, y + 5, contentW - 10, BANNER_H - 10, 'S');
+
+    const labelText = 'TOTAL BONUS EARNED THIS MONTH';
     doc.setFont('helvetica', 'bold');
-    doc.setFontSize(12);
+    doc.setFontSize(10);
+    const labelW = doc.getTextWidth(labelText);
+    doc.setDrawColor(...ACCENT);
+    doc.setLineWidth(0.8);
+    doc.line(pageW / 2 - labelW / 2 - 40, y + 22, pageW / 2 - labelW / 2 - 14, y + 22);
+    doc.line(pageW / 2 + labelW / 2 + 14, y + 22, pageW / 2 + labelW / 2 + 40, y + 22);
+    doc.setTextColor(...ACCENT);
+    doc.text(labelText, pageW / 2, y + 25, { align: 'center' });
+
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(28);
     doc.setTextColor(...NAVY);
-    doc.text(`TOTAL BONUS THIS MONTH: ${formatCents(totalBonusCents)}`, margin, y + 2);
-    y += 24;
+    doc.text(formatCents(totalBonusCents), pageW / 2, y + 50, { align: 'center' });
+
+    const parts: string[] = [];
+    if (volume) parts.push(`Volume ${formatCents(volume.cents)}`);
+    if (hattrickGroups.length > 0) parts.push(`Hat-Trick ${formatCents(hattrickTotalCents)} (${hattrickGroups.length}×)`);
+    doc.setFont('helvetica', 'normal');
+    doc.setFontSize(8.5);
+    doc.setTextColor(...SLATE);
+    doc.text(parts.join('   ·   '), pageW / 2, y + 70, { align: 'center' });
+
+    y += BANNER_H + BANNER_GAP;
   } else {
     y += 6;
   }
@@ -290,22 +376,20 @@ async function buildPdf(
     const lineH = 13;
     const groupHeaderH = 20;
     const groupGap = 8;
-    const totalMemberLines = hattrickGroups.reduce((n, g) => n + g.members.length, 0);
-    const boxH = 16 + hattrickGroups.length * groupHeaderH + totalMemberLines * lineH + (hattrickGroups.length - 1) * groupGap;
 
-    doc.setFillColor(...GOLD_BG);
-    doc.rect(margin, y, contentW, boxH, 'F');
-    doc.setDrawColor(...GOLD);
+    doc.setFillColor(...ACCENT_BG);
+    doc.rect(margin, y, contentW, hattrickBoxH, 'F');
+    doc.setDrawColor(...ACCENT);
     doc.setLineWidth(0.8);
-    doc.rect(margin, y, contentW, boxH, 'S');
+    doc.rect(margin, y, contentW, hattrickBoxH, 'S');
 
     let gy = y + 16;
     hattrickGroups.forEach((group, gi) => {
-      doc.setFillColor(...GOLD);
+      doc.setFillColor(...ACCENT);
       doc.circle(margin + 15, gy, 3.5, 'F');
       doc.setFont('helvetica', 'bold');
       doc.setFontSize(10);
-      doc.setTextColor(...GOLD);
+      doc.setTextColor(...ACCENT);
       const soldLabel = parseDateOnly(group.sold_at).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' });
       doc.text(`HAT-TRICK BONUS — SOLD ${soldLabel.toUpperCase()} · ${group.members.length} VEHICLES`, margin + 24, gy + 4);
       gy += groupHeaderH;
@@ -313,15 +397,14 @@ async function buildPdf(
       doc.setFont('helvetica', 'normal');
       doc.setFontSize(8.5);
       doc.setTextColor(...DARK);
-      group.members.forEach((m) => {
-        const deliveredLabel = new Date(m.delivery_at).toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
-        doc.text(`${m.customer_name}${m.stock_number ? ` · #${m.stock_number}` : ''} · Delivered ${deliveredLabel}`, margin + 24, gy + 3);
+      hattrickLineSets[gi].forEach((line) => {
+        doc.text(line, margin + 24, gy + 3);
         gy += lineH;
       });
       if (gi < hattrickGroups.length - 1) gy += groupGap;
     });
 
-    y += boxH + 24;
+    y += hattrickBoxH + HATTRICK_GAP;
   } else {
     y += 4;
   }
@@ -333,14 +416,12 @@ async function buildPdf(
     const lineH = 13;
     const groupHeaderH = 20;
     const groupGap = 8;
-    const totalMemberLines = pendingHattricks.reduce((n, g) => n + g.members.length, 0);
-    const boxH = 16 + pendingHattricks.length * groupHeaderH + totalMemberLines * lineH + (pendingHattricks.length - 1) * groupGap;
 
     doc.setFillColor(...LIGHT_GRAY);
-    doc.rect(margin, y, contentW, boxH, 'F');
+    doc.rect(margin, y, contentW, pendingBoxH, 'F');
     doc.setDrawColor(...MID_GRAY);
     doc.setLineWidth(0.8);
-    doc.rect(margin, y, contentW, boxH, 'S');
+    doc.rect(margin, y, contentW, pendingBoxH, 'S');
 
     let py = y + 16;
     pendingHattricks.forEach((group, gi) => {
@@ -357,14 +438,14 @@ async function buildPdf(
       doc.setFont('helvetica', 'normal');
       doc.setFontSize(8.5);
       doc.setTextColor(...MUTED);
-      group.members.forEach((m) => {
-        doc.text(`${m.customer_name}${m.stock_number ? ` · #${m.stock_number}` : ''} — ${m.delivered ? 'delivered' : 'not yet delivered'}`, margin + 24, py + 3);
+      pendingLineSets[gi].forEach((line) => {
+        doc.text(line, margin + 24, py + 3);
         py += lineH;
       });
       if (gi < pendingHattricks.length - 1) py += groupGap;
     });
 
-    y += boxH + 24;
+    y += pendingBoxH + PENDING_GAP;
   }
 
   // ---- authorization signatures ----
@@ -372,31 +453,30 @@ async function buildPdf(
   doc.setFontSize(10);
   doc.setTextColor(...DARK);
   doc.text('AUTHORIZATION', margin, y);
-  y += 32;
+  y += 26;
 
   const colW = (contentW - 24) / 2;
-  const lineY = y + 30;
+  const lineY = y + 24;
   doc.setDrawColor(...MUTED);
   doc.setLineWidth(0.8);
   doc.line(margin, lineY, margin + colW - 20, lineY);
   doc.setFont('helvetica', 'normal');
   doc.setFontSize(9);
   doc.setTextColor(...MUTED);
-  doc.text(`${salespersonName} · Salesperson`, margin, lineY + 13);
-  doc.text('Date: _______________', margin, lineY + 25);
+  doc.text(`${salespersonName} · Salesperson`, margin, lineY + 11);
+  doc.text('Date: _______________', margin, lineY + 21);
 
   const x2 = margin + colW + 24;
   doc.line(x2, lineY, x2 + colW - 20, lineY);
-  doc.text('Sales Manager (sign in person)', x2, lineY + 13);
+  doc.text('Sales Manager (sign in person)', x2, lineY + 11);
   doc.setFont('helvetica', 'italic');
   doc.setFontSize(8.5);
-  doc.text('Signature authorizes this report for accounting', x2, lineY + 25);
+  doc.text('Signature authorizes this report for accounting', x2, lineY + 21);
   doc.setFont('helvetica', 'normal');
   doc.setFontSize(9);
-  doc.text('Date: _______________', x2, lineY + 37);
+  doc.text('Date: _______________', x2, lineY + 31);
 
   // ---- footer ----
-  const pageH = doc.internal.pageSize.getHeight();
   const footerY = pageH - 34;
   doc.setDrawColor(...MID_GRAY);
   doc.setLineWidth(0.5);
