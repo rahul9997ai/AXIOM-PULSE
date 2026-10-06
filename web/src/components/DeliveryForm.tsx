@@ -50,11 +50,6 @@ export default function DeliveryForm({ existing, onSaved }: { existing?: Deliver
   const [customer, setCustomer] = useState(existing?.customer_name ?? '');
   const [stockNumber, setStockNumber] = useState(existing?.stock_number ?? '');
   const [vehicleCondition, setVehicleCondition] = useState<VehicleCondition | ''>(existing?.vehicle_condition ?? '');
-  // Entered here by the FSM, from the deal jacket, rather than left for the
-  // salesperson to recall later — by the time a delivery is created, days
-  // can have passed since the car actually sold (waiting on loan/lease
-  // approval), and the sold date is what hat-trick bonus grouping keys off.
-  const [soldAt, setSoldAt] = useState(existing?.sold_at ?? '');
   const [lenderId, setLenderId] = useState(existing?.lender_id ?? '');
   const [approvalStatus, setApprovalStatus] = useState<ApprovalStatus>(existing?.approval_status ?? 'pending');
   const existingLocal = existing ? toLocalInput(existing.delivery_at) : null;
@@ -168,10 +163,6 @@ export default function DeliveryForm({ existing, onSaved }: { existing?: Deliver
       setError('Select whether this vehicle is new or used.');
       return;
     }
-    if (!soldAt) {
-      setError('Enter the date sold, from the deal jacket.');
-      return;
-    }
     if (dueOnDelivery && (!dueAmount || inputToCents(dueAmount) <= 0)) {
       setError('Enter an amount for the due-on-delivery collection or refund.');
       return;
@@ -191,7 +182,6 @@ export default function DeliveryForm({ existing, onSaved }: { existing?: Deliver
       customer_name: customerName,
       stock_number: stockNumber.trim() || null,
       vehicle_condition: vehicleCondition,
-      sold_at: soldAt,
       lender_id: lenderId || null,
       approval_status: approvalStatus,
       delivery_at: new Date(deliveryAt).toISOString(),
@@ -209,7 +199,6 @@ export default function DeliveryForm({ existing, onSaved }: { existing?: Deliver
       if (customerName !== existing.customer_name) changedFields.push('customer name');
       if ((stockNumber.trim() || null) !== existing.stock_number) changedFields.push('stock number');
       if (vehicleCondition !== existing.vehicle_condition) changedFields.push('vehicle condition');
-      if (soldAt !== (existing.sold_at ?? '')) changedFields.push('date sold');
       if ((lenderId || null) !== existing.lender_id) changedFields.push('lender/lessor');
       if (approvalStatus !== existing.approval_status) changedFields.push('approval status');
       if (payload.delivery_at !== existing.delivery_at) changedFields.push('delivery time');
@@ -345,21 +334,26 @@ export default function DeliveryForm({ existing, onSaved }: { existing?: Deliver
       />
 
       <div style={fieldLabel}>VEHICLE CONDITION</div>
-      <div style={{ display: 'flex', gap: 14 }}>
-        <label style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 13 }}>
-          <input type="radio" name="vehicleCondition" checked={vehicleCondition === 'new'} onChange={() => setVehicleCondition('new')} style={{ width: 'auto' }} />
-          New
-        </label>
-        <label style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 13 }}>
-          <input type="radio" name="vehicleCondition" checked={vehicleCondition === 'used'} onChange={() => setVehicleCondition('used')} style={{ width: 'auto' }} />
-          Used
-        </label>
-      </div>
-
-      <div style={fieldLabel}>DATE SOLD</div>
-      <input type="date" value={soldAt} onChange={(e) => setSoldAt(e.target.value)} />
-      <div style={{ color: 'var(--muted)', fontSize: 11.5, marginTop: -6 }}>
-        From the deal jacket — not the delivery date. This drives hat-trick bonus tracking, so get it from the contract rather than guessing.
+      <div style={{
+        display: 'flex', background: 'var(--surface)', border: '1px solid var(--line)',
+        borderRadius: 10, padding: 3, gap: 3,
+      }}>
+        {(['new', 'used'] as const).map((c) => (
+          <button
+            key={c}
+            type="button"
+            onClick={() => setVehicleCondition(c)}
+            style={{
+              flex: 1, padding: '8px 0', borderRadius: 7, border: 'none', cursor: 'pointer',
+              fontSize: 13, fontWeight: 700, letterSpacing: 0.2,
+              background: vehicleCondition === c ? 'var(--accent)' : 'transparent',
+              color: vehicleCondition === c ? '#fff' : 'var(--muted)',
+              transition: 'background 0.15s, color 0.15s',
+            }}
+          >
+            {c === 'new' ? 'New' : 'Used'}
+          </button>
+        ))}
       </div>
 
       <div style={fieldLabel}>LENDER / LESSOR</div>

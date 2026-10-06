@@ -67,13 +67,17 @@ export interface Delivery {
   delivered_at: string | null;
   fsm_name: string | null;
   salesperson_name: string | null;
-  // The date the deal was actually sold/written, from the deal jacket —
-  // entered by the FSM when creating the delivery (they have the contract
-  // in front of them), since it drives hat-trick bonus eligibility and can
-  // differ from delivery_at (the scheduled handover date, which may land
-  // days or weeks later once financing is approved). A salesperson can
-  // still fill it in on older deliveries that predate this field.
+  // Set only when the salesperson answers "yes" to the hat-trick prompt —
+  // the date the deal was actually sold/written, separate from delivery_at
+  // (the scheduled handover date, which can land days or weeks later once
+  // financing is approved). Null while undecided, and null again if they
+  // answer "no" — hattrick_decided is what distinguishes "no" from
+  // "haven't answered yet".
   sold_at: string | null;
+  // Whether the salesperson has answered the hat-trick yes/no prompt for
+  // this delivery (regardless of which way) — drives whether the prompt
+  // still shows, independent of sold_at being null for either reason.
+  hattrick_decided: boolean;
   vehicle_condition: VehicleCondition | null;
   lenders?: Lender | null;
   delivery_requirements?: DeliveryRequirement[];

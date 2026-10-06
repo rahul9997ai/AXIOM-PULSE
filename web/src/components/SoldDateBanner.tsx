@@ -5,11 +5,11 @@ import { useSession } from '@/lib/session';
 import type { Delivery } from '@/lib/types';
 
 // Not dismissible, same as MonthCloseBanner's undelivered warning — the
-// sold date drives hat-trick bonus tracking and is the salesperson's own to
-// enter, so this keeps surfacing on every visit until every one of their
-// deliveries has it, rather than letting it be missed once and forgotten.
-// Never shown to a Master previewing the role: this is about the real
-// signed-in salesperson's own missing data, not whoever they're viewing.
+// hat-trick yes/no decision is the salesperson's own to make, so this keeps
+// surfacing on every visit until every one of their deliveries has been
+// answered, rather than letting it be missed once and forgotten. Never
+// shown to a Master previewing the role: this is about the real signed-in
+// salesperson's own undecided deliveries, not whoever they're viewing.
 export default function SoldDateBanner() {
   const { profile, session } = useSession();
   const [missing, setMissing] = useState<Delivery[]>([]);
@@ -21,7 +21,7 @@ export default function SoldDateBanner() {
       .from('deliveries')
       .select('*')
       .eq('salesperson_id', session.user.id)
-      .is('sold_at', null)
+      .eq('hattrick_decided', false)
       .neq('status', 'cancelled')
       .order('delivery_at', { ascending: true })
       .then(({ data }) => setMissing((data as Delivery[]) || []));
@@ -37,8 +37,8 @@ export default function SoldDateBanner() {
       <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, alignItems: 'center', justifyContent: 'space-between' }}>
         <span>
           {missing.length === 1
-            ? '1 delivery is missing a sold date.'
-            : `${missing.length} deliveries are missing a sold date.`}
+            ? '1 delivery needs a quick hat-trick check.'
+            : `${missing.length} deliveries need a quick hat-trick check.`}
         </span>
         <button
           type="button"

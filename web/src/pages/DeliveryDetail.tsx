@@ -34,12 +34,13 @@ export default function DeliveryDetail() {
   const [sendingComment, setSendingComment] = useState(false);
   const [denyFor, setDenyFor] = useState<string | null>(null);
   const [denyReason, setDenyReason] = useState('');
-  // Blank, not defaulted to today — this only ever shows for deliveries
-  // created before the FSM started entering the deal-jacket sold date at
-  // creation, so there's no good default to guess; forcing an explicit
-  // pick beats silently submitting today's date as if it were accurate.
+  // hattrickOpen: the Yes/No choice is showing (always true until decided;
+  // re-openable afterward via "Change" so a mistaken answer isn't permanent).
+  // enteringDate: within that, the date-picker sub-step after picking "Yes".
+  const [hattrickOpen, setHattrickOpen] = useState(false);
+  const [enteringDate, setEnteringDate] = useState(false);
   const [soldAtDraft, setSoldAtDraft] = useState('');
-  const [savingSoldAt, setSavingSoldAt] = useState(false);
+  const [savingHattrick, setSavingHattrick] = useState(false);
 
   const effectiveRole = isMaster ? actingRole : profile?.role;
   // isManager here stays MANAGER_ROLES-only (not DEALERSHIP_VIEW_ROLES) —
@@ -84,20 +85,38 @@ export default function DeliveryDetail() {
   const canComplete = effectiveRole === 'Salesperson' && d.status !== 'delivered' && d.status !== 'cancelled';
   const sc = STATUS_COLOR[d.status];
   const dt = new Date(d.delivery_at);
-  // Normally entered by the FSM at creation now, from the deal jacket; this
-  // is only a backstop for deliveries created before that — never prompted
-  // while a Master is only previewing the role. Keeps asking every time
-  // they open this delivery until it's filled in; cancelled deals don't
-  // need one.
-  const needsSoldDate = profile?.role === 'Salesperson' && session?.user.id === d.salesperson_id
-    && !d.sold_at && d.status !== 'cancelled';
+  // Shown only to the real salesperson on their own delivery, never a
+  // Master previewing the role, and never for a cancelled deal. The
+  // yes/no choice itself keeps asking until answered; once answered, it
+  // collapses to a one-line summary with a "Change" link so a mistaken tap
+  // isn't permanent.
+  const ownsHattrickDecision = profile?.role === 'Salesperson' && session?.user.id === d.salesperson_id
+    && d.status !== 'cancelled';
+  const showHattrickChoice = ownsHattrickDecision && (!d.hattrick_decided || hattrickOpen);
 
-  const saveSoldDate = async () => {
-    if (!soldAtDraft) return;
-    setSavingSoldAt(true);
-    const { error } = await supabase.from('deliveries').update({ sold_at: soldAtDraft }).eq('id', d.id);
-    setSavingSoldAt(false);
+  const chooseNotHattrick = async () => {
+    setSavingHattrick(true);
+    const { error } = await supabase.from('deliveries').update({ hattrick_decided: true, sold_at: null }).eq('id', d.id);
+    setSavingHattrick(false);
     if (error) { setNotice(error.message); return; }
+    setHattrickOpen(false);
+    setEnteringDate(false);
+    load();
+  };
+
+  const chooseIsHattrick = () => {
+    setSoldAtDraft(d.sold_at ?? '');
+    setEnteringDate(true);
+  };
+
+  const confirmHattrickDate = async () => {
+    if (!soldAtDraft) return;
+    setSavingHattrick(true);
+    const { error } = await supabase.from('deliveries').update({ hattrick_decided: true, sold_at: soldAtDraft }).eq('id', d.id);
+    setSavingHattrick(false);
+    if (error) { setNotice(error.message); return; }
+    setHattrickOpen(false);
+    setEnteringDate(false);
     load();
   };
 
@@ -262,15 +281,55 @@ export default function DeliveryDetail() {
       <div style={{ display: 'grid', gap: 14, maxWidth: 640, margin: '0 auto' }}>
         <Link to="/" style={{ fontSize: 13, color: 'var(--accent)', textDecoration: 'none', fontWeight: 700 }}>‹ Back to Deliveries</Link>
 
-        {needsSoldDate && (
+        {ownsHattrickDecision && showHattrickChoice && !enteringDate && (
           <div style={{
             padding: '12px 14px', background: 'var(--banner-warn-bg)', border: '1px solid var(--banner-warn-border)',
             borderRadius: 12, color: 'var(--banner-warn-fg)',
           }}>
-            <div style={{ fontWeight: 800, fontSize: 13.5 }}>What date did this vehicle sell?</div>
+            <div style={{ fontWeight: 800, fontSize: 13.5 }}>Was this part of a hat-trick?</div>
             <div style={{ fontSize: 12, marginTop: 2, marginBottom: 10, opacity: 0.9 }}>
-              Used for hat-trick bonus tracking — separate from the delivery date, since a deal sold one day doesn't
-              always deliver the same day.
+              3+ vehicles sold the same day. Just a quick yes/no — you'll only need the exact date if it's a yes.
+            </div>
+            <div style={{ display: 'flex', gap: 8 }}>
+              <button
+                type="button"
+                className="btn"
+                style={{ flex: 1, padding: '8px 0', fontSize: 13 }}
+                disabled={savingHattrick}
+                onClick={chooseIsHattrick}
+              >
+                Yes
+              </button>
+              <button
+                type="button"
+                className="btn secondary"
+                style={{ flex: 1, padding: '8px 0', fontSize: 13 }}
+                disabled={savingHattrick}
+                onClick={chooseNotHattrick}
+              >
+                {savingHattrick ? 'Saving…' : 'No'}
+              </button>
+            </div>
+            {d.hattrick_decided && (
+              <button
+                type="button"
+                onClick={() => setHattrickOpen(false)}
+                style={{ background: 'none', border: 'none', color: 'var(--banner-warn-fg)', fontSize: 12, fontWeight: 700, marginTop: 8, cursor: 'pointer', padding: 0 }}
+              >
+                Cancel
+              </button>
+            )}
+          </div>
+        )}
+
+        {ownsHattrickDecision && showHattrickChoice && enteringDate && (
+          <div style={{
+            padding: '12px 14px', background: 'var(--banner-warn-bg)', border: '1px solid var(--banner-warn-border)',
+            borderRadius: 12, color: 'var(--banner-warn-fg)',
+          }}>
+            <div style={{ fontWeight: 800, fontSize: 13.5 }}>What date did it sell?</div>
+            <div style={{ fontSize: 12, marginTop: 2, marginBottom: 10, opacity: 0.9 }}>
+              From memory is fine — this just groups same-day sales for the bonus.
             </div>
             <div style={{ display: 'flex', gap: 8 }}>
               <input
@@ -283,12 +342,39 @@ export default function DeliveryDetail() {
                 type="button"
                 className="btn"
                 style={{ padding: '8px 16px', fontSize: 13 }}
-                disabled={savingSoldAt || !soldAtDraft}
-                onClick={saveSoldDate}
+                disabled={savingHattrick || !soldAtDraft}
+                onClick={confirmHattrickDate}
               >
-                {savingSoldAt ? 'Saving…' : 'Save'}
+                {savingHattrick ? 'Saving…' : 'Save'}
               </button>
             </div>
+            <button
+              type="button"
+              onClick={() => setEnteringDate(false)}
+              style={{ background: 'none', border: 'none', color: 'var(--banner-warn-fg)', fontSize: 12, fontWeight: 700, marginTop: 8, cursor: 'pointer', padding: 0 }}
+            >
+              Back
+            </button>
+          </div>
+        )}
+
+        {ownsHattrickDecision && !showHattrickChoice && (
+          <div style={{
+            display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+            padding: '10px 14px', background: 'var(--surface)', border: '1px solid var(--line)', borderRadius: 12, fontSize: 12.5,
+          }}>
+            <span>
+              {d.sold_at
+                ? <>Hat-trick: <strong>Yes</strong> — sold {new Date(`${d.sold_at}T00:00:00`).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' })}</>
+                : <>Hat-trick: <strong>No</strong></>}
+            </span>
+            <button
+              type="button"
+              onClick={() => setHattrickOpen(true)}
+              style={{ background: 'none', border: 'none', color: 'var(--accent)', fontSize: 12, fontWeight: 700, cursor: 'pointer', padding: 0 }}
+            >
+              Change
+            </button>
           </div>
         )}
 
