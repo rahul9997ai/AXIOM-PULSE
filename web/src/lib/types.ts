@@ -28,6 +28,7 @@ export interface DeliveryRequirement {
 export type DeliveryStatus = 'new' | 'requirements_outstanding' | 'ready' | 'delivered' | 'cancelled';
 export type ApprovalStatus = 'pending' | 'approved' | 'conditional' | 'declined';
 export type DueOnDeliveryType = 'collection' | 'refund';
+export type VehicleCondition = 'new' | 'used';
 
 export interface Lender {
   id: string;
@@ -66,10 +67,14 @@ export interface Delivery {
   delivered_at: string | null;
   fsm_name: string | null;
   salesperson_name: string | null;
-  // The date the deal was actually sold/written — set by the salesperson
-  // themselves (never the FSM), since it drives hat-trick bonus eligibility
-  // and can differ from delivery_at (the scheduled handover date).
+  // The date the deal was actually sold/written, from the deal jacket —
+  // entered by the FSM when creating the delivery (they have the contract
+  // in front of them), since it drives hat-trick bonus eligibility and can
+  // differ from delivery_at (the scheduled handover date, which may land
+  // days or weeks later once financing is approved). A salesperson can
+  // still fill it in on older deliveries that predate this field.
   sold_at: string | null;
+  vehicle_condition: VehicleCondition | null;
   lenders?: Lender | null;
   delivery_requirements?: DeliveryRequirement[];
 }

@@ -34,7 +34,11 @@ export default function DeliveryDetail() {
   const [sendingComment, setSendingComment] = useState(false);
   const [denyFor, setDenyFor] = useState<string | null>(null);
   const [denyReason, setDenyReason] = useState('');
-  const [soldAtDraft, setSoldAtDraft] = useState(() => new Date().toISOString().slice(0, 10));
+  // Blank, not defaulted to today — this only ever shows for deliveries
+  // created before the FSM started entering the deal-jacket sold date at
+  // creation, so there's no good default to guess; forcing an explicit
+  // pick beats silently submitting today's date as if it were accurate.
+  const [soldAtDraft, setSoldAtDraft] = useState('');
   const [savingSoldAt, setSavingSoldAt] = useState(false);
 
   const effectiveRole = isMaster ? actingRole : profile?.role;
@@ -80,10 +84,11 @@ export default function DeliveryDetail() {
   const canComplete = effectiveRole === 'Salesperson' && d.status !== 'delivered' && d.status !== 'cancelled';
   const sc = STATUS_COLOR[d.status];
   const dt = new Date(d.delivery_at);
-  // The sold date drives hat-trick bonus eligibility and is the
-  // salesperson's own to enter — never the FSM's, and never prompted while
-  // a Master is only previewing the role. Keeps asking every time they open
-  // this delivery until it's filled in; cancelled deals don't need one.
+  // Normally entered by the FSM at creation now, from the deal jacket; this
+  // is only a backstop for deliveries created before that — never prompted
+  // while a Master is only previewing the role. Keeps asking every time
+  // they open this delivery until it's filled in; cancelled deals don't
+  // need one.
   const needsSoldDate = profile?.role === 'Salesperson' && session?.user.id === d.salesperson_id
     && !d.sold_at && d.status !== 'cancelled';
 
@@ -298,6 +303,14 @@ export default function DeliveryDetail() {
                   background: 'var(--surface)', border: '1px solid var(--line)', borderRadius: 7, padding: '3px 8px',
                 }}>
                   Stock #{d.stock_number}
+                </span>
+              )}
+              {d.vehicle_condition && (
+                <span style={{
+                  fontSize: 12, fontWeight: 800, letterSpacing: 0.3, color: 'var(--muted)',
+                  background: 'var(--surface)', border: '1px solid var(--line)', borderRadius: 7, padding: '3px 8px',
+                }}>
+                  {d.vehicle_condition === 'new' ? 'New' : 'Used'}
                 </span>
               )}
             </div>

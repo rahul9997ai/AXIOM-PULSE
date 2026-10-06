@@ -255,7 +255,7 @@ export default function Settings() {
     const { start, end } = monthRange(Number(yearStr), Number(monthStr));
     supabase
       .from('deliveries')
-      .select('id, customer_name, stock_number, salesperson_name, fsm_name, delivery_at')
+      .select('id, customer_name, stock_number, salesperson_name, fsm_name, delivery_at, vehicle_condition')
       .eq('dealership_id', dealershipId)
       .eq('status', 'delivered')
       .gte('delivery_at', start.toISOString())

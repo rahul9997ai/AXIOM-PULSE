@@ -5,7 +5,7 @@ import { useSession } from '@/lib/session';
 import { inputToCents, centsToInput, formatCents } from '@/lib/money';
 import { capitalizeWords } from '@/lib/text';
 import { useActingRole } from '@/lib/actingRole';
-import type { ApprovalStatus, Delivery, DueOnDeliveryType, Lender, RequirementTemplate } from '@/lib/types';
+import type { ApprovalStatus, Delivery, DueOnDeliveryType, Lender, RequirementTemplate, VehicleCondition } from '@/lib/types';
 
 interface Salesperson { id: string; name: string; }
 interface FinanceManager { id: string; name: string; }
@@ -49,6 +49,12 @@ export default function DeliveryForm({ existing, onSaved }: { existing?: Deliver
 
   const [customer, setCustomer] = useState(existing?.customer_name ?? '');
   const [stockNumber, setStockNumber] = useState(existing?.stock_number ?? '');
+  const [vehicleCondition, setVehicleCondition] = useState<VehicleCondition | ''>(existing?.vehicle_condition ?? '');
+  // Entered here by the FSM, from the deal jacket, rather than left for the
+  // salesperson to recall later — by the time a delivery is created, days
+  // can have passed since the car actually sold (waiting on loan/lease
+  // approval), and the sold date is what hat-trick bonus grouping keys off.
+  const [soldAt, setSoldAt] = useState(existing?.sold_at ?? '');
   const [lenderId, setLenderId] = useState(existing?.lender_id ?? '');
   const [approvalStatus, setApprovalStatus] = useState<ApprovalStatus>(existing?.approval_status ?? 'pending');
   const existingLocal = existing ? toLocalInput(existing.delivery_at) : null;
@@ -158,6 +164,14 @@ export default function DeliveryForm({ existing, onSaved }: { existing?: Deliver
       setError('Customer, delivery time, salesperson and Finance Manager are required.');
       return;
     }
+    if (!vehicleCondition) {
+      setError('Select whether this vehicle is new or used.');
+      return;
+    }
+    if (!soldAt) {
+      setError('Enter the date sold, from the deal jacket.');
+      return;
+    }
     if (dueOnDelivery && (!dueAmount || inputToCents(dueAmount) <= 0)) {
       setError('Enter an amount for the due-on-delivery collection or refund.');
       return;
@@ -176,6 +190,8 @@ export default function DeliveryForm({ existing, onSaved }: { existing?: Deliver
       fsm_name: fsmName,
       customer_name: customerName,
       stock_number: stockNumber.trim() || null,
+      vehicle_condition: vehicleCondition,
+      sold_at: soldAt,
       lender_id: lenderId || null,
       approval_status: approvalStatus,
       delivery_at: new Date(deliveryAt).toISOString(),
@@ -192,6 +208,8 @@ export default function DeliveryForm({ existing, onSaved }: { existing?: Deliver
     if (isEdit && existing) {
       if (customerName !== existing.customer_name) changedFields.push('customer name');
       if ((stockNumber.trim() || null) !== existing.stock_number) changedFields.push('stock number');
+      if (vehicleCondition !== existing.vehicle_condition) changedFields.push('vehicle condition');
+      if (soldAt !== (existing.sold_at ?? '')) changedFields.push('date sold');
       if ((lenderId || null) !== existing.lender_id) changedFields.push('lender/lessor');
       if (approvalStatus !== existing.approval_status) changedFields.push('approval status');
       if (payload.delivery_at !== existing.delivery_at) changedFields.push('delivery time');
@@ -325,6 +343,24 @@ export default function DeliveryForm({ existing, onSaved }: { existing?: Deliver
         onChange={(e) => setStockNumber(e.target.value)}
         autoCapitalize="characters"
       />
+
+      <div style={fieldLabel}>VEHICLE CONDITION</div>
+      <div style={{ display: 'flex', gap: 14 }}>
+        <label style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 13 }}>
+          <input type="radio" name="vehicleCondition" checked={vehicleCondition === 'new'} onChange={() => setVehicleCondition('new')} style={{ width: 'auto' }} />
+          New
+        </label>
+        <label style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 13 }}>
+          <input type="radio" name="vehicleCondition" checked={vehicleCondition === 'used'} onChange={() => setVehicleCondition('used')} style={{ width: 'auto' }} />
+          Used
+        </label>
+      </div>
+
+      <div style={fieldLabel}>DATE SOLD</div>
+      <input type="date" value={soldAt} onChange={(e) => setSoldAt(e.target.value)} />
+      <div style={{ color: 'var(--muted)', fontSize: 11.5, marginTop: -6 }}>
+        From the deal jacket — not the delivery date. This drives hat-trick bonus tracking, so get it from the contract rather than guessing.
+      </div>
 
       <div style={fieldLabel}>LENDER / LESSOR</div>
       <select value={lenderId} onChange={(e) => setLenderId(e.target.value)}>
