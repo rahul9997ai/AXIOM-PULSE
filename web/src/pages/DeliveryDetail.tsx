@@ -6,6 +6,7 @@ import { useActingRole } from '@/lib/actingRole';
 import type { Delivery, DeliveryComment } from '@/lib/types';
 import { STATUS_LABEL, STATUS_COLOR, MANAGER_ROLES } from '@/lib/types';
 import { capitalizeWords } from '@/lib/text';
+import { HATTRICK_TRACKING_STARTS_AT } from '@/lib/monthClose';
 import { downloadDeliveryIcs } from '@/lib/ics';
 import { useIsDesktop } from '@/lib/useIsDesktop';
 import DateTimePill from '@/components/DateTimePill';
@@ -86,12 +87,14 @@ export default function DeliveryDetail() {
   const sc = STATUS_COLOR[d.status];
   const dt = new Date(d.delivery_at);
   // Shown only to the real salesperson on their own delivery, never a
-  // Master previewing the role, and never for a cancelled deal. The
-  // yes/no choice itself keeps asking until answered; once answered, it
-  // collapses to a one-line summary with a "Change" link so a mistaken tap
-  // isn't permanent.
+  // Master previewing the role, never for a cancelled deal, and never for
+  // a delivery from before hat-trick tracking launched — those predate the
+  // feature entirely and were never going to get an answer. The yes/no
+  // choice itself keeps asking until answered; once answered, it collapses
+  // to a one-line summary with a "Change" link so a mistaken tap isn't
+  // permanent.
   const ownsHattrickDecision = profile?.role === 'Salesperson' && session?.user.id === d.salesperson_id
-    && d.status !== 'cancelled';
+    && d.status !== 'cancelled' && new Date(d.delivery_at) >= new Date(HATTRICK_TRACKING_STARTS_AT);
   const showHattrickChoice = ownsHattrickDecision && (!d.hattrick_decided || hattrickOpen);
 
   const chooseNotHattrick = async () => {

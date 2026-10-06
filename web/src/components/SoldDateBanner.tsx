@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import { supabase } from '@/lib/supabase';
 import { useSession } from '@/lib/session';
 import type { Delivery } from '@/lib/types';
+import { HATTRICK_TRACKING_STARTS_AT } from '@/lib/monthClose';
 
 // Not dismissible, same as MonthCloseBanner's undelivered warning — the
 // hat-trick yes/no decision is the salesperson's own to make, so this keeps
@@ -23,6 +24,7 @@ export default function SoldDateBanner() {
       .eq('salesperson_id', session.user.id)
       .eq('hattrick_decided', false)
       .neq('status', 'cancelled')
+      .gte('delivery_at', HATTRICK_TRACKING_STARTS_AT)
       .order('delivery_at', { ascending: true })
       .then(({ data }) => setMissing((data as Delivery[]) || []));
   }, [session, profile?.role]);
