@@ -28,18 +28,26 @@ function FsmClosePanel() {
   const label = monthLabel(year, month);
 
   const [loading, setLoading] = useState(true);
-  const [closed, setClosed] = useState<MonthClosure | null>(null);
+  const [closed, setClosed] = useState<ClosureWithFsm | null>(null);
   const [undelivered, setUndelivered] = useState<Delivery[]>([]);
   const [closing, setClosing] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  // Closing is dealership-wide, not per-FSM — once any one Finance Manager
+  // closes a month, every other FSM in the same dealership should see it as
+  // already closed rather than being asked to close it again themselves.
   useEffect(() => {
-    if (!session) return;
+    if (!session || !profile?.dealership_id) return;
     const load = async () => {
       setLoading(true);
       const { start, end } = monthRange(year, month);
       const [{ data: closure }, { data: deliveries }] = await Promise.all([
-        supabase.from('month_closures').select('*').eq('fsm_id', session.user.id).eq('year', year).eq('month', month).maybeSingle(),
+        supabase
+          .from('month_closures')
+          .select('*, profiles!month_closures_fsm_id_fkey(name)')
+          .eq('dealership_id', profile.dealership_id)
+          .eq('year', year).eq('month', month)
+          .maybeSingle(),
         supabase
           .from('deliveries')
           .select('*, delivery_requirements(*)')
@@ -49,12 +57,13 @@ function FsmClosePanel() {
           .lt('delivery_at', end.toISOString())
           .order('delivery_at', { ascending: true }),
       ]);
-      setClosed((closure as MonthClosure | null) ?? null);
+      const c = closure as (MonthClosure & { profiles: { name: string } | null }) | null;
+      setClosed(c ? { ...c, fsm_name: c.profiles?.name ?? null } : null);
       setUndelivered((deliveries as Delivery[]) || []);
       setLoading(false);
     };
     load();
-  }, [session, year, month]);
+  }, [session, profile?.dealership_id, year, month]);
 
   const closeMonth = async () => {
     setClosing(true);
@@ -62,7 +71,10 @@ function FsmClosePanel() {
     const { error } = await supabase.rpc('close_month', { p_year: year, p_month: month });
     setClosing(false);
     if (error) { setError(error.message); return; }
-    setClosed({ id: '', dealership_id: profile?.dealership_id ?? '', fsm_id: session!.user.id, year, month, closed_at: new Date().toISOString(), closed_by: session!.user.id });
+    setClosed({
+      id: '', dealership_id: profile?.dealership_id ?? '', fsm_id: session!.user.id, year, month,
+      closed_at: new Date().toISOString(), closed_by: session!.user.id, fsm_name: profile?.name ?? null,
+    });
   };
 
   const outstandingCount = undelivered.reduce((n, d) => n + (d.delivery_requirements || []).filter((r) => r.status === 'outstanding').length, 0);
@@ -79,7 +91,7 @@ function FsmClosePanel() {
           <div style={{ fontSize: 32 }}>✓</div>
           <div style={{ fontWeight: 800, fontSize: 17, marginTop: 6 }}>{label} is closed</div>
           <div style={{ color: 'var(--muted)', fontSize: 13, marginTop: 4 }}>
-            Closed {new Date(closed.closed_at).toLocaleString()}. Salespeople now see this reflected on their dashboard.
+            Closed by {closed.fsm_name ?? 'a Finance Manager'} on {new Date(closed.closed_at).toLocaleString()}. Salespeople now see this reflected on their dashboard.
           </div>
         </div>
       )}
@@ -159,12 +171,12 @@ function ReopenPanel() {
   useEffect(() => { load(); }, []);
 
   const reopen = async (c: ClosureWithFsm) => {
-    if (!window.confirm(`Reopen ${monthLabel(c.year, c.month)} for ${c.fsm_name ?? 'this Finance Manager'}? They'll be prompted to close it again.`)) return;
+    if (!window.confirm(`Reopen ${monthLabel(c.year, c.month)} for the dealership? Every Finance Manager will be prompted to close it again.`)) return;
     setReopeningId(c.id);
     const { error } = await supabase.rpc('reopen_month', { p_closure_id: c.id });
     setReopeningId(null);
     if (error) { setNotice(error.message); return; }
-    setNotice(`${monthLabel(c.year, c.month)} reopened for ${c.fsm_name ?? 'that Finance Manager'}.`);
+    setNotice(`${monthLabel(c.year, c.month)} reopened for the dealership.`);
     load();
   };
 
@@ -182,7 +194,7 @@ function ReopenPanel() {
               <div>
                 <div style={{ fontWeight: 700, fontSize: 14 }}>{monthLabel(c.year, c.month)}</div>
                 <div style={{ color: 'var(--muted)', fontSize: 12 }}>
-                  {c.fsm_name ?? 'Unknown FSM'} · closed {new Date(c.closed_at).toLocaleDateString()}
+                  Closed by {c.fsm_name ?? 'Unknown FSM'} on {new Date(c.closed_at).toLocaleDateString()}
                 </div>
               </div>
               <button type="button" className="btn secondary" style={{ padding: '4px 10px', fontSize: 12 }} disabled={reopeningId === c.id} onClick={() => reopen(c)}>

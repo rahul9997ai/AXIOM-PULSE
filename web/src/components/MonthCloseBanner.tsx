@@ -32,9 +32,10 @@ export default function MonthCloseBanner() {
     const dismissKey = `${DISMISS_KEY_PREFIX}${year}-${month}`;
 
     if (profile.role === 'FSM') {
+      if (!profile.dealership_id) return;
       const { start, end } = monthRange(year, month);
       Promise.all([
-        supabase.from('month_closures').select('id').eq('fsm_id', session.user.id).eq('year', year).eq('month', month).maybeSingle(),
+        supabase.from('month_closures').select('id').eq('dealership_id', profile.dealership_id).eq('year', year).eq('month', month).maybeSingle(),
         supabase.from('deliveries').select('id', { count: 'exact', head: true }).eq('fsm_id', session.user.id).gte('delivery_at', start.toISOString()).lt('delivery_at', end.toISOString()),
       ]).then(([{ data: closure }, { count }]) => {
         setFsmNeedsClose(!closure && (count ?? 0) > 0);
@@ -55,20 +56,16 @@ export default function MonthCloseBanner() {
         .then(({ data }) => setMyUndelivered((data as Delivery[]) || []));
 
       try { if (localStorage.getItem(dismissKey)) { setDismissed(true); return; } } catch { /* ignore */ }
+      if (!profile.dealership_id) return;
       supabase
-        .from('deliveries')
-        .select('fsm_id, fsm_name')
-        .eq('salesperson_id', session.user.id)
-        .gte('delivery_at', start.toISOString())
-        .lt('delivery_at', end.toISOString())
-        .then(async ({ data }) => {
-          const fsmIds = Array.from(new Set((data || []).map((d) => d.fsm_id).filter(Boolean)));
-          if (fsmIds.length === 0) return;
-          const { data: closures } = await supabase.from('month_closures').select('fsm_id').eq('year', year).eq('month', month).in('fsm_id', fsmIds);
-          if (closures && closures.length > 0) {
-            const closedFsm = (data || []).find((d) => d.fsm_id === closures[0].fsm_id);
-            setSalespersonClosedBy(closedFsm?.fsm_name ?? null);
-          }
+        .from('month_closures')
+        .select('*, profiles!month_closures_fsm_id_fkey(name)')
+        .eq('dealership_id', profile.dealership_id)
+        .eq('year', year).eq('month', month)
+        .maybeSingle()
+        .then(({ data }) => {
+          const closure = data as { profiles: { name: string } | null } | null;
+          if (closure) setSalespersonClosedBy(closure.profiles?.name ?? null);
         });
     }
   }, [session, profile, year, month]);
