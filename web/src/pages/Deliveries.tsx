@@ -111,8 +111,11 @@ export default function Deliveries() {
       ? new Date(b.delivered_at ?? b.delivery_at).getTime() - new Date(a.delivered_at ?? a.delivery_at).getTime()
       : new Date(a.delivery_at).getTime() - new Date(b.delivery_at).getTime());
   // Someone with several deliveries on different dates can pick one customer
-  // and see just that delivery instead of scrolling the whole list.
-  const customerNames = Array.from(new Set(rows.map((d) => d.customer_name))).sort();
+  // and see just that delivery instead of scrolling the whole list. Scoped
+  // to the current tab/month selection (visibleAll), not every delivery
+  // ever — otherwise this list only grows and stops reflecting what's
+  // actually on screen.
+  const customerNames = Array.from(new Set(visibleAll.map((d) => d.customer_name))).sort();
   // Master-only: see every dealership's deliveries at once, or narrow to one
   // finance manager (including their own, when they created deliveries
   // directly) — nobody else gets this filter.
@@ -203,7 +206,7 @@ export default function Deliveries() {
           <button
             key={t}
             type="button"
-            onClick={() => setTab(t)}
+            onClick={() => { setTab(t); setCustomerFilter(''); }}
             style={{
               flex: 1, border: 'none', borderRadius: 9, padding: '8px 0', fontSize: 13, fontWeight: 700,
               cursor: 'pointer', background: tab === t ? 'var(--card)' : 'transparent',
@@ -217,7 +220,7 @@ export default function Deliveries() {
       </div>
 
       {tab === 'delivered' && deliveredMonthOptions.length > 1 && (
-        <select value={deliveredMonthKey} onChange={(e) => setDeliveredMonthKey(e.target.value)}>
+        <select value={deliveredMonthKey} onChange={(e) => { setDeliveredMonthKey(e.target.value); setCustomerFilter(''); }}>
           {deliveredMonthOptions.map((key) => {
             const [y, m] = key.split('-').map(Number);
             return <option key={key} value={key}>{monthLabel(y, m)}</option>;

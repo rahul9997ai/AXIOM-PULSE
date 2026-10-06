@@ -336,7 +336,7 @@ export default function DeliveryForm({ existing, onSaved }: { existing?: Deliver
       <div style={fieldLabel}>VEHICLE CONDITION</div>
       <div style={{
         display: 'flex', background: 'var(--surface)', border: '1px solid var(--line)',
-        borderRadius: 10, padding: 3, gap: 3,
+        borderRadius: 10, padding: 3, gap: 6,
       }}>
         {(['new', 'used'] as const).map((c) => (
           <button
@@ -344,10 +344,12 @@ export default function DeliveryForm({ existing, onSaved }: { existing?: Deliver
             type="button"
             onClick={() => setVehicleCondition(c)}
             style={{
-              flex: 1, padding: '8px 0', borderRadius: 7, border: 'none', cursor: 'pointer',
+              flex: 1, padding: '8px 0', borderRadius: 7, cursor: 'pointer',
               fontSize: 13, fontWeight: 700, letterSpacing: 0.2,
-              background: vehicleCondition === c ? 'var(--accent)' : 'transparent',
+              border: vehicleCondition === c ? 'none' : '1px solid var(--line)',
+              background: vehicleCondition === c ? 'var(--accent)' : 'var(--focus-bg)',
               color: vehicleCondition === c ? '#fff' : 'var(--muted)',
+              boxShadow: vehicleCondition === c ? '0 1px 3px rgba(0,0,0,0.15)' : 'none',
               transition: 'background 0.15s, color 0.15s',
             }}
           >
