@@ -169,7 +169,7 @@ export default function Deliveries() {
         <div style={{ display: 'flex', gap: 10 }}>
           <StatTile label="Active" value={active.length} />
           <StatTile label="Outstanding" value={outstandingCount} tone={outstandingCount > 0 ? 'warn' : 'ok'} />
-          <StatTile label="Delivered" value={rows.filter((d) => d.status === 'delivered').length} />
+          <StatTile label="Delivered this month" value={deliveredThisMonth} />
         </div>
       )}
 
