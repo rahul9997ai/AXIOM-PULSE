@@ -6,7 +6,7 @@ import type { Role } from '@/lib/types';
 interface Dealership { id: string; name: string; active: boolean; }
 interface AppUser { id: string; name: string; role: Role; dealership_id: string | null; active: boolean; }
 
-const INVITE_ROLES: Role[] = ['General Manager', 'FSM', 'Salesperson'];
+const INVITE_ROLES: Role[] = ['General Manager', 'FSM', 'Salesperson', 'Sales Manager'];
 
 function newDealershipId(): string {
   return 'd-' + Math.random().toString(36).slice(2, 8);

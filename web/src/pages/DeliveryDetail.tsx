@@ -38,7 +38,14 @@ export default function DeliveryDetail() {
   const [savingSoldAt, setSavingSoldAt] = useState(false);
 
   const effectiveRole = isMaster ? actingRole : profile?.role;
+  // isManager here stays MANAGER_ROLES-only (not DEALERSHIP_VIEW_ROLES) —
+  // every one of its uses on this page gates a write action (edit, delete,
+  // notify, approve/deny a comment), and a Sales Manager must never get
+  // those. They're read-only: isReadOnlyViewer below hides the comment
+  // composer, and canComplete is an explicit Salesperson check rather than
+  // "not a manager" so they don't fall into the complete-delivery path either.
   const isManager = effectiveRole ? MANAGER_ROLES.includes(effectiveRole) : false;
+  const isReadOnlyViewer = effectiveRole === 'Sales Manager';
 
   const load = useCallback(async () => {
     if (!id) return;
@@ -70,7 +77,7 @@ export default function DeliveryDetail() {
   const d = delivery;
   const requirements = d.delivery_requirements || [];
   const open = requirements.filter((r) => r.status === 'outstanding');
-  const canComplete = !isManager && d.status !== 'delivered' && d.status !== 'cancelled';
+  const canComplete = effectiveRole === 'Salesperson' && d.status !== 'delivered' && d.status !== 'cancelled';
   const sc = STATUS_COLOR[d.status];
   const dt = new Date(d.delivery_at);
   // The sold date drives hat-trick bonus eligibility and is the
@@ -346,7 +353,7 @@ export default function DeliveryDetail() {
             </div>
           </div>
           <InfoRow label="Approval" value={capitalizeWords(d.approval_status)} />
-          {isManager && d.salesperson_name && (
+          {(isManager || isReadOnlyViewer) && d.salesperson_name && (
             <InfoRow label="Salesperson" value={d.salesperson_name} avatar={<AvatarBadge name={d.salesperson_name} from="#5aa2ff" to="#0a55e6" />} />
           )}
           {d.fsm_name && (
@@ -541,6 +548,7 @@ export default function DeliveryDetail() {
           ))}
         </div>
 
+        {!isReadOnlyViewer && (
         <div style={{ display: 'grid', gap: 8 }}>
           {!isManager && (
             <>
@@ -585,6 +593,7 @@ export default function DeliveryDetail() {
             {sendingComment ? 'Sending…' : !isManager && commentNeedsApproval ? 'Send for approval' : 'Send'}
           </button>
         </div>
+        )}
       </div>
       </div>
     </div>

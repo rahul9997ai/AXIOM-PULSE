@@ -1,4 +1,4 @@
-export type Role = 'FSM' | 'General Manager' | 'Master Administrator' | 'Salesperson';
+export type Role = 'FSM' | 'General Manager' | 'Master Administrator' | 'Salesperson' | 'Sales Manager';
 
 export interface Profile {
   id: string;
@@ -121,11 +121,23 @@ export const STATUS_COLOR: Record<DeliveryStatus, { bg: string; fg: string; bord
   cancelled: { bg: '#fdecea', fg: '#a3261b', border: '#ef4444', solid: '#ef4444' },
 };
 
+// Roles that can create/edit/approve/manage — Sales Manager is deliberately
+// excluded: they get the same dealership-wide visibility as these roles
+// (see DEALERSHIP_VIEW_ROLES) but no write access anywhere, enforced both
+// here (gates every create/edit UI and route) and in the deliveries RLS
+// policy (no insert/update/delete policy references 'Sales Manager').
 export const MANAGER_ROLES: Role[] = ['FSM', 'General Manager', 'Master Administrator'];
+
+// Roles that see the dealership's full delivery list rather than just their
+// own — a superset of MANAGER_ROLES that also includes the read-only Sales
+// Manager. Use this (not MANAGER_ROLES) for view-scope checks; keep using
+// MANAGER_ROLES for anything that performs or offers a write action.
+export const DEALERSHIP_VIEW_ROLES: Role[] = [...MANAGER_ROLES, 'Sales Manager'];
 
 export const ROLE_LABEL: Record<Role, string> = {
   FSM: 'FSM view',
   'General Manager': 'General Manager view',
   'Master Administrator': 'Master Administrator view',
   Salesperson: 'Salesperson view',
+  'Sales Manager': 'Sales Manager view',
 };

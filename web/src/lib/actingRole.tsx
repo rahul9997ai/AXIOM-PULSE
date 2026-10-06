@@ -6,7 +6,7 @@ import type { Role } from './types';
 export interface Dealership { id: string; name: string; }
 export interface SalespersonOption { id: string; name: string; }
 
-const ACTABLE_ROLES: Role[] = ['General Manager', 'FSM', 'Salesperson'];
+const ACTABLE_ROLES: Role[] = ['General Manager', 'FSM', 'Salesperson', 'Sales Manager'];
 
 interface ActingRoleContextValue {
   isMaster: boolean;

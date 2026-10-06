@@ -9,6 +9,7 @@ import PushCard from '@/components/PushCard';
 import { LogOutIcon } from '@/components/Icons';
 import { applyTheme, getStoredTheme, type Theme } from '@/lib/theme';
 import { downloadMonthlyReport, shareMonthlyReport, type DealershipDetails, type HattrickGroup, type HattrickPendingGroup, type MonthlyReportRow } from '@/lib/monthlyReport';
+import { downloadDealershipReport, shareDealershipReport, type DealershipReportRow } from '@/lib/dealershipReport';
 import { monthLabel, monthRange } from '@/lib/monthClose';
 
 interface Dealership { id: string; name: string; }
@@ -47,6 +48,9 @@ export default function Settings() {
   // already resolves to the previewed role for a Master, or the real role
   // for everyone else.
   const isSalesperson = effectiveRole === 'Salesperson';
+  // Read-only, dealership-wide: sees the same report feature but for every
+  // salesperson combined, not themselves — gets its own card and PDF below.
+  const isSalesManager = effectiveRole === 'Sales Manager';
   // The report's "whose data" — effectiveSalespersonId already resolves to
   // whichever salesperson the Master picked in the Viewing-as bar, or the
   // real signed-in user otherwise.
@@ -65,6 +69,7 @@ export default function Settings() {
   const [reportLoading, setReportLoading] = useState(false);
   const [hattrickRows, setHattrickRows] = useState<HattrickRow[]>([]);
   const [reportDealership, setReportDealership] = useState<DealershipDetails | null>(null);
+  const [dealershipReportRows, setDealershipReportRows] = useState<DealershipReportRow[]>([]);
 
   const onSetTheme = (t: Theme) => { setTheme(t); applyTheme(t); };
 
@@ -144,12 +149,36 @@ export default function Settings() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isSalesperson, effectiveSalespersonId]);
 
+  // Same idea for a Sales Manager, but scoped to the whole dealership's
+  // earliest delivery rather than one salesperson's.
+  useEffect(() => {
+    if (!isSalesManager || !dealershipId) return;
+    supabase
+      .from('deliveries')
+      .select('delivery_at')
+      .eq('dealership_id', dealershipId)
+      .order('delivery_at', { ascending: true })
+      .limit(1)
+      .then(({ data }) => {
+        const earliest = data?.[0]?.delivery_at ? new Date(data[0].delivery_at) : now;
+        const options: { year: number; month: number }[] = [];
+        const cursor = new Date(now.getFullYear(), now.getMonth(), 1);
+        const floor = new Date(earliest.getFullYear(), earliest.getMonth(), 1);
+        while (cursor >= floor) {
+          options.push({ year: cursor.getFullYear(), month: cursor.getMonth() + 1 });
+          cursor.setMonth(cursor.getMonth() - 1);
+        }
+        setReportMonthOptions(options.length ? options : [{ year: now.getFullYear(), month: now.getMonth() + 1 }]);
+      });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isSalesManager, dealershipId]);
+
   // Dealership details for the report footer. Uses dealershipId (not
   // profile.dealership_id directly) so a Master previewing as Salesperson
   // gets the dealership they're currently viewing as, since a Master's own
   // profile isn't tied to any single dealership.
   useEffect(() => {
-    if (!isSalesperson || !dealershipId) return;
+    if (!(isSalesperson || isSalesManager) || !dealershipId) return;
     supabase
       .from('dealerships')
       .select('name, data')
@@ -166,7 +195,7 @@ export default function Settings() {
           dealerCode: d.dealerCode || '',
         });
       });
-  }, [isSalesperson, dealershipId]);
+  }, [isSalesperson, isSalesManager, dealershipId]);
 
   // Every sold-dated delivery for this salesperson, regardless of month or
   // status — a hat-trick group's membership and completion state can span
@@ -214,6 +243,53 @@ export default function Settings() {
     sold_at: g.soldAt,
     members: g.members.map((m) => ({ customer_name: m.customer_name, stock_number: m.stock_number, delivered: m.status === 'delivered' })),
   }));
+
+  // Every delivered unit dealership-wide for the selected month — no
+  // bonus content (that's personal payroll info, not a manager's business)
+  // and no per-salesperson narrowing, since a Sales Manager sees everyone.
+  useEffect(() => {
+    if (!isSalesManager || !dealershipId) { setDealershipReportRows([]); return; }
+    setReportLoading(true);
+    setReportNotice(null);
+    const [yearStr, monthStr] = reportMonthKey.split('-');
+    const { start, end } = monthRange(Number(yearStr), Number(monthStr));
+    supabase
+      .from('deliveries')
+      .select('id, customer_name, stock_number, salesperson_name, fsm_name, delivery_at')
+      .eq('dealership_id', dealershipId)
+      .eq('status', 'delivered')
+      .gte('delivery_at', start.toISOString())
+      .lt('delivery_at', end.toISOString())
+      .order('delivery_at', { ascending: true })
+      .then(({ data, error }) => {
+        if (error) { setReportNotice(error.message); setReportLoading(false); return; }
+        setDealershipReportRows((data as DealershipReportRow[]) || []);
+        setReportLoading(false);
+      });
+  }, [isSalesManager, dealershipId, reportMonthKey]);
+
+  const runDownloadDealershipReport = async () => {
+    if (dealershipReportRows.length === 0) { setReportNotice('No deliveries marked complete for this month yet.'); return; }
+    setReportBusy('download');
+    setReportNotice(null);
+    const [y, m] = reportMonthKey.split('-').map(Number);
+    const label = monthLabel(y, m);
+    await downloadDealershipReport(dealershipReportRows, reportDealership?.name ?? 'Dealership', label, profile?.name ?? 'Sales Manager', reportDealership ?? EMPTY_DEALERSHIP);
+    setReportBusy(null);
+  };
+
+  const runShareDealershipReport = async () => {
+    if (dealershipReportRows.length === 0) { setReportNotice('No deliveries marked complete for this month yet.'); return; }
+    setReportBusy('share');
+    setReportNotice(null);
+    const [y, m] = reportMonthKey.split('-').map(Number);
+    const label = monthLabel(y, m);
+    const outcome = await shareDealershipReport(dealershipReportRows, reportDealership?.name ?? 'Dealership', label, profile?.name ?? 'Sales Manager', reportDealership ?? EMPTY_DEALERSHIP);
+    setReportBusy(null);
+    if (outcome === 'downloaded') {
+      setReportNotice('Your browser can\'t share files directly, so the PDF downloaded instead — attach it to an email yourself.');
+    }
+  };
 
   const addLender = async () => {
     const name = newLender.trim();
@@ -460,6 +536,36 @@ export default function Settings() {
               );
             })}
           </div>
+        </div>
+      )}
+
+      {isSalesManager && (
+        <div className="card">
+          <div style={{ color: 'var(--muted)', fontWeight: 800, fontSize: 12, letterSpacing: 1, marginBottom: 6 }}>DEALERSHIP DELIVERY REPORT</div>
+          <p style={{ color: 'var(--muted)', fontSize: 13, marginTop: 0, marginBottom: 12 }}>
+            A PDF of every delivery completed dealership-wide for the selected month — customer name, salesperson, Finance Manager and delivery date.
+          </p>
+          <select
+            value={reportMonthKey}
+            onChange={(e) => setReportMonthKey(e.target.value)}
+            style={{ marginBottom: 10 }}
+          >
+            {reportMonthOptions.map(({ year, month }) => (
+              <option key={`${year}-${month}`} value={`${year}-${month}`}>{monthLabel(year, month)}</option>
+            ))}
+          </select>
+
+          {reportLoading && <div style={{ color: 'var(--muted)', fontSize: 12.5, marginBottom: 10 }}>Loading deliveries…</div>}
+
+          <div style={{ display: 'flex', gap: 8 }}>
+            <button type="button" className="btn secondary" style={{ flex: 1 }} disabled={reportBusy !== null} onClick={runDownloadDealershipReport}>
+              {reportBusy === 'download' ? 'Preparing…' : 'Download PDF'}
+            </button>
+            <button type="button" className="btn" style={{ flex: 1 }} disabled={reportBusy !== null} onClick={runShareDealershipReport}>
+              {reportBusy === 'share' ? 'Preparing…' : 'Share / Email'}
+            </button>
+          </div>
+          {reportNotice && <p style={{ color: 'var(--muted)', fontSize: 12.5, marginTop: 10, marginBottom: 0 }}>{reportNotice}</p>}
         </div>
       )}
 

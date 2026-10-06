@@ -4,7 +4,7 @@ import { supabase } from '@/lib/supabase';
 import { useSession } from '@/lib/session';
 import { useActingRole } from '@/lib/actingRole';
 import type { Delivery } from '@/lib/types';
-import { STATUS_COLOR, MANAGER_ROLES } from '@/lib/types';
+import { STATUS_COLOR, DEALERSHIP_VIEW_ROLES } from '@/lib/types';
 
 const WEEKDAY_LABELS = ['S', 'M', 'T', 'W', 'T', 'F', 'S'];
 
@@ -21,7 +21,7 @@ export default function CalendarPage() {
   const [selected, setSelected] = useState(() => dateKey(new Date()));
 
   const effectiveRole = isMaster ? actingRole : profile?.role;
-  const isManager = effectiveRole ? MANAGER_ROLES.includes(effectiveRole) : false;
+  const isManager = effectiveRole ? DEALERSHIP_VIEW_ROLES.includes(effectiveRole) : false;
 
   const load = useCallback(async () => {
     if (!profile) return;

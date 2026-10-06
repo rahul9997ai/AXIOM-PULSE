@@ -4,7 +4,7 @@ import { supabase } from '@/lib/supabase';
 import { useSession } from '@/lib/session';
 import { useActingRole } from '@/lib/actingRole';
 import type { Delivery } from '@/lib/types';
-import { STATUS_LABEL, STATUS_COLOR, MANAGER_ROLES, ROLE_LABEL } from '@/lib/types';
+import { STATUS_LABEL, STATUS_COLOR, DEALERSHIP_VIEW_ROLES, ROLE_LABEL } from '@/lib/types';
 import { monthLabel } from '@/lib/monthClose';
 import { PinIcon } from '@/components/Icons';
 import ProgressRing from '@/components/ProgressRing';
@@ -49,7 +49,10 @@ export default function Deliveries() {
   // A Master Administrator has no operational role of their own — the delivery
   // board only makes sense once they've chosen a role+dealership to preview.
   const effectiveRole = isMaster ? actingRole : profile?.role;
-  const isManager = effectiveRole ? MANAGER_ROLES.includes(effectiveRole) : false;
+  // Dealership-wide view scope — includes the read-only Sales Manager role.
+  // Nothing in this file performs a write action, so it's safe to treat
+  // them the same as FSM/GM/Master for what's visible here.
+  const isManager = effectiveRole ? DEALERSHIP_VIEW_ROLES.includes(effectiveRole) : false;
 
   const load = useCallback(async () => {
     if (!profile || isAdminMode) return;
