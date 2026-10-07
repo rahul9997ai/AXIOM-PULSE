@@ -22,13 +22,19 @@ self.addEventListener('push', (event: PushEvent) => {
   try { payload = event.data ? event.data.json() : {}; }
   catch { payload = { title: 'AXIOM PULSE', body: event.data ? event.data.text() : '' }; }
 
+  // The Notification spec throws a TypeError if `renotify` is true while
+  // `tag` is empty — and showNotification() throwing here kills the whole
+  // push event with nothing displayed, not even a fallback. A push with no
+  // deliveryId (the test-notification button; maybe others in the future)
+  // has no tag to renotify against, so renotify must stay off for those.
+  const tag = payload.data?.deliveryId;
   const options: NotificationOptions & { renotify?: boolean } = {
     body: payload.body || '',
     icon: payload.icon || '/icons/icon-512.png',
     badge: payload.badge || '/icons/icon-192.png',
     data: { url: payload.data?.url || '/', ...payload.data },
-    tag: payload.data?.deliveryId,
-    renotify: true,
+    tag,
+    renotify: !!tag,
     requireInteraction: payload.data?.type === 'urgent' || payload.data?.type === 'delivery_time',
   };
 
