@@ -120,16 +120,23 @@ export default function DeliveryForm({ existing, onSaved }: { existing?: Deliver
         setSalespeople(list);
       });
     if (canAssignFsm) {
-      supabase.from('profiles').select('id,name,email').eq('dealership_id', effectiveDealershipId).eq('role', 'FSM').eq('active', true)
-        .then(async ({ data }) => {
-          const list = (data as FinanceManager[]) || [];
-          const assignedId = existing?.fsm_id;
-          if (assignedId && !list.some((p) => p.id === assignedId)) {
-            const { data: assigned } = await supabase.from('profiles').select('id,name,email').eq('id', assignedId).eq('dealership_id', effectiveDealershipId).maybeSingle();
-            if (assigned) list.push(assigned as FinanceManager);
-          }
-          setFinanceManagers(list);
-        });
+      // A Master Administrator has no dealership_id of their own, so they're
+      // fetched separately (dealership-unscoped) and merged in — letting a
+      // Master who also handles finance work at a dealership assign deals
+      // to themselves instead of needing a second, dealership-bound FSM
+      // account just to receive the right notifications.
+      Promise.all([
+        supabase.from('profiles').select('id,name,email').eq('dealership_id', effectiveDealershipId).eq('role', 'FSM').eq('active', true),
+        supabase.from('profiles').select('id,name,email').eq('role', 'Master Administrator').eq('active', true),
+      ]).then(async ([{ data: fsmData }, { data: masterData }]) => {
+        const list = [...((fsmData as FinanceManager[]) || []), ...((masterData as FinanceManager[]) || [])];
+        const assignedId = existing?.fsm_id;
+        if (assignedId && !list.some((p) => p.id === assignedId)) {
+          const { data: assigned } = await supabase.from('profiles').select('id,name,email').eq('id', assignedId).maybeSingle();
+          if (assigned) list.push(assigned as FinanceManager);
+        }
+        setFinanceManagers(list);
+      });
     }
   }, [effectiveDealershipId, canAssignFsm, existing?.salesperson_id, existing?.fsm_id]);
 
