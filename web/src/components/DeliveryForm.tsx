@@ -7,8 +7,17 @@ import { capitalizeWords } from '@/lib/text';
 import { useActingRole } from '@/lib/actingRole';
 import type { ApprovalStatus, Delivery, DueOnDeliveryType, Lender, RequirementTemplate, VehicleCondition } from '@/lib/types';
 
-interface Salesperson { id: string; name: string; }
-interface FinanceManager { id: string; name: string; }
+interface Salesperson { id: string; name: string; email: string | null; }
+interface FinanceManager { id: string; name: string; email: string | null; }
+
+// Two people can share a display name (not uncommon at a family-run
+// dealership) — append the email to every option whose name isn't unique
+// in the list, so picking the wrong one by name alone isn't possible.
+function disambiguate<T extends { name: string; email: string | null }>(people: T[]): (T & { label: string })[] {
+  const counts = new Map<string, number>();
+  people.forEach((p) => counts.set(p.name, (counts.get(p.name) ?? 0) + 1));
+  return people.map((p) => ({ ...p, label: (counts.get(p.name) ?? 0) > 1 && p.email ? `${p.name} (${p.email})` : p.name }));
+}
 interface CustomRequirement { id?: string; label: string; }
 interface Dealership { id: string; name: string; }
 
@@ -100,23 +109,23 @@ export default function DeliveryForm({ existing, onSaved }: { existing?: Deliver
     // deactivated must still show them in the dropdown (selected), so the
     // form doesn't silently drop or reassign that field on save — fetch
     // them by id alongside the active list if they're not already in it.
-    supabase.from('profiles').select('id,name').eq('dealership_id', effectiveDealershipId).eq('role', 'Salesperson').eq('active', true)
+    supabase.from('profiles').select('id,name,email').eq('dealership_id', effectiveDealershipId).eq('role', 'Salesperson').eq('active', true)
       .then(async ({ data }) => {
         const list = (data as Salesperson[]) || [];
         const assignedId = existing?.salesperson_id;
         if (assignedId && !list.some((p) => p.id === assignedId)) {
-          const { data: assigned } = await supabase.from('profiles').select('id,name').eq('id', assignedId).eq('dealership_id', effectiveDealershipId).maybeSingle();
+          const { data: assigned } = await supabase.from('profiles').select('id,name,email').eq('id', assignedId).eq('dealership_id', effectiveDealershipId).maybeSingle();
           if (assigned) list.push(assigned as Salesperson);
         }
         setSalespeople(list);
       });
     if (canAssignFsm) {
-      supabase.from('profiles').select('id,name').eq('dealership_id', effectiveDealershipId).eq('role', 'FSM').eq('active', true)
+      supabase.from('profiles').select('id,name,email').eq('dealership_id', effectiveDealershipId).eq('role', 'FSM').eq('active', true)
         .then(async ({ data }) => {
           const list = (data as FinanceManager[]) || [];
           const assignedId = existing?.fsm_id;
           if (assignedId && !list.some((p) => p.id === assignedId)) {
-            const { data: assigned } = await supabase.from('profiles').select('id,name').eq('id', assignedId).eq('dealership_id', effectiveDealershipId).maybeSingle();
+            const { data: assigned } = await supabase.from('profiles').select('id,name,email').eq('id', assignedId).eq('dealership_id', effectiveDealershipId).maybeSingle();
             if (assigned) list.push(assigned as FinanceManager);
           }
           setFinanceManagers(list);
@@ -407,7 +416,7 @@ export default function DeliveryForm({ existing, onSaved }: { existing?: Deliver
       <div style={fieldLabel}>ASSIGN SALESPERSON</div>
       <select value={salesperson} onChange={(e) => setSalesperson(e.target.value)}>
         <option value="">Select a salesperson</option>
-        {salespeople.map((p) => <option key={p.id} value={p.id}>{p.name}</option>)}
+        {disambiguate(salespeople).map((p) => <option key={p.id} value={p.id}>{p.label}</option>)}
       </select>
 
       {canAssignFsm && (
@@ -415,7 +424,7 @@ export default function DeliveryForm({ existing, onSaved }: { existing?: Deliver
           <div style={fieldLabel}>FINANCE MANAGER</div>
           <select value={fsmId} onChange={(e) => setFsmId(e.target.value)}>
             <option value="">Select a Finance Manager</option>
-            {financeManagers.map((f) => <option key={f.id} value={f.id}>{f.name}</option>)}
+            {disambiguate(financeManagers).map((f) => <option key={f.id} value={f.id}>{f.label}</option>)}
           </select>
         </>
       )}
