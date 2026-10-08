@@ -224,20 +224,21 @@ export default function DeliveryDetail() {
         setNotice('Sent for approval — the Finance Manager has no device enrolled for push notifications yet.');
       }
     } else {
-      // A manager replying or asking something in the comments should reach
-      // the salesperson right away too — not just decisions on their own
-      // questions.
+      // A plain comment goes to the other side of the delivery: a manager's
+      // to the salesperson, a salesperson's to their FSM — never back to
+      // whoever wrote it.
+      const toFsm = !isManager;
       const { data: pushData, error: pushError } = await supabase.functions.invoke('send-webpush', {
         body: {
-          profile_ids: [d.salesperson_id],
+          profile_ids: [toFsm ? d.fsm_id : d.salesperson_id],
           delivery_id: d.id,
           title: `New comment — ${d.customer_name}`,
-          body,
+          body: toFsm ? `${profile.name}: ${body}` : body,
           data: { url: `/delivery/${d.id}`, deliveryId: d.id, type: 'comment' },
         },
       }).catch(() => ({ data: null, error: null }));
       if (!pushError && !pushData?.sent) {
-        setNotice('Comment posted — the salesperson has no device enrolled for push notifications yet.');
+        setNotice(`Comment posted — the ${toFsm ? 'Finance Manager' : 'salesperson'} has no device enrolled for push notifications yet.`);
       }
     }
     load();

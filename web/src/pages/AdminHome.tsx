@@ -4,7 +4,7 @@ import { supabase } from '@/lib/supabase';
 import type { Role } from '@/lib/types';
 
 interface Dealership { id: string; name: string; active: boolean; }
-interface AppUser { id: string; name: string; role: Role; dealership_id: string | null; active: boolean; }
+interface AppUser { id: string; name: string; role: Role; dealership_id: string | null; active: boolean; pulse_enabled: boolean; }
 
 const INVITE_ROLES: Role[] = ['General Manager', 'FSM', 'Salesperson', 'Sales Manager'];
 
@@ -253,7 +253,7 @@ export default function AdminHome() {
                   <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8 }}>
                     <div>
                       <div style={{ fontWeight: 700, fontSize: 14 }}>
-                        {u.name} {!u.active && <span style={{ color: '#a3261b', fontSize: 11, fontWeight: 700 }}>· Inactive</span>}
+                        {u.name} {!u.pulse_enabled && <span style={{ color: '#a3261b', fontSize: 11, fontWeight: 700 }}>· No Pulse access</span>}
                       </div>
                       <div style={{ color: 'var(--muted)', fontSize: 12 }}>{u.role} · {dealership?.name ?? 'No dealership'}</div>
                     </div>

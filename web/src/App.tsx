@@ -1,5 +1,6 @@
 import { Routes, Route, Navigate } from 'react-router-dom';
 import { useSession } from '@/lib/session';
+import { supabase } from '@/lib/supabase';
 import { ActingRoleProvider, useActingRole } from '@/lib/actingRole';
 import { MANAGER_ROLES } from '@/lib/types';
 import SignIn from '@/pages/SignIn';
@@ -30,6 +31,7 @@ export default function App() {
 
 function AppBody({ session, profile }: { session: ReturnType<typeof useSession>['session']; profile: ReturnType<typeof useSession>['profile'] }) {
   if (!session) return <SignIn />;
+  if (profile && !profile.pulse_enabled) return <NoPulseAccess />;
   if (profile?.must_change_password) return <ForcePasswordChange />;
   if (profile && !profile.has_seen_welcome) return <Welcome />;
 
@@ -37,6 +39,23 @@ function AppBody({ session, profile }: { session: ReturnType<typeof useSession>[
     <ActingRoleProvider>
       <AppRoutes />
     </ActingRoleProvider>
+  );
+}
+
+// Removing someone from Pulse who still uses Command Center only turns
+// pulse_enabled off (sign-in stays allowed for the other app), so Pulse has
+// to refuse them itself.
+function NoPulseAccess() {
+  return (
+    <div style={{ display: 'grid', placeItems: 'center', minHeight: '100vh', padding: 16 }}>
+      <div className="card" style={{ maxWidth: 380, textAlign: 'center' }}>
+        <h3 style={{ marginTop: 0 }}>No Axiom Pulse access</h3>
+        <p style={{ color: 'var(--muted)', fontSize: 13 }}>
+          Your account doesn't have access to Axiom Pulse. Contact your administrator if you think this is a mistake.
+        </p>
+        <button className="btn" onClick={() => supabase.auth.signOut()}>Sign out</button>
+      </div>
+    </div>
   );
 }
 

@@ -109,7 +109,7 @@ export default function DeliveryForm({ existing, onSaved }: { existing?: Deliver
     // deactivated must still show them in the dropdown (selected), so the
     // form doesn't silently drop or reassign that field on save — fetch
     // them by id alongside the active list if they're not already in it.
-    supabase.from('profiles').select('id,name,email').eq('dealership_id', effectiveDealershipId).eq('role', 'Salesperson').eq('active', true)
+    supabase.from('profiles').select('id,name,email').eq('dealership_id', effectiveDealershipId).eq('role', 'Salesperson').eq('pulse_enabled', true)
       .then(async ({ data }) => {
         const list = (data as Salesperson[]) || [];
         const assignedId = existing?.salesperson_id;
@@ -126,8 +126,8 @@ export default function DeliveryForm({ existing, onSaved }: { existing?: Deliver
       // to themselves instead of needing a second, dealership-bound FSM
       // account just to receive the right notifications.
       Promise.all([
-        supabase.from('profiles').select('id,name,email').eq('dealership_id', effectiveDealershipId).eq('role', 'FSM').eq('active', true),
-        supabase.from('profiles').select('id,name,email').eq('role', 'Master Administrator').eq('active', true),
+        supabase.from('profiles').select('id,name,email').eq('dealership_id', effectiveDealershipId).eq('role', 'FSM').eq('pulse_enabled', true),
+        supabase.from('profiles').select('id,name,email').eq('role', 'Master Administrator').eq('pulse_enabled', true),
       ]).then(async ([{ data: fsmData }, { data: masterData }]) => {
         const list = [...((fsmData as FinanceManager[]) || []), ...((masterData as FinanceManager[]) || [])];
         const assignedId = existing?.fsm_id;
@@ -217,12 +217,14 @@ export default function DeliveryForm({ existing, onSaved }: { existing?: Deliver
       if (vehicleCondition !== existing.vehicle_condition) changedFields.push('vehicle condition');
       if ((lenderId || null) !== existing.lender_id) changedFields.push('lender/lessor');
       if (approvalStatus !== existing.approval_status) changedFields.push('approval status');
-      if (payload.delivery_at !== existing.delivery_at) changedFields.push('delivery time');
+      if (new Date(payload.delivery_at).getTime() !== new Date(existing.delivery_at).getTime()) changedFields.push('delivery time');
       if ((fsmNotes.trim() || null) !== existing.fsm_notes) changedFields.push('notes');
       if (salesperson !== existing.salesperson_id) changedFields.push('assigned salesperson');
       if (fsmId !== existing.fsm_id) changedFields.push('assigned finance manager');
     }
-    const fsmReassigned = isEdit && !!existing && fsmId !== existing.fsm_id;
+    // Covers both a GM/Master creating a delivery for someone else and a
+    // later reassignment — never when you assign it to yourself.
+    const notifyAssignedFsm = fsmId !== session?.user.id && (!isEdit || fsmId !== existing?.fsm_id);
 
     let deliveryId = existing?.id;
     if (isEdit) {
@@ -303,9 +305,9 @@ export default function DeliveryForm({ existing, onSaved }: { existing?: Deliver
         },
       }).catch(() => {});
     }
-    if (fsmReassigned) {
-      // Reassignment is a separate notice to the newly assigned FSM, not
-      // just a line in the salesperson's "updated" push above.
+    if (notifyAssignedFsm) {
+      // A separate notice to the assigned FSM, not just a line in the
+      // salesperson's push above.
       await supabase.functions.invoke('send-webpush', {
         body: {
           profile_ids: [fsmId],

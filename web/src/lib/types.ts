@@ -6,7 +6,11 @@ export interface Profile {
   name: string;
   role: Role;
   dealership_id: string | null;
+  // `active` is derived by a DB trigger as (cc_enabled OR pulse_enabled) —
+  // it stays true for someone removed from Pulse but still on Command
+  // Center, so Pulse access must be checked via pulse_enabled.
   active: boolean;
+  pulse_enabled: boolean;
   must_change_password: boolean;
   has_seen_welcome: boolean;
 }
