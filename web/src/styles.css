@@ -327,6 +327,112 @@ h1, h2, h3 {
   box-shadow: 0 1px 0 rgba(255, 255, 255, 0.5) inset, 0 3px 0 rgba(0, 0, 0, 0.1), 0 6px 12px rgba(30, 40, 60, 0.16);
 }
 
+/* Requirement tiles: silver chrome when still to do (blends into the card),
+   brand navy once done (stands out), amber for an exception. They sink a
+   few pixels on press so a tap feels like pushing a physical button. */
+.req-tile {
+  position: relative;
+  overflow: hidden;
+  width: 100%;
+  min-height: 72px;
+  border-radius: 14px;
+  font: inherit;
+  font-size: 11.5px;
+  font-weight: 800;
+  line-height: 1.2;
+  padding: 10px 6px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  word-break: break-word;
+  cursor: pointer;
+  transition: transform 0.08s ease, box-shadow 0.08s ease;
+  -webkit-tap-highlight-color: transparent;
+}
+.req-tile:disabled { cursor: default; }
+.req-tile:not(:disabled):active { transform: translateY(3px); }
+.req-tile .req-tile-shine {
+  position: absolute; top: 0; left: 0; right: 0; height: 46%;
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.3), rgba(255, 255, 255, 0));
+  border-radius: 14px 14px 0 0;
+  pointer-events: none;
+}
+.req-tile .req-tile-body { position: relative; display: flex; flex-direction: column; align-items: center; gap: 5px; }
+.req-tile.is-open {
+  background: linear-gradient(180deg, var(--btn3d-hi), var(--btn3d-lo));
+  color: var(--accent);
+  border: 1px solid var(--btn3d-border);
+  box-shadow: 0 1px 0 rgba(255, 255, 255, 0.5) inset, 0 3px 0 rgba(0, 0, 0, 0.12), 0 8px 16px rgba(30, 40, 60, 0.18);
+}
+.req-tile.is-done {
+  background: linear-gradient(180deg, var(--btn-grad-hi), var(--blue));
+  color: #fff;
+  border: 1px solid rgba(0, 0, 0, 0.15);
+  box-shadow: 0 1px 0 rgba(255, 255, 255, 0.35) inset, 0 3px 0 rgba(0, 0, 0, 0.12), 0 8px 16px rgba(30, 58, 138, 0.32);
+}
+.req-tile.is-exception {
+  background: linear-gradient(180deg, #e9a93e, #9a560c);
+  color: #fff;
+  border: 1px solid rgba(0, 0, 0, 0.15);
+  box-shadow: 0 1px 0 rgba(255, 255, 255, 0.35) inset, 0 3px 0 rgba(0, 0, 0, 0.12), 0 8px 16px rgba(154, 86, 12, 0.3);
+}
+
+/* Small status pills on delivery cards. */
+.pill { font-size: 11px; font-weight: 700; border-radius: 6px; padding: 2px 7px; white-space: nowrap; }
+.pill-stock { background: var(--surface); color: var(--accent); border: 1px solid var(--line); }
+.pill-plain { background: var(--surface); color: var(--muted); border: 1px solid var(--line); }
+.pill-over { background: #fdecea; color: #b42318; font-weight: 800; }
+.pill-soon { background: #fef3e2; color: #8a4207; }
+.pill-done { background: #e9f7ef; color: #15803d; }
+.pill-later { color: var(--muted); padding-left: 0; padding-right: 0; }
+:root[data-theme="dark"] .pill-over { background: rgba(239, 68, 68, 0.16); color: #fca5a5; }
+:root[data-theme="dark"] .pill-soon { background: rgba(245, 158, 11, 0.16); color: #fbbf24; }
+:root[data-theme="dark"] .pill-done { background: rgba(74, 222, 128, 0.14); color: #4ade80; }
+
+.progress-track { flex: 1; height: 6px; background: var(--line); border-radius: 999px; overflow: hidden; }
+.progress-fill { height: 100%; border-radius: 999px; background: var(--accent); }
+.progress-fill.is-complete { background: #15803d; }
+
+.avatar {
+  width: 24px; height: 24px; border-radius: 50%; flex-shrink: 0;
+  background: var(--surface); color: var(--accent); border: 1px solid var(--line);
+  font-size: 10px; font-weight: 800; display: flex; align-items: center; justify-content: center;
+}
+
+.chip-row { display: flex; gap: 8px; overflow-x: auto; scrollbar-width: none; padding-bottom: 2px; }
+.chip-row::-webkit-scrollbar { display: none; }
+
+.skeleton {
+  background: linear-gradient(90deg, var(--surface) 0%, var(--line) 50%, var(--surface) 100%);
+  background-size: 200% 100%;
+  animation: skeleton-shimmer 1.2s ease-in-out infinite;
+  opacity: 0.6;
+}
+@keyframes skeleton-shimmer { from { background-position: 200% 0; } to { background-position: -200% 0; } }
+@media (prefers-reduced-motion: reduce) { .skeleton { animation: none; } }
+
+/* Filter chips on the Deliveries home screen. */
+.chip {
+  flex-shrink: 0;
+  height: 34px;
+  padding: 0 14px;
+  border-radius: 999px;
+  font: inherit;
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+  background: var(--focus-bg);
+  color: var(--muted);
+  border: 1px solid var(--line);
+  white-space: nowrap;
+}
+.chip.is-active {
+  background: var(--accent);
+  color: #fff;
+  border-color: var(--accent);
+}
+
 input, textarea, select {
   background: var(--surface);
   color: var(--ink);

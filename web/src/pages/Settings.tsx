@@ -11,29 +11,10 @@ import { applyTheme, getStoredTheme, type Theme } from '@/lib/theme';
 import { downloadMonthlyReport, shareMonthlyReport, type DealershipDetails, type HattrickGroup, type HattrickPendingGroup, type MonthlyReportRow } from '@/lib/monthlyReport';
 import { downloadDealershipReport, shareDealershipReport, type DealershipReportRow } from '@/lib/dealershipReport';
 import { monthLabel, monthRange } from '@/lib/monthClose';
+import { groupHattricks, monthKeyOf, type HattrickRow } from '@/lib/bonus';
 
 interface Dealership { id: string; name: string; }
 
-interface HattrickRow {
-  id: string;
-  customer_name: string;
-  stock_number: string | null;
-  delivery_at: string;
-  delivered_at: string | null;
-  sold_at: string;
-  status: string;
-}
-
-interface HattrickCandidate {
-  soldAt: string;
-  members: HattrickRow[];
-  allDelivered: boolean;
-  completedAt: string | null;
-}
-
-function monthKeyOf(d: Date): string {
-  return `${d.getFullYear()}-${d.getMonth() + 1}`;
-}
 
 const FK_IN_USE = '23503';
 const EMPTY_DEALERSHIP: DealershipDetails = { name: '', address: '', city: '', phone: '', dealerCode: '' };
@@ -211,22 +192,7 @@ export default function Settings() {
       .then(({ data }) => setHattrickRows((data as HattrickRow[]) || []));
   }, [isSalesperson, effectiveSalespersonId]);
 
-  // Grouped by sold date — 3+ vehicles sold the same day is a hat-trick
-  // candidate, complete only once every member has been delivered.
-  const hattrickGroupsBySoldAt = new Map<string, HattrickRow[]>();
-  hattrickRows.forEach((r) => {
-    hattrickGroupsBySoldAt.set(r.sold_at, [...(hattrickGroupsBySoldAt.get(r.sold_at) ?? []), r]);
-  });
-  const hattrickCandidates: HattrickCandidate[] = Array.from(hattrickGroupsBySoldAt.entries())
-    .filter(([, members]) => members.length >= 3)
-    .map(([soldAt, members]) => {
-      const allDelivered = members.every((m) => m.status === 'delivered');
-      const completedAt = allDelivered
-        ? members.reduce<string | null>((max, m) => (m.delivered_at && (!max || m.delivered_at > max) ? m.delivered_at : max), null)
-        : null;
-      return { soldAt, members, allDelivered, completedAt };
-    })
-    .sort((a, b) => b.soldAt.localeCompare(a.soldAt));
+  const hattrickCandidates = groupHattricks(hattrickRows);
   // Only groups that finished delivering IN the selected report month
   // belong on that month's PDF — the bonus is paid once, when the group
   // completes, not split across the months its members happened to deliver in.

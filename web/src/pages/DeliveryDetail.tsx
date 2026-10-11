@@ -10,6 +10,8 @@ import { HATTRICK_TRACKING_STARTS_AT } from '@/lib/monthClose';
 import { downloadDeliveryIcs } from '@/lib/ics';
 import { useIsDesktop } from '@/lib/useIsDesktop';
 import DateTimePill from '@/components/DateTimePill';
+import RequirementTiles from '@/components/RequirementTiles';
+import { completeDelivery } from '@/lib/deliveryActions';
 import {
   PinIcon, CarIcon,
   EditIcon, BellIcon, TrashIcon,
@@ -26,8 +28,6 @@ export default function DeliveryDetail() {
   const [comments, setComments] = useState<DeliveryComment[]>([]);
   const [loading, setLoading] = useState(true);
   const [notice, setNotice] = useState<string | null>(null);
-  const [exceptionFor, setExceptionFor] = useState<string | null>(null);
-  const [exceptionReason, setExceptionReason] = useState('');
   const [notifyOpen, setNotifyOpen] = useState(false);
   const [notifyMessage, setNotifyMessage] = useState('');
   const [newComment, setNewComment] = useState('');
@@ -123,43 +123,10 @@ export default function DeliveryDetail() {
     load();
   };
 
-  const resolveRequirement = async (reqId: string, status: 'completed' | 'exception' | 'outstanding', reason?: string) => {
-    const { error } = await supabase.rpc('set_requirement_status', {
-      p_requirement_id: reqId,
-      p_status: status,
-      p_exception_reason: reason ?? null,
-    });
-    if (error) { setNotice(error.message); return; }
-    setExceptionFor(null);
-    setExceptionReason('');
-    // The FSM is only pushed once, when the whole delivery is marked
-    // delivered (see complete() below) — a push per requirement checked
-    // off was too easy to miss or get lost among several in a row.
-    load();
-  };
-
   const complete = async () => {
-    const { error } = await supabase.rpc('complete_delivery', { p_delivery_id: d.id });
-    if (error) { setNotice(error.message); return; }
-    const exceptions = requirements.filter((r) => r.status === 'exception');
-    const exceptionsBody = exceptions.length
-      ? `Delivery Complete for ${d.customer_name} — with exceptions: ${exceptions.map((r) => `${r.label}${r.exception_reason ? ` (${r.exception_reason})` : ''}`).join('; ')}.`
-      : `Delivery Complete for ${d.customer_name} — with no exceptions.`;
-    const { data: pushData, error: pushError } = await supabase.functions.invoke('send-webpush', {
-      body: {
-        profile_ids: [d.fsm_id],
-        delivery_id: d.id,
-        title: `Delivery Complete — ${d.customer_name}`,
-        body: exceptionsBody,
-        data: { url: `/delivery/${d.id}`, deliveryId: d.id, type: 'delivery_complete' },
-      },
-    }).catch(() => ({ data: null, error: null }));
-    // Push is best-effort, but a silent no-op (no device enrolled) is worth
-    // surfacing here — otherwise the FSM just never hears about it and no
-    // one finds out why.
-    if (!pushError && !pushData?.sent) {
-      setNotice('Marked delivered — the Finance Manager has no device enrolled for push notifications yet.');
-    }
+    const { error, notice: msg } = await completeDelivery(d, requirements);
+    if (error) { setNotice(error); return; }
+    if (msg) setNotice(msg);
     load();
   };
 
@@ -497,84 +464,15 @@ export default function DeliveryDetail() {
       {requirements.length > 0 && (
         <div className="card-3d tint-blue">
           <h3 style={{ marginTop: 0, fontSize: 14 }}>Requirements</h3>
-          <p style={{ color: 'var(--muted)', fontSize: 12, marginTop: -6, marginBottom: 10 }}>
+          <p style={{ color: 'var(--muted)', fontSize: 12, marginTop: -6, marginBottom: 14 }}>
             Tap to mark complete, tap again to undo. Tap the ! badge to flag an exception instead.
           </p>
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(84px, 1fr))', gap: 8 }}>
-            {requirements.map((r) => {
-              const canEdit = !isManager && canComplete;
-              const tone = r.status === 'completed'
-                ? { bg: 'linear-gradient(160deg, #4ade80, #15803d)', fg: '#fff', glow: 'rgba(21,128,61,0.28)' }
-                : r.status === 'exception'
-                ? { bg: 'linear-gradient(160deg, #fcd34d, #b45309)', fg: '#fff', glow: 'rgba(180,120,20,0.3)' }
-                // A muted slate instead of a saturated blue — reads clearly
-                // as "not done" against the tinted card without being the
-                // brightest thing on the page.
-                : { bg: 'linear-gradient(160deg, #94a3b8, #475569)', fg: '#fff', glow: 'rgba(51,65,85,0.28)' };
-              const onTap = !canEdit ? undefined
-                : r.status === 'outstanding' ? () => resolveRequirement(r.id, 'completed')
-                : () => resolveRequirement(r.id, 'outstanding');
-              return (
-                <div key={r.id} style={{ position: 'relative' }}>
-                  <button
-                    type="button"
-                    disabled={!onTap}
-                    onClick={onTap}
-                    title={r.status === 'exception' && r.exception_reason ? r.exception_reason : undefined}
-                    style={{
-                      position: 'relative', overflow: 'hidden', width: '100%', minHeight: 58, background: tone.bg, border: 'none',
-                      borderRadius: 14, color: tone.fg, fontSize: 11.5, fontWeight: 700, lineHeight: 1.2,
-                      padding: '8px 6px', display: 'flex', alignItems: 'center', justifyContent: 'center',
-                      textAlign: 'center', whiteSpace: 'normal', wordBreak: 'break-word', cursor: onTap ? 'pointer' : 'default',
-                      boxShadow: `0 8px 16px ${tone.glow}, 0 1px 0 rgba(255,255,255,0.3) inset`,
-                    }}
-                  >
-                    <div className="tile-3d-shine" />
-                    <span style={{ position: 'relative' }}>{r.status === 'completed' && '✓ '}{r.status === 'exception' && '⚠ '}{r.label}</span>
-                  </button>
-                  {r.status === 'outstanding' && canEdit && (
-                    <button
-                      type="button"
-                      aria-label={`Flag exception for ${r.label}`}
-                      onClick={(e) => { e.stopPropagation(); setExceptionFor(r.id); }}
-                      style={{
-                        position: 'absolute', top: -18, right: -18, width: 44, height: 44, borderRadius: '50%',
-                        background: 'transparent', border: 'none', padding: 0, cursor: 'pointer',
-                        display: 'flex', alignItems: 'center', justifyContent: 'center',
-                      }}
-                    >
-                      <span style={{
-                        width: 20, height: 20, borderRadius: '50%',
-                        background: '#fff', border: '1px solid #f6dba6', color: '#b45309', fontSize: 12, fontWeight: 800,
-                        display: 'flex', alignItems: 'center', justifyContent: 'center',
-                        boxShadow: '0 1px 3px rgba(20,50,100,0.15)',
-                      }}>
-                        !
-                      </span>
-                    </button>
-                  )}
-                </div>
-              );
-            })}
-          </div>
-          {requirements.some((r) => r.status === 'exception' && r.exception_reason) && (
-            <div style={{ display: 'grid', gap: 3, marginTop: 10 }}>
-              {requirements.filter((r) => r.status === 'exception' && r.exception_reason).map((r) => (
-                <div key={r.id} style={{ fontSize: 11.5, color: 'var(--muted)' }}>
-                  <strong style={{ color: '#b45309' }}>{r.label}:</strong> {r.exception_reason}
-                </div>
-              ))}
-            </div>
-          )}
-          {exceptionFor && requirements.some((r) => r.id === exceptionFor) && (
-            <div style={{ marginTop: 10, display: 'grid', gap: 8 }}>
-              <textarea placeholder="Reason this couldn't be completed" value={exceptionReason} onChange={(e) => setExceptionReason(e.target.value)} rows={2} />
-              <div style={{ display: 'flex', gap: 8 }}>
-                <button className="btn" style={{ flex: 1 }} disabled={!exceptionReason.trim()} onClick={() => resolveRequirement(exceptionFor, 'exception', exceptionReason.trim())}>Save exception</button>
-                <button className="btn secondary" onClick={() => { setExceptionFor(null); setExceptionReason(''); }}>Cancel</button>
-              </div>
-            </div>
-          )}
+          <RequirementTiles
+            requirements={requirements}
+            canEdit={!isManager && canComplete}
+            onChanged={load}
+            onError={setNotice}
+          />
           {canComplete && open.length === 0 && (
             <button className="btn" style={{ marginTop: 14, width: '100%' }} onClick={complete}>Mark delivered</button>
           )}

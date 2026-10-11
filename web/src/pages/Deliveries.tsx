@@ -4,35 +4,41 @@ import { supabase } from '@/lib/supabase';
 import { useSession } from '@/lib/session';
 import { useActingRole } from '@/lib/actingRole';
 import type { Delivery } from '@/lib/types';
-import { STATUS_LABEL, STATUS_COLOR, DEALERSHIP_VIEW_ROLES, ROLE_LABEL } from '@/lib/types';
+import { DEALERSHIP_VIEW_ROLES, MANAGER_ROLES, ROLE_LABEL } from '@/lib/types';
 import { monthLabel } from '@/lib/monthClose';
-import { PinIcon } from '@/components/Icons';
+import { monthKeyOf } from '@/lib/bonus';
+import { findClashes, initials, isActive, requirementProgress, timeLabel } from '@/lib/schedule';
+import { useIsDesktop } from '@/lib/useIsDesktop';
 import ProgressRing from '@/components/ProgressRing';
-import DateTimePill from '@/components/DateTimePill';
+import DeliveryCard from '@/components/DeliveryCard';
+import StatusBoard from '@/components/StatusBoard';
+import SalespersonHome from '@/components/SalespersonHome';
 import AdminHome from './AdminHome';
 
-function monthKeyOf(d: Date): string {
-  return `${d.getFullYear()}-${d.getMonth() + 1}`;
-}
+type Chip = 'today' | 'outstanding' | 'ready' | 'mine' | 'all' | 'delivered';
+type View = 'list' | 'board';
+const VIEW_KEY = 'pulse_home_view';
 
 export default function Deliveries() {
   const { profile, session } = useSession();
-  const { isMaster, actingRole, actingDealershipId, isAdminMode } = useActingRole();
+  const { isMaster, actingRole, actingDealershipId, isAdminMode, effectiveSalespersonId } = useActingRole();
+  const isDesktop = useIsDesktop();
   const [rows, setRows] = useState<Delivery[]>([]);
   const [loading, setLoading] = useState(true);
-  const [tab, setTab] = useState<'active' | 'delivered'>('active');
-  const [customerFilter, setCustomerFilter] = useState('');
-  const [fsmFilter, setFsmFilter] = useState('');
-  const [salespersonFilter, setSalespersonFilter] = useState('');
-  // The Delivered tab defaults to the current month — without this, it's
-  // every delivery ever completed, in one long list that only gets longer.
-  // Older months are still one tap away via the month picker.
+  const [notice, setNotice] = useState<string | null>(null);
+  const [chip, setChip] = useState<Chip>('today');
+  const [search, setSearch] = useState('');
+  // The Delivered chip defaults to the current month — older months are one
+  // pick away, without an ever-growing list of every delivery ever made.
   const [deliveredMonthKey, setDeliveredMonthKey] = useState(() => monthKeyOf(new Date()));
+  const [view, setView] = useState<View>(() => {
+    try { return localStorage.getItem(VIEW_KEY) === 'list' ? 'list' : 'board'; } catch { return 'board'; }
+  });
+  const [nudging, setNudging] = useState(false);
   // Installed PWAs get foregrounded from the background rather than
   // reloaded, so a `new Date()` computed only at render time can go stale
-  // (e.g. "Good afternoon" still showing hours later) if nothing else
-  // triggers a re-render in between. Refresh it on a timer and whenever the
-  // tab/app becomes visible again.
+  // (countdowns, "Good afternoon") if nothing else re-renders. Refresh it on
+  // a timer and whenever the app becomes visible again.
   const [now, setNow] = useState(() => new Date());
   useEffect(() => {
     const tick = () => setNow(new Date());
@@ -46,13 +52,13 @@ export default function Deliveries() {
     };
   }, []);
 
-  // A Master Administrator has no operational role of their own — the delivery
-  // board only makes sense once they've chosen a role+dealership to preview.
   const effectiveRole = isMaster ? actingRole : profile?.role;
-  // Dealership-wide view scope — includes the read-only Sales Manager role.
-  // Nothing in this file performs a write action, so it's safe to treat
-  // them the same as FSM/GM/Master for what's visible here.
+  // Dealership-wide view scope — includes the read-only Sales Manager.
   const isManager = effectiveRole ? DEALERSHIP_VIEW_ROLES.includes(effectiveRole) : false;
+  // Write actions (nudging salespeople) stay MANAGER_ROLES-only.
+  const canWrite = effectiveRole ? MANAGER_ROLES.includes(effectiveRole) : false;
+  const isSalespersonView = effectiveRole === 'Salesperson';
+  const youId = session?.user.id;
 
   const load = useCallback(async () => {
     if (!profile || isAdminMode) return;
@@ -63,18 +69,25 @@ export default function Deliveries() {
     if (isMaster) {
       if (!actingDealershipId) { setRows([]); setLoading(false); return; }
       query = query.eq('dealership_id', actingDealershipId);
+      // Previewing a salesperson shows just that salesperson's deliveries,
+      // the same as they'd see themselves.
+      if (actingRole === 'Salesperson') {
+        if (!effectiveSalespersonId) { setRows([]); setLoading(false); return; }
+        query = query.eq('salesperson_id', effectiveSalespersonId);
+      }
     } else if (!isManager) {
       query = query.eq('salesperson_id', session?.user.id);
     }
     const { data, error } = await query;
-    if (!error) setRows((data as Delivery[]) || []);
+    if (error) setNotice(error.message);
+    else setRows((data as Delivery[]) || []);
     setLoading(false);
-  }, [profile, isManager, isMaster, isAdminMode, actingDealershipId, session?.user.id]);
+  }, [profile, isManager, isMaster, isAdminMode, actingRole, actingDealershipId, effectiveSalespersonId, session?.user.id]);
 
   useEffect(() => { load(); }, [load]);
 
-  // Realtime: any change to deliveries or their requirements refreshes the list,
-  // so the FSM sees salesperson progress and the salesperson sees FSM edits live.
+  // Realtime: any change to deliveries or their requirements refreshes the
+  // list, so the FSM sees salesperson progress and vice versa, live.
   useEffect(() => {
     if (!profile) return;
     const channel = supabase
@@ -85,225 +98,247 @@ export default function Deliveries() {
     return () => { supabase.removeChannel(channel); };
   }, [profile, load]);
 
-  const active = rows.filter((d) => d.status !== 'delivered');
-  // A salesperson's Deliveries tab is "what's on today" — anything else is a
-  // calendar lookup away, on the Calendar tab.
-  const todayKey = new Date().toDateString();
-  const todaysActive = !isManager ? active.filter((d) => new Date(d.delivery_at).toDateString() === todayKey) : active;
-  const deliveredAll = rows.filter((d) => d.status === 'delivered');
-  // Bucketed — and the picker's months built — by delivery_at (the
-  // scheduled date), not delivered_at (when it was actually marked
-  // complete): each row displays delivery_at, so bucketing by delivered_at
-  // instead could show a vehicle under "October" while its row still reads
-  // a September date whenever it was scheduled one month but completed the
-  // next. This also matches how the monthly PDF report buckets.
+  if (isAdminMode) return <AdminHome />;
+
+  const startOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+  const endOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate() + 1);
+  const atOf = (d: Delivery) => new Date(d.delivery_at);
+  const isToday = (d: Delivery) => atOf(d) >= startOfToday && atOf(d) < endOfToday;
+
+  // "This month" for the header ring: the same scheduled-this-month bucket
+  // the month-close review uses, so the two numbers always agree.
+  const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
+  const monthEnd = new Date(now.getFullYear(), now.getMonth() + 1, 1);
+  const scheduledThisMonth = rows.filter((d) => atOf(d) >= monthStart && atOf(d) < monthEnd && d.status !== 'cancelled');
+  const deliveredThisMonth = scheduledThisMonth.filter((d) => d.status === 'delivered').length;
+  const monthPercent = scheduledThisMonth.length ? (deliveredThisMonth / scheduledThisMonth.length) * 100 : 0;
+  const todayCount = rows.filter((d) => isActive(d) && isToday(d)).length;
+  const outstandingCount = rows.filter((d) => d.status === 'requirements_outstanding').length;
+  const overdueCount = rows.filter((d) => isActive(d) && atOf(d) < now).length;
+  const greeting = now.getHours() < 12 ? 'Good morning' : now.getHours() < 18 ? 'Good afternoon' : 'Good evening';
+  const dateLine = now.toLocaleDateString([], { weekday: 'short', month: 'short', day: 'numeric' });
+
+  const header = (
+    <div className="card-3d" style={{ padding: '18px 18px 16px', display: 'grid', gap: 14 }}>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12 }}>
+        <div style={{ minWidth: 0 }}>
+          <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--muted)', textTransform: 'uppercase', letterSpacing: '0.07em' }}>{dateLine} · {greeting}</div>
+          <div style={{ fontSize: 21, fontWeight: 800, marginTop: 2, color: 'var(--ink)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{profile?.name}</div>
+          {isMaster && effectiveRole && (
+            <div style={{ fontSize: 11.5, fontWeight: 700, color: 'var(--accent)', marginTop: 2 }}>Previewing · {ROLE_LABEL[effectiveRole]}</div>
+          )}
+        </div>
+        <span aria-hidden="true" style={{ width: 42, height: 42, borderRadius: '50%', background: 'var(--accent)', color: '#fff', fontWeight: 800, fontSize: 14, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+          {initials(profile?.name)}
+        </span>
+      </div>
+      {isManager && (
+        <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
+          <ProgressRing percent={monthPercent} trackColor="var(--line)" fillColor="var(--accent)" textColor="var(--ink)" />
+          <div style={{ display: 'grid', gap: 4 }}>
+            <div style={{ fontSize: 14, fontWeight: 700 }}>
+              {scheduledThisMonth.length ? `${deliveredThisMonth} of ${scheduledThisMonth.length} delivered this month` : 'No deliveries scheduled this month yet'}
+            </div>
+            <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap', fontSize: 12.5, color: 'var(--muted)', fontWeight: 600 }}>
+              <span><strong style={{ color: 'var(--ink)' }}>{todayCount}</strong> today</span>
+              <span><strong style={{ color: outstandingCount ? '#b45309' : 'var(--ink)' }}>{outstandingCount}</strong> outstanding</span>
+              <span><strong style={{ color: overdueCount ? '#dc2626' : 'var(--ink)' }}>{overdueCount}</strong> overdue</span>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+
+  const noticeCard = notice && (
+    <div className="card-3d tint-blue" role="status" style={{ fontSize: 13, display: 'flex', justifyContent: 'space-between', gap: 10, alignItems: 'flex-start' }}>
+      <span>{notice}</span>
+      <button type="button" aria-label="Dismiss" onClick={() => setNotice(null)} style={{ background: 'none', border: 'none', color: 'var(--muted)', fontSize: 16, cursor: 'pointer', padding: 0, lineHeight: 1 }}>×</button>
+    </div>
+  );
+
+  if (isSalespersonView) {
+    return (
+      <div style={{ display: 'grid', gap: 14, maxWidth: 640, margin: '0 auto' }}>
+        {header}
+        {noticeCard}
+        {loading ? <Skeletons /> : (
+          <SalespersonHome rows={rows} now={now} canEdit={effectiveRole === 'Salesperson'} onReload={load} onNotice={setNotice} />
+        )}
+      </div>
+    );
+  }
+
+  // ---- manager / FSM / Sales Manager home ----
+  const q = search.trim().toLowerCase();
+  const matches = (d: Delivery) => !q || [d.customer_name, d.stock_number, d.salesperson_name, d.fsm_name]
+    .some((v) => v?.toLowerCase().includes(q));
+  const inChip = (d: Delivery): boolean => {
+    switch (chip) {
+      // Today also carries anything still open from an earlier day — an
+      // overdue delivery is exactly what today's attention should be on.
+      case 'today': return d.status !== 'cancelled' && (isToday(d) || (isActive(d) && atOf(d) < startOfToday));
+      case 'outstanding': return d.status === 'requirements_outstanding';
+      case 'ready': return d.status === 'ready' || d.status === 'new';
+      case 'mine': return isActive(d) && d.fsm_id === youId;
+      case 'all': return isActive(d);
+      case 'delivered': return d.status === 'delivered' && monthKeyOf(atOf(d)) === deliveredMonthKey;
+    }
+  };
+  const visible = rows.filter((d) => inChip(d) && matches(d)).sort((a, b) => chip === 'delivered'
+    ? (b.delivered_at ?? b.delivery_at).localeCompare(a.delivered_at ?? a.delivery_at)
+    : Number(!isActive(a)) - Number(!isActive(b)) || a.delivery_at.localeCompare(b.delivery_at));
+
+  const clashes = findClashes(rows.filter((d) => isActive(d) && atOf(d) >= startOfToday));
+  const clashSlots: Delivery[][] = [];
+  clashes.forEach((others, id) => {
+    const d = rows.find((r) => r.id === id);
+    if (!d || clashSlots.some((slot) => slot.some((s) => s.id === id))) return;
+    clashSlots.push([d, ...others]);
+  });
+
+  const nudgeTargets = rows.filter((d) => isActive(d) && atOf(d) < endOfToday && requirementProgress(d).open > 0);
+  const nudge = async () => {
+    const people = new Set(nudgeTargets.map((d) => d.salesperson_id)).size;
+    if (!window.confirm(`Send a reminder to ${people} salesperson${people === 1 ? '' : 's'} about ${nudgeTargets.length} deliver${nudgeTargets.length === 1 ? 'y' : 'ies'} with items still outstanding?`)) return;
+    setNudging(true);
+    let reached = 0;
+    for (const d of nudgeTargets) {
+      const labels = (d.delivery_requirements || []).filter((r) => r.status === 'outstanding').map((r) => r.label);
+      const { data } = await supabase.functions.invoke('send-webpush', {
+        body: {
+          profile_ids: [d.salesperson_id],
+          title: `Reminder: ${d.customer_name}`,
+          body: `Still needed: ${labels.join(', ')}. Delivery ${timeLabel(atOf(d), now)}.`,
+          data: { url: `/delivery/${d.id}`, deliveryId: d.id, type: 'urgent' },
+        },
+      }).catch(() => ({ data: null }));
+      if (data?.sent) reached++;
+    }
+    setNudging(false);
+    setNotice(reached === nudgeTargets.length
+      ? `Reminder sent for ${reached} deliver${reached === 1 ? 'y' : 'ies'}.`
+      : `Reminder sent for ${reached} of ${nudgeTargets.length} deliveries — the rest have no device enrolled for push.`);
+  };
+
+  const showMine = effectiveRole === 'FSM' || isMaster;
+  const chips: [Chip, string][] = [
+    ['today', 'Today'], ['outstanding', 'Outstanding'], ['ready', 'Ready'],
+    ...(showMine ? [['mine', 'Mine'] as [Chip, string]] : []),
+    ['all', 'All active'], ['delivered', 'Delivered'],
+  ];
+  const chipTitle = chips.find(([c]) => c === chip)?.[1] ?? '';
+  const boardAvailable = isDesktop && chip !== 'delivered';
+  const showBoard = boardAvailable && view === 'board';
+  const setViewPersist = (v: View) => { setView(v); try { localStorage.setItem(VIEW_KEY, v); } catch { /* ignore */ } };
+
   const deliveredMonthOptions = Array.from(new Set([
-    monthKeyOf(new Date()),
-    ...deliveredAll.map((d) => monthKeyOf(new Date(d.delivery_at))),
+    monthKeyOf(now),
+    ...rows.filter((d) => d.status === 'delivered').map((d) => monthKeyOf(atOf(d))),
   ])).sort((a, b) => {
     const [ay, am] = a.split('-').map(Number);
     const [by, bm] = b.split('-').map(Number);
     return by - ay || bm - am;
   });
-  const deliveredThisSelection = deliveredAll.filter((d) => monthKeyOf(new Date(d.delivery_at)) === deliveredMonthKey);
-  const visibleAll = (tab === 'delivered' ? deliveredThisSelection : todaysActive)
-    .sort((a, b) => tab === 'delivered'
-      ? new Date(b.delivered_at ?? b.delivery_at).getTime() - new Date(a.delivered_at ?? a.delivery_at).getTime()
-      : new Date(a.delivery_at).getTime() - new Date(b.delivery_at).getTime());
-  // Someone with several deliveries on different dates can pick one customer
-  // and see just that delivery instead of scrolling the whole list. Scoped
-  // to the current tab/month selection (visibleAll), not every delivery
-  // ever — otherwise this list only grows and stops reflecting what's
-  // actually on screen.
-  const customerNames = Array.from(new Set(visibleAll.map((d) => d.customer_name))).sort();
-  // Master-only: see every dealership's deliveries at once, or narrow to one
-  // finance manager (including their own, when they created deliveries
-  // directly) — nobody else gets this filter.
-  const fsmOptions = isMaster
-    ? Array.from(new Map(rows.map((d) => [d.fsm_id, d.fsm_name || 'Unknown'])).entries())
-      .sort((a, b) => a[1].localeCompare(b[1]))
-    : [];
-  const salespersonOptions = isMaster
-    ? Array.from(new Map(rows.map((d) => [d.salesperson_id, d.salesperson_name || 'Unknown'])).entries())
-      .sort((a, b) => a[1].localeCompare(b[1]))
-    : [];
-  const byCustomer = customerFilter ? visibleAll.filter((d) => d.customer_name === customerFilter) : visibleAll;
-  const byFsm = isMaster && fsmFilter ? byCustomer.filter((d) => d.fsm_id === fsmFilter) : byCustomer;
-  const visible = isMaster && salespersonFilter ? byFsm.filter((d) => d.salesperson_id === salespersonFilter) : byFsm;
-
-  const outstandingCount = active.filter((d) => (d.delivery_requirements || []).some((r) => r.status === 'outstanding')).length;
-
-  // "This month" for the header ring: everyone's own scoped rows already
-  // (their own deliveries, their dealership, or their acting preview) — the
-  // same scheduled-this-month bucket the month-close review uses, so the
-  // number here and the one an FSM closes against always agree.
-  const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
-  const monthEnd = new Date(now.getFullYear(), now.getMonth() + 1, 1);
-  const scheduledThisMonth = rows.filter((d) => {
-    const at = new Date(d.delivery_at);
-    return at >= monthStart && at < monthEnd;
-  });
-  const deliveredThisMonth = scheduledThisMonth.filter((d) => d.status === 'delivered').length;
-  const monthPercent = scheduledThisMonth.length ? (deliveredThisMonth / scheduledThisMonth.length) * 100 : 0;
-  const greeting = now.getHours() < 12 ? 'Good morning' : now.getHours() < 18 ? 'Good afternoon' : 'Good evening';
-
-  if (isAdminMode) return <AdminHome />;
 
   return (
-    <div style={{ display: 'grid', gap: 14, maxWidth: 640, margin: '0 auto' }}>
-      <div className="card-3d" style={{ padding: '20px 20px 22px' }}>
-        <div style={{ fontSize: 12.5, fontWeight: 600, color: 'var(--muted)', textTransform: 'uppercase', letterSpacing: '0.06em' }}>{greeting}</div>
-        <div style={{ fontSize: 20, fontWeight: 800, marginTop: 2, color: 'var(--ink)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{profile?.name}</div>
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, marginTop: 14 }}>
-          <div style={{ minWidth: 0, fontSize: 12, fontWeight: 600, color: 'var(--muted)' }}>
-            {scheduledThisMonth.length
-              ? `${deliveredThisMonth} of ${scheduledThisMonth.length} delivered this month`
-              : 'No deliveries scheduled this month yet'}
-          </div>
-          <ProgressRing percent={monthPercent} trackColor="var(--line)" fillColor="var(--accent)" textColor="var(--ink)" />
-        </div>
+    <div style={{ display: 'grid', gap: 14, maxWidth: showBoard ? 1320 : 640, margin: '0 auto' }}>
+      <div style={{ display: 'grid', gap: 14, maxWidth: 640, width: '100%', margin: showBoard ? 0 : undefined }}>
+        {header}
       </div>
+      {noticeCard}
 
-      <div style={{ color: 'var(--accent)', fontWeight: 700, fontSize: 12, letterSpacing: '0.08em', textTransform: 'uppercase' }}>
-        {!isManager && tab === 'active' ? "Today's Deliveries" : 'Deliveries'} · {effectiveRole ? ROLE_LABEL[effectiveRole] : ''}{isMaster ? ' (previewed)' : ''}
-      </div>
+      <label style={{ display: 'flex', alignItems: 'center', gap: 10, background: 'var(--focus-bg)', border: '1px solid var(--line)', borderRadius: 12, padding: '0 14px', height: 46 }}>
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--muted)" strokeWidth="2" strokeLinecap="round" aria-hidden="true"><circle cx="11" cy="11" r="7" /><path d="M20 20l-3.5-3.5" /></svg>
+        <input
+          type="search"
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+          placeholder="Search customer, stock # or salesperson"
+          aria-label="Search deliveries"
+          style={{ border: 'none', outline: 'none', background: 'transparent', padding: 0, fontSize: 14, flex: 1, minWidth: 0, boxShadow: 'none' }}
+        />
+      </label>
 
-      {isManager && !loading && (
-        <div style={{ display: 'flex', gap: 10 }}>
-          <StatTile label="Active" value={active.length} />
-          <StatTile label="Outstanding" value={outstandingCount} tone={outstandingCount > 0 ? 'warn' : 'ok'} />
-          <StatTile label="Delivered this month" value={deliveredThisMonth} />
-        </div>
-      )}
-
-      {customerNames.length > 1 && (
-        <select value={customerFilter} onChange={(e) => setCustomerFilter(e.target.value)}>
-          <option value="">All customers ({customerNames.length})</option>
-          {customerNames.map((name) => <option key={name} value={name}>{name}</option>)}
-        </select>
-      )}
-
-      {isMaster && fsmOptions.length > 1 && (
-        <select value={fsmFilter} onChange={(e) => setFsmFilter(e.target.value)}>
-          <option value="">All Finance Managers</option>
-          {fsmOptions.map(([fsmId, name]) => (
-            <option key={fsmId} value={fsmId}>{name}{fsmId === session?.user.id ? ' (You)' : ''}</option>
-          ))}
-        </select>
-      )}
-
-      {isMaster && salespersonOptions.length > 1 && (
-        <select value={salespersonFilter} onChange={(e) => setSalespersonFilter(e.target.value)}>
-          <option value="">All Salespeople</option>
-          {salespersonOptions.map(([id, name]) => (
-            <option key={id} value={id}>{name}</option>
-          ))}
-        </select>
-      )}
-
-      <div style={{ display: 'flex', gap: 6, background: 'var(--surface)', borderRadius: 12, padding: 4 }}>
-        {(['active', 'delivered'] as const).map((t) => (
-          <button
-            key={t}
-            type="button"
-            onClick={() => { setTab(t); setCustomerFilter(''); }}
-            style={{
-              flex: 1, border: 'none', borderRadius: 9, padding: '8px 0', fontSize: 13, fontWeight: 700,
-              cursor: 'pointer', background: tab === t ? 'var(--card)' : 'transparent',
-              color: tab === t ? 'var(--ink)' : 'var(--muted)',
-              boxShadow: tab === t ? '0 1px 3px rgba(20,50,100,0.12)' : 'none',
-            }}
-          >
-            {t === 'active' ? 'Active' : 'Delivered'}
-          </button>
+      <div className="chip-row" role="group" aria-label="Filter deliveries">
+        {chips.map(([c, label]) => (
+          <button key={c} type="button" className={`chip${chip === c ? ' is-active' : ''}`} aria-pressed={chip === c} onClick={() => setChip(c)}>{label}</button>
         ))}
       </div>
 
-      {tab === 'delivered' && deliveredMonthOptions.length > 1 && (
-        <select value={deliveredMonthKey} onChange={(e) => { setDeliveredMonthKey(e.target.value); setCustomerFilter(''); }}>
-          {deliveredMonthOptions.map((key) => {
-            const [y, m] = key.split('-').map(Number);
-            return <option key={key} value={key}>{monthLabel(y, m)}</option>;
-          })}
+      {chip === 'delivered' && deliveredMonthOptions.length > 1 && (
+        <select value={deliveredMonthKey} onChange={(e) => setDeliveredMonthKey(e.target.value)} aria-label="Month">
+          {deliveredMonthOptions.map((key) => { const [y, m] = key.split('-').map(Number); return <option key={key} value={key}>{monthLabel(y, m)}</option>; })}
         </select>
       )}
 
-      {loading && <div style={{ color: 'var(--muted)' }}>Loading…</div>}
-      {!loading && visible.length === 0 && (
-        <div style={{ color: 'var(--muted)', textAlign: 'center', marginTop: 40 }}>
-          {tab === 'delivered' ? 'No delivered units for this month.' : !isManager ? 'Nothing scheduled for today. Check Calendar for upcoming deliveries.' : 'No deliveries scheduled yet.'}
+      {clashSlots.length > 0 && chip !== 'delivered' && (
+        <div role="alert" style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: 10, background: 'var(--banner-warn-bg)', border: '1px solid var(--banner-warn-border)', borderRadius: 12, padding: '11px 14px', fontSize: 13, color: 'var(--banner-warn-fg)' }}>
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M12 9v4M12 17h.01" /><path d="M10.3 3.9L1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0z" /></svg>
+          <span style={{ flex: 1, minWidth: 200 }}>
+            <strong>Scheduling conflict:</strong> {clashSlots[0].map((d) => d.customer_name).join(' and ')} are booked for the same slot ({timeLabel(atOf(clashSlots[0][0]), now)}).
+            {clashSlots.length > 1 && ` ${clashSlots.length - 1} more slot${clashSlots.length === 2 ? ' is' : 's are'} double-booked.`}
+          </span>
+          {canWrite && <Link to={`/edit/${clashSlots[0][1].id}`} style={{ fontWeight: 800, color: 'inherit' }}>Reschedule one</Link>}
         </div>
       )}
 
-      {visible.map((d) => {
-        const dt = new Date(d.delivery_at);
-
-        return (
-          <Link
-            key={d.id}
-            to={`/delivery/${d.id}`}
-            className="card-3d tint-blue"
-            style={{ display: 'block', textDecoration: 'none', color: 'inherit' }}
-          >
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 8 }}>
-              <div style={{ minWidth: 0 }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 7, flexWrap: 'wrap' }}>
-                  <span style={{ fontWeight: 800, fontSize: 17, lineHeight: 1.25 }}>{d.customer_name}</span>
-                  {d.stock_number && (
-                    <span style={{
-                      fontSize: 11, fontWeight: 800, letterSpacing: 0.3, color: 'var(--accent)',
-                      background: 'var(--surface)', border: '1px solid var(--line)', borderRadius: 6, padding: '2px 7px',
-                    }}>
-                      Stock #{d.stock_number}
-                    </span>
-                  )}
-                </div>
-                {isManager && d.salesperson_name && (
-                  <div style={{ fontSize: 12, color: 'var(--muted)', marginTop: 2 }}>
-                    Salesperson: {d.salesperson_name}
-                  </div>
-                )}
-                {isMaster && d.fsm_name && (
-                  <div style={{ fontSize: 12, color: 'var(--muted)', marginTop: 2 }}>
-                    Finance Manager: {d.fsm_name}{d.fsm_id === session?.user.id ? ' (You)' : ''}
-                  </div>
-                )}
-              </div>
-              <span style={{
-                flexShrink: 0, fontSize: 10, fontWeight: 800, letterSpacing: 0.3, textTransform: 'uppercase',
-                background: STATUS_COLOR[d.status].solid, color: '#fff', padding: '5px 10px', borderRadius: 999,
-                boxShadow: `0 3px 8px ${STATUS_COLOR[d.status].solid}55`,
-              }}>
-                {STATUS_LABEL[d.status]}
-              </span>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10, flexWrap: 'wrap' }}>
+        <div style={{ fontSize: 12.5, fontWeight: 800, letterSpacing: '0.06em', textTransform: 'uppercase', color: 'var(--muted)' }}>
+          {chipTitle} · {visible.length} deliver{visible.length === 1 ? 'y' : 'ies'}
+        </div>
+        <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+          {canWrite && nudgeTargets.length > 0 && (
+            <button
+              type="button"
+              disabled={nudging}
+              onClick={nudge}
+              style={{ display: 'flex', alignItems: 'center', gap: 6, border: '1px solid var(--banner-warn-border)', background: 'var(--banner-warn-bg)', color: 'var(--banner-warn-fg)', borderRadius: 999, padding: '0 12px', height: 34, fontSize: 12.5, fontWeight: 800, cursor: 'pointer' }}
+            >
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" aria-hidden="true"><path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9" /><path d="M10.3 21a1.94 1.94 0 0 0 3.4 0" /></svg>
+              {nudging ? 'Sending…' : `Nudge ${nudgeTargets.length} outstanding`}
+            </button>
+          )}
+          {boardAvailable && (
+            <div role="group" aria-label="Layout" style={{ display: 'flex', background: 'var(--surface)', border: '1px solid var(--line)', borderRadius: 10, padding: 3, gap: 3 }}>
+              {(['board', 'list'] as View[]).map((v) => (
+                <button
+                  key={v}
+                  type="button"
+                  aria-pressed={view === v}
+                  onClick={() => setViewPersist(v)}
+                  style={{ border: 'none', borderRadius: 7, padding: '6px 12px', fontSize: 12.5, fontWeight: 700, cursor: 'pointer', background: view === v ? 'var(--accent)' : 'transparent', color: view === v ? '#fff' : 'var(--muted)' }}
+                >
+                  {v === 'board' ? 'Board' : 'List'}
+                </button>
+              ))}
             </div>
+          )}
+        </div>
+      </div>
 
-            <div style={{ marginTop: 10 }}>
-              <DateTimePill date={dt} />
-            </div>
-
-            <div style={{ display: 'flex', alignItems: 'flex-start', gap: 7, marginTop: 10, fontSize: 13 }}>
-              <span style={{ color: 'var(--muted)', marginTop: 2, flexShrink: 0 }}><PinIcon size={13} /></span>
-              <div style={{ color: 'var(--text)' }}>
-                {d.lenders?.name || 'Lender / lessor not selected'}
-                {d.lenders?.address && (
-                  <div style={{ color: 'var(--muted)', fontSize: 12, marginTop: 1 }}>{d.lenders.address}</div>
-                )}
-              </div>
-            </div>
-          </Link>
-        );
-      })}
+      {loading && <Skeletons />}
+      {!loading && visible.length === 0 && (
+        <div style={{ color: 'var(--muted)', textAlign: 'center', marginTop: 24 }}>
+          {q ? 'No deliveries match your search.'
+            : chip === 'today' ? 'Nothing scheduled for today.'
+            : chip === 'delivered' ? 'No delivered units for this month.'
+            : 'Nothing here right now.'}
+        </div>
+      )}
+      {!loading && visible.length > 0 && (showBoard
+        ? <StatusBoard rows={visible} now={now} clashes={clashes} showFsm youId={youId} />
+        : visible.map((d) => (
+          <DeliveryCard key={d.id} d={d} now={now} clashWith={clashes.get(d.id)} showSalesperson showFsm youId={youId} />
+        )))}
     </div>
   );
 }
 
-function StatTile({ label, value, tone }: { label: string; value: number; tone?: 'ok' | 'warn' }) {
-  const color = tone === 'warn' && value > 0 ? '#b45309' : tone === 'ok' ? '#15803d' : 'var(--ink)';
+function Skeletons() {
   return (
-    <div className="card" style={{ flex: 1, padding: '12px 10px', textAlign: 'center' }}>
-      <div style={{ fontSize: 22, fontWeight: 800, color }}>{value}</div>
-      <div style={{ fontSize: 11, color: 'var(--muted)', fontWeight: 700, textTransform: 'uppercase', letterSpacing: 0.4, marginTop: 2 }}>{label}</div>
+    <div style={{ display: 'grid', gap: 12 }} aria-label="Loading deliveries">
+      {[0, 1, 2].map((i) => <div key={i} className="skeleton" style={{ height: 112, borderRadius: 18 }} />)}
     </div>
   );
 }

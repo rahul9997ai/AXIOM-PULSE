@@ -1,3 +1,5 @@
+import { HATTRICK_BONUS_CENTS, volumeBonusFor } from './bonus';
+
 export interface MonthlyReportRow {
   id: string;
   customer_name: string;
@@ -57,24 +59,6 @@ const ACCENT: [number, number, number] = NAVY; // one accent color throughout â€
 const ACCENT_BG: [number, number, number] = [230, 238, 252]; // soft pale blue tint
 const MUTED: [number, number, number] = [107, 114, 128];
 const DARK: [number, number, number] = [26, 26, 26];
-
-// $150 per completed hat-trick group, and a stepped (not per-car) volume
-// bonus on total vehicles delivered in the month â€” highest threshold met
-// wins, no bonus below 10.
-const HATTRICK_BONUS_CENTS = 15000;
-const VOLUME_BONUS_TIERS: { count: number; cents: number }[] = [
-  { count: 25, cents: 200000 },
-  { count: 20, cents: 150000 },
-  { count: 15, cents: 100000 },
-  { count: 10, cents: 50000 },
-];
-
-function volumeBonusFor(deliveredCount: number): { tierCount: number; cents: number } | null {
-  for (const tier of VOLUME_BONUS_TIERS) {
-    if (deliveredCount >= tier.count) return { tierCount: tier.count, cents: tier.cents };
-  }
-  return null;
-}
 
 function formatCents(cents: number): string {
   return `$${(cents / 100).toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 0 })}`;
