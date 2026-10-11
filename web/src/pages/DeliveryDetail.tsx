@@ -84,6 +84,10 @@ export default function DeliveryDetail() {
   const requirements = d.delivery_requirements || [];
   const open = requirements.filter((r) => r.status === 'outstanding');
   const canComplete = effectiveRole === 'Salesperson' && d.status !== 'delivered' && d.status !== 'cancelled';
+  // Finance Managers / GM / Master can tick requirements on the
+  // salesperson's behalf (the salesperson is notified of each change);
+  // marking the vehicle delivered stays with the salesperson.
+  const canActOnBehalf = isManager && d.status !== 'delivered' && d.status !== 'cancelled';
   const sc = STATUS_COLOR[d.status];
   const dt = new Date(d.delivery_at);
   // Shown only to the real salesperson on their own delivery, never a
@@ -465,11 +469,15 @@ export default function DeliveryDetail() {
         <div className="card-3d tint-blue">
           <h3 style={{ marginTop: 0, fontSize: 14 }}>Requirements</h3>
           <p style={{ color: 'var(--muted)', fontSize: 12, marginTop: -6, marginBottom: 14 }}>
-            Tap to mark complete, tap again to undo. Tap the ! badge to flag an exception instead.
+            {canActOnBehalf
+              ? 'Tap to complete on the salesperson\'s behalf, tap again to undo — they\'re notified of each change. Tap the ! badge to record an exception.'
+              : 'Tap to mark complete, tap again to undo. Tap the ! badge to flag an exception instead.'}
           </p>
           <RequirementTiles
             requirements={requirements}
-            canEdit={!isManager && canComplete}
+            canEdit={canComplete || canActOnBehalf}
+            delivery={d}
+            actor={canActOnBehalf && profile && session ? { id: session.user.id, name: profile.name, role: profile.role } : undefined}
             onChanged={load}
             onError={setNotice}
           />

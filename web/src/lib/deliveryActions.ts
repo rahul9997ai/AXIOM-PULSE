@@ -34,3 +34,42 @@ export async function completeDelivery(d: Delivery, requirements: DeliveryRequir
   }
   return {};
 }
+
+// Tells the salesperson when someone else (their Finance Manager, a GM or a
+// Master) updates one of their requirements, so the tile flipping on their
+// screen never comes as a surprise. Pushes share the delivery's tag, so a
+// run of ticks collapses into the latest one on the phone.
+export async function notifyRequirementOnBehalf(
+  d: Delivery,
+  req: DeliveryRequirement,
+  status: RequirementStatus,
+  actor: { name: string; role: string },
+  stillOpen: number,
+  reason?: string,
+): Promise<void> {
+  const who = `${actor.name} (${actor.role === 'General Manager' ? 'General Manager' : 'Finance Manager'})`;
+  let title: string;
+  let body: string;
+  if (status === 'completed') {
+    title = `Requirement completed — ${d.customer_name}`;
+    body = `${who} has completed "${req.label}" on your behalf. `
+      + (stillOpen === 0
+        ? 'All requirements are now complete — please confirm the vehicle is ready and mark it delivered after handover.'
+        : `${stillOpen} item${stillOpen === 1 ? '' : 's'} still require${stillOpen === 1 ? 's' : ''} your attention.`);
+  } else if (status === 'exception') {
+    title = `Exception recorded — ${d.customer_name}`;
+    body = `${who} has recorded an exception for "${req.label}"${reason ? `: ${reason}` : ''}. No further action is needed on this item.`;
+  } else {
+    title = `Requirement reopened — ${d.customer_name}`;
+    body = `${who} has reopened "${req.label}". Please complete it before the delivery.`;
+  }
+  await supabase.functions.invoke('send-webpush', {
+    body: {
+      profile_ids: [d.salesperson_id],
+      delivery_id: d.id,
+      title,
+      body,
+      data: { url: `/delivery/${d.id}`, deliveryId: d.id, type: 'requirement_update' },
+    },
+  }).catch(() => undefined);
+}

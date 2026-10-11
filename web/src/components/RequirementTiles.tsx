@@ -1,15 +1,21 @@
 import { useState } from 'react';
-import type { DeliveryRequirement } from '@/lib/types';
-import { setRequirementStatus } from '@/lib/deliveryActions';
+import type { Delivery, DeliveryRequirement } from '@/lib/types';
+import { notifyRequirementOnBehalf, setRequirementStatus } from '@/lib/deliveryActions';
 
 // The 3D requirement tiles, shared by the delivery page and the
 // salesperson's "My day" cards: tap to complete, tap again to undo, or use
 // the "!" badge to flag an exception with a reason.
 export default function RequirementTiles({
-  requirements, canEdit, onChanged, onError,
+  requirements, canEdit, onChanged, onError, delivery, actor,
 }: {
   requirements: DeliveryRequirement[];
   canEdit: boolean;
+  // The delivery these belong to — lets a tile completed by someone other
+  // than the salesperson say so ("by Finance").
+  delivery?: Delivery;
+  // Set when a manager is editing on the salesperson's behalf: each change
+  // then notifies the salesperson.
+  actor?: { id: string; name: string; role: string };
   onChanged: () => void;
   onError: (message: string) => void;
 }) {
@@ -22,6 +28,11 @@ export default function RequirementTiles({
     const err = await setRequirementStatus(id, status, why);
     setBusyId(null);
     if (err) { onError(err); return; }
+    const req = requirements.find((r) => r.id === id);
+    if (actor && delivery && req && actor.id !== delivery.salesperson_id) {
+      const stillOpen = requirements.filter((r) => r.status === 'outstanding' && r.id !== id).length + (status === 'outstanding' ? 1 : 0);
+      void notifyRequirementOnBehalf(delivery, req, status, actor, stillOpen, why);
+    }
     setExceptionFor(null);
     setReason('');
     onChanged();
@@ -50,6 +61,9 @@ export default function RequirementTiles({
                 <span className="req-tile-body">
                   <TileIcon status={r.status} />
                   <span>{r.label}</span>
+                  {delivery && r.status !== 'outstanding' && r.completed_by && r.completed_by !== delivery.salesperson_id && (
+                    <span style={{ fontSize: 9.5, fontWeight: 700, opacity: 0.85, letterSpacing: 0.2 }}>by Finance</span>
+                  )}
                 </span>
               </button>
               {r.status === 'outstanding' && canEdit && (

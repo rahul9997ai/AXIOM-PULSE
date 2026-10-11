@@ -97,7 +97,7 @@ export default function SalespersonHome({
                   </div>
                 </Link>
                 {reqs.length > 0 && (
-                  <RequirementTiles requirements={reqs} canEdit={canEdit} onChanged={onReload} onError={onNotice} />
+                  <RequirementTiles requirements={reqs} canEdit={canEdit} delivery={d} onChanged={onReload} onError={onNotice} />
                 )}
                 {canEdit && (
                   <button
