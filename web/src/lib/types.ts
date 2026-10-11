@@ -40,6 +40,9 @@ export interface Lender {
   name: string;
   address: string | null;
   active: boolean;
+  // Requirement templates this lender always needs — pre-checked on a new
+  // delivery as soon as the lender is picked.
+  default_template_ids?: string[];
 }
 
 export interface RequirementTemplate {

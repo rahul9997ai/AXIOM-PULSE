@@ -288,6 +288,14 @@ export default function Settings() {
     else load();
   };
 
+  const toggleLenderTemplate = async (l: Lender, templateId: string) => {
+    const current = l.default_template_ids ?? [];
+    const next = current.includes(templateId) ? current.filter((id) => id !== templateId) : [...current, templateId];
+    const { error } = await supabase.from('lenders').update({ default_template_ids: next }).eq('id', l.id);
+    if (error) setError(error.message);
+    else load();
+  };
+
   const deleteLender = async (l: Lender) => {
     if (!window.confirm(`Delete "${l.name}"? This can't be undone.`)) return;
     const { error } = await supabase.from('lenders').delete().eq('id', l.id);
@@ -587,7 +595,8 @@ export default function Settings() {
       <div className="card">
         <h3 style={{ marginTop: 0 }}>Lenders &amp; lessors</h3>
         <p style={{ color: 'var(--muted)', fontSize: 13, marginTop: -4 }}>
-          Add each lender's address so the salesperson can direct customers there when needed.
+          Add each lender's address so the salesperson can direct customers there when needed, and pick the
+          requirements that lender always needs so they're checked automatically on new deliveries.
         </p>
         <div style={{ display: 'grid', gap: 12, marginBottom: 14 }}>
           {lenders.map((l) => (
@@ -613,6 +622,30 @@ export default function Settings() {
                 onBlur={() => saveLenderAddress(l)}
                 style={{ fontSize: 13 }}
               />
+              {templates.some((t) => t.active) && (
+                <div style={{ marginTop: 8 }}>
+                  <div style={{ fontSize: 11.5, fontWeight: 700, color: 'var(--muted)', marginBottom: 6 }}>
+                    Always required for this lender — pre-checked on new deliveries
+                  </div>
+                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
+                    {templates.filter((t) => t.active).map((t) => {
+                      const on = (l.default_template_ids ?? []).includes(t.id);
+                      return (
+                        <button
+                          key={t.id}
+                          type="button"
+                          className={`chip${on ? ' is-active' : ''}`}
+                          aria-pressed={on}
+                          style={{ height: 30, fontSize: 12, padding: '0 11px' }}
+                          onClick={() => toggleLenderTemplate(l, t.id)}
+                        >
+                          {on ? '✓ ' : ''}{t.label}
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
             </div>
           ))}
         </div>

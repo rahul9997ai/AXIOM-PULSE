@@ -86,6 +86,9 @@ export default function DeliveryForm({ existing, onSaved }: { existing?: Deliver
   const [salespeople, setSalespeople] = useState<Salesperson[]>([]);
   const [financeManagers, setFinanceManagers] = useState<FinanceManager[]>([]);
 
+  const [lenderHint, setLenderHint] = useState<string | null>(null);
+  const [slotClash, setSlotClash] = useState<string[]>([]);
+
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -146,6 +149,36 @@ export default function DeliveryForm({ existing, onSaved }: { existing?: Deliver
     setCheckedTemplates(new Set(reqs.filter((r) => r.template_id).map((r) => r.template_id!)));
     setCustomReqs(reqs.filter((r) => !r.template_id).map((r) => ({ id: r.id, label: r.label })));
   }, [existing]);
+
+  // Picking a lender pre-checks the requirements that lender always needs
+  // (set in Settings → Lenders). Only ever adds — unchecking stays manual.
+  const pickLender = (id: string) => {
+    setLenderId(id);
+    const lender = lenders.find((l) => l.id === id);
+    const defaults = (lender?.default_template_ids ?? []).filter((tid) => templates.some((t) => t.id === tid));
+    if (lender && defaults.length) {
+      setCheckedTemplates((prev) => new Set([...prev, ...defaults]));
+      setLenderHint(`Pre-checked for ${lender.name}: ${defaults.map((tid) => templates.find((t) => t.id === tid)!.label).join(', ')}`);
+    } else {
+      setLenderHint(null);
+    }
+  };
+
+  // Double-booking check: another active delivery at this dealership at the
+  // exact same time. A warning only — saving is still allowed.
+  useEffect(() => {
+    if (!deliveryAt || !effectiveDealershipId) { setSlotClash([]); return; }
+    let cancelled = false;
+    let q = supabase.from('deliveries').select('id, customer_name')
+      .eq('dealership_id', effectiveDealershipId)
+      .eq('delivery_at', new Date(deliveryAt).toISOString())
+      .not('status', 'in', '(delivered,cancelled)');
+    if (existing) q = q.neq('id', existing.id);
+    q.then(({ data }) => {
+      if (!cancelled) setSlotClash(((data as { customer_name: string }[]) || []).map((r) => r.customer_name));
+    });
+    return () => { cancelled = true; };
+  }, [deliveryAt, effectiveDealershipId, existing?.id]);
 
   const toggleTemplate = (id: string) => {
     setCheckedTemplates((prev) => {
@@ -377,10 +410,11 @@ export default function DeliveryForm({ existing, onSaved }: { existing?: Deliver
       </div>
 
       <div style={fieldLabel}>LENDER / LESSOR</div>
-      <select value={lenderId} onChange={(e) => setLenderId(e.target.value)}>
+      <select value={lenderId} onChange={(e) => pickLender(e.target.value)}>
         <option value="">Not selected</option>
         {lenders.map((l) => <option key={l.id} value={l.id}>{l.name}</option>)}
       </select>
+      {lenderHint && <div style={{ fontSize: 12.5, fontWeight: 600, color: 'var(--blue)', marginTop: -4 }}>{lenderHint}</div>}
 
       <div style={fieldLabel}>APPROVAL STATUS</div>
       <select value={approvalStatus} onChange={(e) => setApprovalStatus(e.target.value as ApprovalStatus)}>
@@ -399,6 +433,11 @@ export default function DeliveryForm({ existing, onSaved }: { existing?: Deliver
           {QUARTER_HOUR_OPTIONS.map((t) => <option key={t.value} value={t.value}>{t.label}</option>)}
         </select>
       </div>
+      {slotClash.length > 0 && (
+        <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--banner-warn-fg)', background: 'var(--banner-warn-bg)', border: '1px solid var(--banner-warn-border)', borderRadius: 10, padding: '8px 10px', marginTop: -4 }}>
+          ⚠ {slotClash.join(', ')} {slotClash.length === 1 ? 'is' : 'are'} already booked at this exact time — you can still save.
+        </div>
+      )}
 
       <div className="card" style={{ padding: 14 }}>
         <label style={{ display: 'flex', alignItems: 'center', gap: 10, fontWeight: 700, fontSize: 14 }}>
