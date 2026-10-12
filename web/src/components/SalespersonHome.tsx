@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import type { Delivery } from '@/lib/types';
 import { HATTRICK_BONUS_CENTS, groupHattricks, monthKeyOf, nextVolumeTier, volumeBonusFor } from '@/lib/bonus';
+import type { HattrickRow } from '@/lib/bonus';
 import { completeDelivery } from '@/lib/deliveryActions';
 import { countdown, isActive, isSameDay, requirementProgress, timeLabel } from '@/lib/schedule';
 import { monthLabel } from '@/lib/monthClose';
@@ -159,8 +160,10 @@ function BonusTracker({ rows, now }: { rows: Delivery[]; now: Date }) {
   })));
   const earnedGroups = groups.filter((g) => g.allDelivered && g.completedAt && monthKeyOf(new Date(g.completedAt)) === key);
   const pending = groups.filter((g) => !g.allDelivered)
-    .map((g) => ({ delivered: g.members.filter((m) => m.status === 'delivered').length, total: g.members.length }))
+    .map((g) => ({ ...g, delivered: g.members.filter((m) => m.status === 'delivered').length, total: g.members.length }))
     .sort((a, b) => (b.delivered / b.total) - (a.delivered / a.total));
+  const [openPanel, setOpenPanel] = useState<'earned' | 'pending' | null>(null);
+  const toggle = (p: 'earned' | 'pending') => setOpenPanel((cur) => (cur === p ? null : p));
   const earned = (volume?.cents ?? 0) + earnedGroups.length * HATTRICK_BONUS_CENTS;
   const pct = next ? Math.min(100, Math.round((count / next.count) * 100)) : 100;
   const month = now.toLocaleDateString([], { month: 'long' });
@@ -194,17 +197,96 @@ function BonusTracker({ rows, now }: { rows: Delivery[]; now: Date }) {
         </div>
       </div>
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, minmax(0, 1fr))', gap: 10 }}>
-        <div style={{ background: '#2a4799', borderRadius: 12, padding: '10px 12px', display: 'grid', gap: 3 }}>
-          <div style={{ fontSize: 11.5, color: '#c9d6f2', fontWeight: 700 }}>Hat-tricks this month</div>
-          <div style={{ fontSize: 16, fontWeight: 800 }}>{earnedGroups.length} · {dollars(earnedGroups.length * HATTRICK_BONUS_CENTS)}</div>
-        </div>
-        <div style={{ background: '#2a4799', borderRadius: 12, padding: '10px 12px', display: 'grid', gap: 3 }}>
-          <div style={{ fontSize: 11.5, color: '#c9d6f2', fontWeight: 700 }}>Pending hat-trick</div>
-          <div style={{ fontSize: 16, fontWeight: 800 }}>
+        <button type="button" className="bonus-stat" aria-expanded={openPanel === 'earned'} onClick={() => toggle('earned')}>
+          <span className="bonus-stat-label">Hat-tricks this month <Chevron open={openPanel === 'earned'} /></span>
+          <span className="bonus-stat-value">{earnedGroups.length} · {dollars(earnedGroups.length * HATTRICK_BONUS_CENTS)}</span>
+        </button>
+        <button type="button" className="bonus-stat" aria-expanded={openPanel === 'pending'} onClick={() => toggle('pending')}>
+          <span className="bonus-stat-label">Pending hat-trick <Chevron open={openPanel === 'pending'} /></span>
+          <span className="bonus-stat-value">
             {pending.length ? `${pending[0].delivered} / ${pending[0].total} delivered${pending.length > 1 ? ` +${pending.length - 1}` : ''}` : 'None in progress'}
-          </div>
-        </div>
+          </span>
+        </button>
       </div>
+
+      {openPanel === 'earned' && (
+        <div className="bonus-panel">
+          {earnedGroups.length === 0 ? (
+            <div className="bonus-empty">No hat-tricks completed this month yet. Sell 3 or more on the same day and mark them as a hat-trick — the bonus lands once the last one is delivered.</div>
+          ) : earnedGroups.map((g) => (
+            <HattrickGroup key={g.soldAt} soldAt={g.soldAt} members={g.members} badge={`+${dollars(HATTRICK_BONUS_CENTS)}`} />
+          ))}
+          {earnedGroups.length > 0 && (
+            <div className="bonus-total">
+              <span>{earnedGroups.length} hat-trick{earnedGroups.length === 1 ? '' : 's'} × {dollars(HATTRICK_BONUS_CENTS)}</span>
+              <strong>{dollars(earnedGroups.length * HATTRICK_BONUS_CENTS)}</strong>
+            </div>
+          )}
+          {volume && (
+            <div className="bonus-total" style={{ marginTop: -4 }}>
+              <span>Volume bonus ({volume.tierCount}+ delivered)</span>
+              <strong>{dollars(volume.cents)}</strong>
+            </div>
+          )}
+        </div>
+      )}
+
+      {openPanel === 'pending' && (
+        <div className="bonus-panel">
+          {pending.length === 0 ? (
+            <div className="bonus-empty">No hat-trick in progress. Deals you mark as a hat-trick show here until all of them are delivered.</div>
+          ) : pending.map((g) => (
+            <HattrickGroup key={g.soldAt} soldAt={g.soldAt} members={g.members} badge={`${g.delivered}/${g.total} delivered`} />
+          ))}
+        </div>
+      )}
     </section>
+  );
+}
+
+function Chevron({ open }: { open: boolean }) {
+  return (
+    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"
+      style={{ transform: open ? 'rotate(180deg)' : 'none', transition: 'transform 0.15s', flexShrink: 0 }}>
+      <path d="M6 9l6 6 6-6" />
+    </svg>
+  );
+}
+
+function shortDate(iso: string): string {
+  return new Date(iso).toLocaleDateString([], { month: 'short', day: 'numeric' });
+}
+
+// One hat-trick: the shared sold date, then each car in it with where it
+// stands — delivered (and when) or still scheduled.
+function HattrickGroup({ soldAt, members, badge }: { soldAt: string; members: HattrickRow[]; badge: string }) {
+  const sorted = [...members].sort((a, b) => a.delivery_at.localeCompare(b.delivery_at));
+  return (
+    <div className="bonus-group">
+      <div className="bonus-group-head">
+        <span>Sold {new Date(`${soldAt.slice(0, 10)}T12:00:00`).toLocaleDateString([], { weekday: 'short', month: 'short', day: 'numeric' })}</span>
+        <span className="bonus-badge">{badge}</span>
+      </div>
+      {sorted.map((m) => {
+        const done = m.status === 'delivered';
+        return (
+          <Link key={m.id} to={`/delivery/${m.id}`} className="bonus-member">
+            <span className={`bonus-dot${done ? ' is-done' : ''}`} aria-hidden="true">
+              {done ? '✓' : (
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round">
+                  <circle cx="12" cy="12" r="9" /><path d="M12 7v5l3 2" />
+                </svg>
+              )}
+            </span>
+            <span style={{ minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', flex: 1 }}>
+              {m.customer_name}{m.stock_number ? <span style={{ opacity: 0.7 }}> · #{m.stock_number}</span> : null}
+            </span>
+            <span style={{ opacity: 0.8, whiteSpace: 'nowrap' }}>
+              {done ? `Delivered ${shortDate(m.delivered_at ?? m.delivery_at)}` : `Due ${shortDate(m.delivery_at)}`}
+            </span>
+          </Link>
+        );
+      })}
+    </div>
   );
 }
