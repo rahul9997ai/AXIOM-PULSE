@@ -298,7 +298,7 @@ async function runCheckins() {
   if (current) {
     const { data: fsms } = await admin
       .from('profiles')
-      .select('id, dealership_id, email')
+      .select('id, dealership_id, email, notify_email')
       .eq('role', 'FSM')
       .eq('pulse_enabled', true)
       .eq('active', true);
@@ -325,7 +325,7 @@ async function runCheckins() {
         .gte('created_at', localMidnight.toISOString());
       const { title, body } = checkinMessage(current.slot, count ?? 0);
       await pushToProfile(f.id, title, body, { url: `/checkin/${row.id}`, type: 'checkin' });
-      await sendEmail(f.email, title, title, body.replace(' Tap to confirm.', ''), 'Confirm in Pulse', `/checkin/${row.id}`);
+      await sendEmail(f.notify_email ?? f.email, title, title, body.replace(' Tap to confirm.', ''), 'Confirm in Pulse', `/checkin/${row.id}`);
     }
   }
 
@@ -362,7 +362,7 @@ async function runCheckins() {
 
   const { data: names } = await admin.from('profiles').select('id, name').in('id', [...new Set(missed.map((m) => m.fsm_id))]);
   const nameOf = new Map((names || []).map((n) => [n.id, n.name as string]));
-  const { data: masters } = await admin.from('profiles').select('id').eq('role', 'Master Administrator').eq('pulse_enabled', true);
+  const { data: masters } = await admin.from('profiles').select('id, email, notify_email').eq('role', 'Master Administrator').eq('pulse_enabled', true);
 
   const byDealership = new Map<string, typeof missed>();
   missed.forEach((m) => byDealership.set(m.dealership_id ?? '', [...(byDealership.get(m.dealership_id ?? '') ?? []), m]));
@@ -383,16 +383,13 @@ async function runCheckins() {
       });
     const summary = Array.from(byFsm.entries()).map(([name, slots]) => `${name} missed ${slots.join(', ')}`).join('. ');
 
-    const { data: gms } = await admin.from('profiles').select('id')
+    const { data: gms } = await admin.from('profiles').select('id, email, notify_email')
       .eq('role', 'General Manager').eq('dealership_id', dealershipId).eq('pulse_enabled', true);
-    const recipients = new Set([...(gms || []).map((g) => g.id), ...(masters || []).map((m) => m.id)]);
-    for (const id of recipients) {
-      await pushToProfile(
-        id,
-        multiDay ? 'Missed Delivery Check-ins' : 'Missed Delivery Check-ins — Yesterday',
-        `${summary}. See Settings → Delivery check-ins for the full log.`,
-        { url: '/settings', type: 'checkin_report' },
-      );
+    const recipients = new Map([...(gms || []), ...(masters || [])].map((p) => [p.id, p.notify_email ?? p.email]));
+    const reportTitle = multiDay ? 'Missed Delivery Check-ins' : 'Missed Delivery Check-ins — Yesterday';
+    for (const [id, email] of recipients) {
+      await pushToProfile(id, reportTitle, `${summary}. See Settings → Delivery check-ins for the full log.`, { url: '/settings', type: 'checkin_report' });
+      await sendEmail(email, reportTitle, reportTitle, `${summary}.`, 'View the check-in log', '/settings');
     }
     await admin.from('fsm_checkins').update({ escalated_at: now.toISOString() }).in('id', rows.map((r) => r.id));
   }
