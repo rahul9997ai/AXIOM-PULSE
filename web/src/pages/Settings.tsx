@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import CheckinLog from '@/components/CheckinLog';
 import { supabase } from '@/lib/supabase';
 import { useSession } from '@/lib/session';
 import { useActingRole } from '@/lib/actingRole';
@@ -556,6 +557,8 @@ export default function Settings() {
           </select>
         </div>
       )}
+
+      {(isMaster || profile?.role === 'General Manager') && dealershipId && <CheckinLog dealershipId={dealershipId} />}
 
       {error && <div className="card" style={{ fontSize: 13, color: '#a3261b' }}>{error}</div>}
 

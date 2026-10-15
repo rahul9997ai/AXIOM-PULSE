@@ -7,6 +7,7 @@ import { AxiomLockup } from '@/components/AxiomMark';
 import { MANAGER_ROLES } from '@/lib/types';
 import { HomeIcon, PlusCircleIcon, GearIcon, CalendarIcon } from '@/components/Icons';
 import MonthCloseBanner from '@/components/MonthCloseBanner';
+import CheckinBanner from '@/components/CheckinBanner';
 import SoldDateBanner from '@/components/SoldDateBanner';
 
 export default function Layout({ children }: { children: ReactNode }) {
@@ -92,6 +93,7 @@ export default function Layout({ children }: { children: ReactNode }) {
     return (
       <div className="app-shell desktop">
         {viewingAsBar}
+        <CheckinBanner />
         <MonthCloseBanner />
         <SoldDateBanner />
         <div className="desktop-body">
@@ -121,6 +123,7 @@ export default function Layout({ children }: { children: ReactNode }) {
         <AxiomLockup size={24} />
       </header>
       {viewingAsBar}
+      <CheckinBanner />
       <MonthCloseBanner />
       <SoldDateBanner />
       <main className="app-main">{children}</main>
