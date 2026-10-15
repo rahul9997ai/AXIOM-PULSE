@@ -202,6 +202,44 @@ async function runReminders() {
 }
 
 // ---------------------------------------------------------------------------
+// Email, sent through Resend alongside the check-in push. Optional: until
+// RESEND_API_KEY and EMAIL_FROM are set as function secrets this is a
+// no-op, so push keeps working on its own.
+const RESEND_API_KEY = Deno.env.get('RESEND_API_KEY');
+const EMAIL_FROM = Deno.env.get('EMAIL_FROM'); // e.g. 'Axiom Pulse <pulse@rahulchamp.ca>'
+const APP_URL = 'https://pulse.rahulchamp.ca';
+
+function escapeHtml(s: string): string {
+  return s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+}
+
+async function sendEmail(to: string | null | undefined, subject: string, heading: string, body: string, ctaLabel: string, ctaPath: string) {
+  if (!RESEND_API_KEY || !EMAIL_FROM || !to) return;
+  const html = `<!doctype html><html><body style="margin:0;background:#eef1f5;font-family:-apple-system,Segoe UI,Helvetica,Arial,sans-serif;color:#0f172a">
+  <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="padding:24px 12px"><tr><td align="center">
+    <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="max-width:520px;background:#ffffff;border-radius:14px;overflow:hidden;border:1px solid #dbe2ea">
+      <tr><td style="background:#1e3a8a;padding:16px 22px;color:#ffffff;font-size:17px;font-weight:800;letter-spacing:.04em">AXIOM <span style="font-style:italic;font-weight:700;color:#bcd0ff">Pulse</span></td></tr>
+      <tr><td style="padding:22px">
+        <div style="font-size:19px;font-weight:800;margin:0 0 10px">${escapeHtml(heading)}</div>
+        <div style="font-size:15px;line-height:1.55;color:#334155;margin:0 0 20px">${escapeHtml(body)}</div>
+        <a href="${APP_URL}${ctaPath}" style="display:inline-block;background:#1e3a8a;color:#ffffff;text-decoration:none;font-weight:700;font-size:15px;padding:12px 20px;border-radius:10px">${escapeHtml(ctaLabel)}</a>
+      </td></tr>
+      <tr><td style="padding:14px 22px;border-top:1px solid #e2e8f0;font-size:12px;color:#64748b">Sent by Axiom Pulse · The Pulse of Every Delivery.</td></tr>
+    </table>
+  </td></tr></table></body></html>`;
+  try {
+    const res = await fetch('https://api.resend.com/emails', {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${RESEND_API_KEY}`, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ from: EMAIL_FROM, to: [to], subject, html, text: `${heading}\n\n${body}\n\n${ctaLabel}: ${APP_URL}${ctaPath}` }),
+    });
+    if (!res.ok) console.error(`[delivery-reminders] email FAIL to=${to} status=${res.status} body=${await res.text()}`);
+  } catch (e) {
+    console.error(`[delivery-reminders] email FAIL to=${to} message=${(e as Error).message}`);
+  }
+}
+
+// ---------------------------------------------------------------------------
 // Finance Manager entry check-ins. Three times a day every active FSM is
 // asked to confirm that every work order they've sent in CDK is entered in
 // Pulse. Each check-in is a row in fsm_checkins (unique per FSM/day/slot,
@@ -258,7 +296,7 @@ async function runCheckins() {
   if (current) {
     const { data: fsms } = await admin
       .from('profiles')
-      .select('id, dealership_id')
+      .select('id, dealership_id, email')
       .eq('role', 'FSM')
       .eq('pulse_enabled', true)
       .eq('active', true);
@@ -285,6 +323,7 @@ async function runCheckins() {
         .gte('created_at', localMidnight.toISOString());
       const { title, body } = checkinMessage(current.slot, count ?? 0);
       await pushToProfile(f.id, title, body, { url: `/checkin/${row.id}`, type: 'checkin' });
+      await sendEmail(f.email, title, title, body.replace(' Tap to confirm.', ''), 'Confirm in Pulse', `/checkin/${row.id}`);
     }
   }
 
@@ -330,7 +369,8 @@ async function runCheckins() {
     const multiDay = new Set(rows.map((r) => r.local_date)).size > 1;
     const byFsm = new Map<string, string[]>();
     rows
-      .sort((a, b) => a.local_date.localeCompare(b.local_date) || a.slot.localeCompare(b.slot))
+      .sort((a, b) => a.local_date.localeCompare(b.local_date)
+        || CHECKIN_SLOTS.findIndex((s) => s.slot === a.slot) - CHECKIN_SLOTS.findIndex((s) => s.slot === b.slot))
       .forEach((r) => {
         const name = nameOf.get(r.fsm_id) ?? 'A Finance Manager';
         const label = CHECKIN_SLOTS.find((s) => s.slot === r.slot)?.label ?? r.slot;
