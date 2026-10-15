@@ -214,7 +214,7 @@ function escapeHtml(s: string): string {
 }
 
 async function sendEmail(to: string | null | undefined, subject: string, heading: string, body: string, ctaLabel: string, ctaPath: string) {
-  if (!RESEND_API_KEY || !EMAIL_FROM || !to) return;
+  if (!RESEND_API_KEY || !EMAIL_FROM || !to) return false;
   const html = `<!doctype html><html><body style="margin:0;background:#eef1f5;font-family:-apple-system,Segoe UI,Helvetica,Arial,sans-serif;color:#0f172a">
   <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="padding:24px 12px"><tr><td align="center">
     <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="max-width:520px;background:#ffffff;border-radius:14px;overflow:hidden;border:1px solid #dbe2ea">
@@ -233,9 +233,11 @@ async function sendEmail(to: string | null | undefined, subject: string, heading
       headers: { Authorization: `Bearer ${RESEND_API_KEY}`, 'Content-Type': 'application/json' },
       body: JSON.stringify({ from: EMAIL_FROM, to: [to], subject, html, text: `${heading}\n\n${body}\n\n${ctaLabel}: ${APP_URL}${ctaPath}` }),
     });
-    if (!res.ok) console.error(`[delivery-reminders] email FAIL to=${to} status=${res.status} body=${await res.text()}`);
+    if (!res.ok) { console.error(`[delivery-reminders] email FAIL to=${to} status=${res.status} body=${await res.text()}`); return false; }
+    return true;
   } catch (e) {
     console.error(`[delivery-reminders] email FAIL to=${to} message=${(e as Error).message}`);
+    return false;
   }
 }
 
