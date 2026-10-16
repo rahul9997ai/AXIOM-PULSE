@@ -17,6 +17,7 @@
 // 8PM Eastern) — see runCheckins below.
 import { createClient } from 'jsr:@supabase/supabase-js@2';
 import webpush from 'npm:web-push@3.6.7';
+import { checkinEmailHtml, checkinEmailSubject, checkinEmailText } from './checkinEmail.ts';
 
 webpush.setVapidDetails(
   'mailto:007.splinter@gmail.com',
@@ -213,8 +214,24 @@ function escapeHtml(s: string): string {
   return s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
 }
 
-async function sendEmail(to: string | null | undefined, subject: string, heading: string, body: string, ctaLabel: string, ctaPath: string) {
+async function sendRawEmail(to: string | null | undefined, subject: string, html: string, text: string) {
   if (!RESEND_API_KEY || !EMAIL_FROM || !to) return false;
+  try {
+    const res = await fetch('https://api.resend.com/emails', {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${RESEND_API_KEY}`, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ from: EMAIL_FROM, to: [to], subject, html, text }),
+    });
+    if (!res.ok) { console.error(`[delivery-reminders] email FAIL to=${to} status=${res.status} body=${await res.text()}`); return false; }
+    return true;
+  } catch (e) {
+    console.error(`[delivery-reminders] email FAIL to=${to} message=${(e as Error).message}`);
+    return false;
+  }
+}
+
+// A simple branded email: heading, one paragraph, one button.
+function sendEmail(to: string | null | undefined, subject: string, heading: string, body: string, ctaLabel: string, ctaPath: string) {
   const html = `<!doctype html><html><body style="margin:0;background:#eef1f5;font-family:-apple-system,Segoe UI,Helvetica,Arial,sans-serif;color:#0f172a">
   <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="padding:24px 12px"><tr><td align="center">
     <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="max-width:520px;background:#ffffff;border-radius:14px;overflow:hidden;border:1px solid #dbe2ea">
@@ -227,18 +244,7 @@ async function sendEmail(to: string | null | undefined, subject: string, heading
       <tr><td style="padding:14px 22px;border-top:1px solid #e2e8f0;font-size:12px;color:#64748b">Sent by Axiom Pulse · The Pulse of Every Delivery.</td></tr>
     </table>
   </td></tr></table></body></html>`;
-  try {
-    const res = await fetch('https://api.resend.com/emails', {
-      method: 'POST',
-      headers: { Authorization: `Bearer ${RESEND_API_KEY}`, 'Content-Type': 'application/json' },
-      body: JSON.stringify({ from: EMAIL_FROM, to: [to], subject, html, text: `${heading}\n\n${body}\n\n${ctaLabel}: ${APP_URL}${ctaPath}` }),
-    });
-    if (!res.ok) { console.error(`[delivery-reminders] email FAIL to=${to} status=${res.status} body=${await res.text()}`); return false; }
-    return true;
-  } catch (e) {
-    console.error(`[delivery-reminders] email FAIL to=${to} message=${(e as Error).message}`);
-    return false;
-  }
+  return sendRawEmail(to, subject, html, `${heading}\n\n${body}\n\n${ctaLabel}: ${APP_URL}${ctaPath}`);
 }
 
 // ---------------------------------------------------------------------------
@@ -266,18 +272,18 @@ function checkinMessage(slot: string, enteredToday: number): { title: string; bo
   if (slot === '9am') {
     return {
       title: 'Morning Check-in — Deliveries',
-      body: 'Good morning. Confirm that every work order sent in CDK since your last check-in has been entered in Pulse. Tap to confirm.',
+      body: 'Good morning. Confirm that every work order created in CDK 180 since your last check-in has been entered in Pulse. Tap to confirm.',
     };
   }
   if (slot === '3pm') {
     return {
       title: 'Afternoon Check-in — Deliveries',
-      body: `Confirm that every work order you have sent in CDK today has been entered in Pulse. ${entered} Tap to confirm.`,
+      body: `Confirm that every work order you have created in CDK 180 today has been entered in Pulse. ${entered} Tap to confirm.`,
     };
   }
   return {
     title: 'End-of-Day Check-in — Required',
-    body: `Before you finish for the day, confirm that every work order sent in CDK today has been entered in Pulse. ${entered} Unconfirmed check-ins are reported to management.`,
+    body: `Before you finish for the day, confirm that every work order created in CDK 180 today has been entered in Pulse. ${entered} Unconfirmed check-ins are reported to management.`,
   };
 }
 
@@ -298,13 +304,16 @@ async function runCheckins() {
   if (current) {
     const { data: fsms } = await admin
       .from('profiles')
-      .select('id, dealership_id, email, notify_email')
+      .select('id, name, dealership_id, email, notify_email')
       .eq('role', 'FSM')
       .eq('pulse_enabled', true)
       .eq('active', true);
 
     const midnightUtc = new Date(`${today}T00:00:00Z`);
     const localMidnight = new Date(midnightUtc.getTime() - tzOffsetMs(midnightUtc));
+    const dateLabel = new Date(`${today}T12:00:00Z`).toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric', timeZone: 'UTC' });
+    const { data: dealerships } = await admin.from('dealerships').select('id, name');
+    const dealershipName = new Map((dealerships || []).map((d) => [d.id, d.name as string]));
 
     for (const f of fsms || []) {
       // Insert-first: only the tick that actually creates the row sends it.
@@ -318,14 +327,25 @@ async function runCheckins() {
       const row = created?.[0];
       if (!row) continue;
 
-      const { count } = await admin
+      const { data: entries } = await admin
         .from('deliveries')
-        .select('id', { count: 'exact', head: true })
+        .select('customer_name, stock_number, delivery_at, created_at')
         .eq('fsm_id', f.id)
-        .gte('created_at', localMidnight.toISOString());
-      const { title, body } = checkinMessage(current.slot, count ?? 0);
+        .gte('created_at', localMidnight.toISOString())
+        .order('created_at', { ascending: true });
+      const { title, body } = checkinMessage(current.slot, entries?.length ?? 0);
       await pushToProfile(f.id, title, body, { url: `/checkin/${row.id}`, type: 'checkin' });
-      await sendEmail(f.notify_email ?? f.email, title, title, body.replace(' Tap to confirm.', ''), 'Confirm in Pulse', `/checkin/${row.id}`);
+
+      const emailInput = {
+        slot: current.slot,
+        firstName: String(f.name || 'there').split(' ')[0],
+        dealershipName: f.dealership_id ? dealershipName.get(f.dealership_id) ?? null : null,
+        dateLabel,
+        entries: entries || [],
+        confirmUrl: `${APP_URL}/checkin/${row.id}`,
+        timeZone: DEALERSHIP_TZ,
+      };
+      await sendRawEmail(f.notify_email ?? f.email, checkinEmailSubject(current.slot, dateLabel), checkinEmailHtml(emailInput), checkinEmailText(emailInput));
     }
   }
 
