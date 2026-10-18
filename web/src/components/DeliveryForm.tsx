@@ -164,19 +164,17 @@ export default function DeliveryForm({ existing, onSaved }: { existing?: Deliver
     }
   };
 
-  // Scheduling check: active deliveries at this dealership within an hour
-  // either side of the chosen time. Which of them actually conflict depends
-  // on the salesperson and Finance Manager picked (see `conflicts` below),
-  // so those are filtered client-side as the form changes.
+  // Scheduling check: other active deliveries at this dealership at exactly
+  // the chosen time. Only those for the same salesperson or the same Finance
+  // Manager are conflicts (see `conflicts` below) — filtered client-side as
+  // the form changes.
   useEffect(() => {
     if (!deliveryAt || !effectiveDealershipId) { setNearby([]); return; }
-    const at = new Date(deliveryAt).getTime();
     let cancelled = false;
     let q = supabase.from('deliveries')
       .select('id, customer_name, delivery_at, salesperson_id, salesperson_name, fsm_id, fsm_name')
       .eq('dealership_id', effectiveDealershipId)
-      .gt('delivery_at', new Date(at - CONFLICT_WINDOW_MIN * 60_000).toISOString())
-      .lt('delivery_at', new Date(at + CONFLICT_WINDOW_MIN * 60_000).toISOString())
+      .eq('delivery_at', new Date(deliveryAt).toISOString())
       .not('status', 'in', '(delivered,cancelled)');
     if (existing) q = q.neq('id', existing.id);
     q.then(({ data }) => {
@@ -525,7 +523,7 @@ export default function DeliveryForm({ existing, onSaved }: { existing?: Deliver
           <ul style={{ margin: '6px 0 0', paddingLeft: 18, display: 'grid', gap: 4 }}>
             {conflicts.map((c) => <li key={c.key} style={{ fontSize: 13, lineHeight: 1.45 }}>{c.text}</li>)}
           </ul>
-          <div style={{ fontSize: 12, marginTop: 8, opacity: 0.85 }}>Consider another time. You can still save — you'll be asked to confirm.</div>
+          <div style={{ fontSize: 12, marginTop: 8, opacity: 0.85 }}>Pick another time if possible. You can still save — you'll be asked to confirm.</div>
         </div>
       )}
 
@@ -544,9 +542,6 @@ function toLocalInput(iso: string): string {
   return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
 }
 
-// Deliveries within this many minutes of each other count as overlapping.
-const CONFLICT_WINDOW_MIN = 60;
-
 interface NearbyDelivery {
   id: string;
   customer_name: string;
@@ -557,9 +552,8 @@ interface NearbyDelivery {
   fsm_name: string | null;
 }
 
-// Plain-language conflicts for the chosen time: the same salesperson already
-// delivering within the hour (whoever entered it), the same Finance Manager
-// already booked within the hour, and anything else at exactly this time.
+// Plain-language conflicts at the chosen time: the same salesperson already
+// booked (whoever entered it), or the same Finance Manager already booked.
 function schedulingConflicts(
   nearby: NearbyDelivery[],
   ctx: { at: number; salespersonId: string; salespersonName: string; fsmId: string; fsmName: string | null },
@@ -567,19 +561,16 @@ function schedulingConflicts(
   const time = (iso: string) => new Date(iso).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' });
   const out: { key: string; text: string }[] = [];
   for (const d of nearby) {
-    if (!ctx.at || Math.abs(new Date(d.delivery_at).getTime() - ctx.at) >= CONFLICT_WINDOW_MIN * 60_000) continue;
+    if (!ctx.at || new Date(d.delivery_at).getTime() !== ctx.at) continue;
     const sameSalesperson = !!ctx.salespersonId && d.salesperson_id === ctx.salespersonId;
     const sameFsm = !!ctx.fsmId && d.fsm_id === ctx.fsmId;
     if (sameSalesperson) {
       const by = d.fsm_id === ctx.fsmId ? '' : ` (entered by ${d.fsm_name ?? 'another Finance Manager'})`;
-      out.push({ key: `sp-${d.id}`, text: `${ctx.salespersonName} already has a delivery at ${time(d.delivery_at)} — ${d.customer_name}${by}.` });
+      out.push({ key: `sp-${d.id}`, text: `${ctx.salespersonName} is already booked at ${time(d.delivery_at)} — ${d.customer_name}${by}.` });
     }
     if (sameFsm && !sameSalesperson) {
-      const who = ctx.fsmName ? `${ctx.fsmName} already has` : 'You already have';
-      out.push({ key: `fm-${d.id}`, text: `${who} a delivery at ${time(d.delivery_at)} — ${d.customer_name}${d.salesperson_name ? ` with ${d.salesperson_name}` : ''}.` });
-    }
-    if (!sameSalesperson && !sameFsm && new Date(d.delivery_at).getTime() === ctx.at) {
-      out.push({ key: `slot-${d.id}`, text: `${d.customer_name} is already booked at exactly this time${d.salesperson_name ? ` with ${d.salesperson_name}` : ''}.` });
+      const who = ctx.fsmName ? `${ctx.fsmName} is` : 'You\'re';
+      out.push({ key: `fm-${d.id}`, text: `${who} already booked at ${time(d.delivery_at)} — ${d.customer_name}${d.salesperson_name ? ` with ${d.salesperson_name}` : ''}.` });
     }
   }
   return out;

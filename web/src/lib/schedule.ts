@@ -51,10 +51,14 @@ export function findClashes(rows: Delivery[]): Map<string, Delivery[]> {
     const key = `${d.dealership_id}|${new Date(d.delivery_at).getTime()}`;
     bySlot.set(key, [...(bySlot.get(key) ?? []), d]);
   });
+  // Only a real double-booking counts: the same salesperson or the same
+  // Finance Manager at the same time. Two different teams sharing a slot is fine.
   const clashes = new Map<string, Delivery[]>();
   bySlot.forEach((group) => {
-    if (group.length < 2) return;
-    group.forEach((d) => clashes.set(d.id, group.filter((o) => o.id !== d.id)));
+    group.forEach((d) => {
+      const others = group.filter((o) => o.id !== d.id && (o.salesperson_id === d.salesperson_id || o.fsm_id === d.fsm_id));
+      if (others.length) clashes.set(d.id, others);
+    });
   });
   return clashes;
 }
