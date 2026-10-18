@@ -284,7 +284,7 @@ h1, h2, h3 {
 }
 
 /* Page scaffolding shared by full-width pages (desktop-first). */
-.page-stack { display: grid; gap: 16px; max-width: 640px; margin: 0 auto; }
+.page-stack { display: grid; grid-template-columns: minmax(0, 1fr); gap: 16px; max-width: 640px; margin: 0 auto; }
 .page-head { display: grid; gap: 4px; }
 .page-title { font-size: 22px; font-weight: 800; letter-spacing: -0.02em; margin: 0; color: var(--ink); }
 .page-sub { margin: 0; color: var(--muted); font-size: 13.5px; line-height: 1.5; }
@@ -594,7 +594,7 @@ input::placeholder, textarea::placeholder { color: var(--mut); opacity: 1; }
 .bonus-total strong { color: #fff; }
 
 /* Settings → Finance Manager reminders. */
-.reminder-panel { display: grid; gap: 12px; padding: 14px; border: 1px solid var(--line); border-radius: 14px; background: var(--surface); }
+.reminder-panel { display: grid; grid-template-columns: minmax(0, 1fr); gap: 12px; padding: 14px; border: 1px solid var(--line); border-radius: 14px; background: var(--surface); }
 .recipient-row { display: flex; align-items: center; gap: 10px; font-size: 14px; font-weight: 600; padding: 8px 10px; border-radius: 10px; background: var(--card); border: 1px solid var(--line); cursor: pointer; }
 .switch { position: relative; flex-shrink: 0; width: 46px; height: 28px; border-radius: 999px; border: 1px solid var(--btn3d-border); background: linear-gradient(180deg, var(--btn3d-hi), var(--btn3d-lo)); cursor: pointer; padding: 0; transition: background 0.15s; }
 .switch.is-on { background: linear-gradient(180deg, var(--btn-grad-hi), var(--blue)); border-color: rgba(0, 0, 0, 0.15); }
@@ -625,7 +625,7 @@ input::placeholder, textarea::placeholder { color: var(--mut); opacity: 1; }
 .card-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(340px, 1fr)); gap: 14px; align-items: start; }
 
 /* Settings: one column on phones; two balanced columns on desktop. */
-.settings-page { display: grid; gap: 16px; max-width: 560px; margin: 0 auto; }
+.settings-page { display: grid; grid-template-columns: minmax(0, 1fr); gap: 16px; max-width: 560px; margin: 0 auto; }
 .app-shell.desktop .settings-page { display: block; max-width: none; columns: 2 420px; column-gap: 20px; }
 .app-shell.desktop .settings-page > * { break-inside: avoid; margin: 0 0 18px; }
 .app-shell.desktop .settings-page > .page-title { column-span: all; margin-bottom: 20px; }
@@ -648,3 +648,6 @@ input::placeholder, textarea::placeholder { color: var(--mut); opacity: 1; }
   background: var(--card); border: 1px solid var(--line);
   box-shadow: inset 0 1px 0 var(--neu-hi), 0 10px 26px var(--neu-lo);
 }
+
+/* Weekday picker: wrap onto a second line on narrow phones rather than scroll. */
+.reminder-panel .chip-row { flex-wrap: wrap; overflow: visible; }
