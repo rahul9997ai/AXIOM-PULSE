@@ -168,31 +168,17 @@ export default function LendersPage() {
           </div>
         </div>
         <div className="lender-grid">
-          {lenders.map((l) => {
-            const required = templates.filter((t) => (l.default_template_ids ?? []).includes(t.id));
-            return (
-              <Link key={l.id} to={`/lenders/${l.id}`} className={`card-3d tint-blue lender-card${l.active ? '' : ' is-inactive'}`}>
-                <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 10 }}>
-                  <div style={{ minWidth: 0 }}>
-                    <div style={{ fontWeight: 800, fontSize: 16, lineHeight: 1.25 }}>{l.name}</div>
-                    <div style={{ fontSize: 12.5, color: 'var(--muted)', marginTop: 3, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                      {l.address || 'No address added'}
-                    </div>
-                  </div>
-                  <span className={`pill ${l.active ? 'pill-later' : 'pill-plain'}`}>{l.active ? 'Active' : 'Inactive'}</span>
-                </div>
-                {required.length > 0 && (
-                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, alignItems: 'center' }}>
-                    {required.map((t) => <span key={t.id} className="pill pill-stock">{t.label}</span>)}
-                  </div>
-                )}
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: 12.5, fontWeight: 700, color: 'var(--muted)' }}>
-                  <span>{required.length ? `${required.length} standard requirement${required.length === 1 ? '' : 's'}` : 'Tap to choose its requirements'}</span>
-                  <span aria-hidden="true" style={{ fontSize: 18, lineHeight: 1 }}>›</span>
-                </div>
-              </Link>
-            );
-          })}
+          {lenders.map((l) => (
+            <Link
+              key={l.id}
+              to={`/lenders/${l.id}`}
+              className={`card-3d tint-blue lender-card${l.active ? '' : ' is-inactive'}`}
+              title={l.active ? undefined : 'Inactive — hidden from new deliveries'}
+            >
+              <span className="lender-card-name">{l.name}</span>
+              <span aria-hidden="true" className="lender-card-chevron">›</span>
+            </Link>
+          ))}
           <div className="card-3d lender-card lender-add">
             <div style={{ fontWeight: 800, fontSize: 14.5 }}>Add a lender or lessor</div>
             <input placeholder="Name" value={newLender} onChange={(e) => setNewLender(e.target.value)} />
