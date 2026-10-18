@@ -357,7 +357,7 @@ export default function DeliveryForm({ existing, onSaved }: { existing?: Deliver
   };
 
   return (
-    <div style={{ display: 'grid', gap: 12, maxWidth: 480, margin: '0 auto' }}>
+    <div className="form-page">
       <h1 style={{ fontSize: 22, fontWeight: 700, letterSpacing: '-0.02em', margin: 0 }}>{isEdit ? 'Edit Delivery' : 'New Delivery'}</h1>
 
       {isMaster && !isEdit && (

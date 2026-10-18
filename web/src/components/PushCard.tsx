@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { enablePush, isStandaloneDisplay, isIOS, pushSupported, sendTestPush } from '@/lib/push';
+import { useIsDesktop } from '@/lib/useIsDesktop';
 
 type PushState = 'unsupported' | 'ios-install' | 'offer' | 'blocked' | 'enabled';
 
@@ -11,6 +12,16 @@ type PushState = 'unsupported' | 'ios-install' | 'offer' | 'blocked' | 'enabled'
 export default function PushCard() {
   const [pushState, setPushState] = useState<PushState>('offer');
   const [notice, setNotice] = useState<string | null>(null);
+  const isDesktop = useIsDesktop();
+  // On a computer, notifications arrive through the browser itself — they
+  // only show while the browser (or the installed Pulse window's browser)
+  // is running, which is worth saying up front.
+  const desktopNote = isDesktop && (
+    <p style={{ color: 'var(--muted)', fontSize: 12.5, lineHeight: 1.5, margin: '10px 0 0' }}>
+      On a computer, notifications appear as desktop alerts while your browser is running — even with Pulse's tab closed.
+      For the most reliable alerts, install Pulse as an app (Chrome or Edge) and allow your browser to keep running in the background.
+    </p>
+  );
 
   useEffect(() => {
     if (!pushSupported()) { setPushState('unsupported'); return; }
@@ -42,8 +53,11 @@ export default function PushCard() {
       {pushState === 'offer' && (
         <div className="card">
           <h3 style={{ marginTop: 0 }}>Enable Notifications</h3>
-          <p style={{ color: 'var(--muted)', fontSize: 13 }}>Get delivery reminders and urgent alerts even when Pulse is closed.</p>
+          <p style={{ color: 'var(--muted)', fontSize: 13 }}>
+            {isDesktop ? 'Get delivery reminders and urgent alerts as desktop notifications on this computer.' : 'Get delivery reminders and urgent alerts even when Pulse is closed.'}
+          </p>
           <button className="btn" onClick={onEnablePush}>Enable notifications</button>
+          {desktopNote}
         </div>
       )}
       {pushState === 'ios-install' && (
@@ -66,11 +80,12 @@ export default function PushCard() {
       )}
       {pushState === 'enabled' && (
         <div className="card">
-          <div style={{ color: '#15803d', fontWeight: 700, fontSize: 13 }}>Background push enabled on this device.</div>
+          <div style={{ color: '#15803d', fontWeight: 700, fontSize: 13 }}>{isDesktop ? 'Desktop notifications are on for this computer.' : 'Background push enabled on this device.'}</div>
           <div style={{ display: 'flex', gap: 8, marginTop: 10 }}>
             <button className="btn secondary" onClick={onTestPush}>Send test notification</button>
             <button className="btn secondary" onClick={onEnablePush}>Re-sync notifications</button>
           </div>
+          {desktopNote}
         </div>
       )}
       {notice && <div className="card" style={{ fontSize: 13 }}>{notice}</div>}

@@ -78,8 +78,8 @@ export default function CalendarPage() {
   const selectedDeliveries = byDay.get(selected) || [];
 
   return (
-    <div style={{ display: 'grid', gap: 14, maxWidth: 640, margin: '0 auto' }}>
-      <h1 style={{ fontSize: 22, fontWeight: 700, letterSpacing: '-0.02em', margin: 0 }}>Calendar</h1>
+    <div className="calendar-page">
+      <h1 className="page-title">Calendar</h1>
 
       <div className="card">
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10 }}>

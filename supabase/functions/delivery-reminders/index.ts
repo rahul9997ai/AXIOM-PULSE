@@ -13,11 +13,12 @@
 // Finance Manager is alerted once, so an unresponsive salesperson isn't
 // just quietly pinged forever with no actual consequence.
 //
-// The same tick also runs the Finance Manager entry check-ins (9AM, 3PM,
-// 8PM Eastern) — see runCheckins below.
+// The same tick also sends the Finance Managers' daily reminder to enter
+// their deliveries (push and email, on a schedule the GM sets) — see
+// runFsmReminders below.
 import { createClient } from 'jsr:@supabase/supabase-js@2';
 import webpush from 'npm:web-push@3.6.7';
-import { checkinEmailHtml, checkinEmailSubject, checkinEmailText } from './checkinEmail.ts';
+import { reminderEmailHtml, reminderEmailSubject, reminderEmailText } from './reminderEmail.ts';
 
 webpush.setVapidDetails(
   'mailto:007.splinter@gmail.com',
@@ -203,16 +204,12 @@ async function runReminders() {
 }
 
 // ---------------------------------------------------------------------------
-// Email, sent through Resend alongside the check-in push. Optional: until
+// Email, sent through Resend. Optional: until
 // RESEND_API_KEY and EMAIL_FROM are set as function secrets this is a
 // no-op, so push keeps working on its own.
 const RESEND_API_KEY = Deno.env.get('RESEND_API_KEY');
 const EMAIL_FROM = Deno.env.get('EMAIL_FROM'); // e.g. 'Axiom Pulse <pulse@rahulchamp.ca>'
 const APP_URL = 'https://pulse.rahulchamp.ca';
-
-function escapeHtml(s: string): string {
-  return s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
-}
 
 async function sendRawEmail(to: string | null | undefined, subject: string, html: string, text: string) {
   if (!RESEND_API_KEY || !EMAIL_FROM || !to) return false;
@@ -230,61 +227,47 @@ async function sendRawEmail(to: string | null | undefined, subject: string, html
   }
 }
 
-// A simple branded email: heading, one paragraph, one button.
-function sendEmail(to: string | null | undefined, subject: string, heading: string, body: string, ctaLabel: string, ctaPath: string) {
-  const html = `<!doctype html><html><body style="margin:0;background:#eef1f5;font-family:-apple-system,Segoe UI,Helvetica,Arial,sans-serif;color:#0f172a">
-  <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="padding:24px 12px"><tr><td align="center">
-    <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="max-width:520px;background:#ffffff;border-radius:14px;overflow:hidden;border:1px solid #dbe2ea">
-      <tr><td style="background:#1e3a8a;padding:16px 22px;color:#ffffff;font-size:17px;font-weight:800;letter-spacing:.04em">AXIOM <span style="font-style:italic;font-weight:700;color:#bcd0ff">Pulse</span></td></tr>
-      <tr><td style="padding:22px">
-        <div style="font-size:19px;font-weight:800;margin:0 0 10px">${escapeHtml(heading)}</div>
-        <div style="font-size:15px;line-height:1.55;color:#334155;margin:0 0 20px">${escapeHtml(body)}</div>
-        <a href="${APP_URL}${ctaPath}" style="display:inline-block;background:#1e3a8a;color:#ffffff;text-decoration:none;font-weight:700;font-size:15px;padding:12px 20px;border-radius:10px">${escapeHtml(ctaLabel)}</a>
-      </td></tr>
-      <tr><td style="padding:14px 22px;border-top:1px solid #e2e8f0;font-size:12px;color:#64748b">Sent by Axiom Pulse · The Pulse of Every Delivery.</td></tr>
-    </table>
-  </td></tr></table></body></html>`;
-  return sendRawEmail(to, subject, html, `${heading}\n\n${body}\n\n${ctaLabel}: ${APP_URL}${ctaPath}`);
+// ---------------------------------------------------------------------------
+// Finance Manager daily reminders to enter the day's deliveries: a short,
+// personal push (default 3 PM) and one fuller email (default 4 PM), each
+// Monday to Saturday by default. The GM sets, per dealership and per
+// channel, whether it's on, the time, the weekdays and which Finance
+// Managers receive it (fsm_reminder_settings). fsm_reminder_log keeps each
+// person to one send per channel per day.
+
+type Channel = 'push' | 'email';
+
+interface ReminderSetting {
+  dealership_id: string;
+  channel: Channel;
+  enabled: boolean;
+  send_time: string; // 'HH:MM:SS'
+  days: number[]; // ISO weekdays, 1 = Monday
+  excluded_ids: string[];
 }
 
-// ---------------------------------------------------------------------------
-// Finance Manager entry check-ins. Three times a day every active FSM is
-// asked to confirm that every work order they've sent in CDK is entered in
-// Pulse. Each check-in is a row in fsm_checkins (unique per FSM/day/slot,
-// which is what keeps a 15-minute tick from sending it twice). One
-// follow-up goes out an hour later if it's still unconfirmed; anything
-// left unconfirmed by the next morning is reported to the dealership's
-// GMs and the Master Administrators.
+const DEFAULT_SETTINGS: Record<Channel, Omit<ReminderSetting, 'dealership_id' | 'channel'>> = {
+  push: { enabled: true, send_time: '15:00:00', days: [1, 2, 3, 4, 5, 6], excluded_ids: [] },
+  email: { enabled: true, send_time: '16:00:00', days: [1, 2, 3, 4, 5, 6], excluded_ids: [] },
+};
+// A reminder is only sent within this long after its time, so a missed
+// tick or a schedule change never fires a stale one hours later.
+const REMINDER_SEND_WINDOW_MIN = 120;
 
-const CHECKIN_SLOTS = [
-  { slot: '9am', hour: 9, label: '9:00 AM' },
-  { slot: '3pm', hour: 15, label: '3:00 PM' },
-  { slot: '8pm', hour: 20, label: '8:00 PM' },
-] as const;
-// A slot is only sent within this many hours of its time, so a late or
-// missed tick never fires a stale check-in (e.g. the 9AM one at 2PM).
-const CHECKIN_SEND_WINDOW_HOURS = 2;
+function localMinutes(d: Date): number {
+  const [h, m] = new Intl.DateTimeFormat('en-GB', { timeZone: DEALERSHIP_TZ, hour: '2-digit', minute: '2-digit', hour12: false }).format(d).split(':').map(Number);
+  return (h % 24) * 60 + m;
+}
 
-function checkinMessage(slot: string, enteredToday: number): { title: string; body: string } {
-  const entered = enteredToday === 0
-    ? 'You have entered no deliveries in Pulse today.'
-    : `You have entered ${enteredToday} deliver${enteredToday === 1 ? 'y' : 'ies'} in Pulse today.`;
-  if (slot === '9am') {
-    return {
-      title: 'Morning Check-in — Deliveries',
-      body: 'Good morning. Confirm that every work order created in CDK 180 since your last check-in has been entered in Pulse. Tap to confirm.',
-    };
-  }
-  if (slot === '3pm') {
-    return {
-      title: 'Afternoon Check-in — Deliveries',
-      body: `Confirm that every work order you have created in CDK 180 today has been entered in Pulse. ${entered} Tap to confirm.`,
-    };
-  }
-  return {
-    title: 'End-of-Day Check-in — Required',
-    body: `Before you finish for the day, confirm that every work order created in CDK 180 today has been entered in Pulse. ${entered} Unconfirmed check-ins are reported to management.`,
-  };
+function localIsoWeekday(d: Date): number {
+  const name = new Intl.DateTimeFormat('en-US', { timeZone: DEALERSHIP_TZ, weekday: 'short' }).format(d);
+  return ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'].indexOf(name) + 1;
+}
+
+function greeting(minutes: number): string {
+  if (minutes < 12 * 60) return 'Good morning';
+  if (minutes < 17 * 60) return 'Good afternoon';
+  return 'Good evening';
 }
 
 // Offset of Eastern time from UTC at the given instant, in ms (negative in
@@ -295,123 +278,78 @@ function tzOffsetMs(d: Date): number {
   return local.getTime() - utc.getTime();
 }
 
-async function runCheckins() {
+async function runFsmReminders() {
   const now = new Date();
-  const hour = localHour(now);
   const today = localDateKey(now);
-  const current = CHECKIN_SLOTS.find((s) => hour >= s.hour && hour < s.hour + CHECKIN_SEND_WINDOW_HOURS);
+  const minutes = localMinutes(now);
+  const weekday = localIsoWeekday(now);
 
-  if (current) {
+  const [{ data: dealerships }, { data: stored }] = await Promise.all([
+    admin.from('dealerships').select('id, name'),
+    admin.from('fsm_reminder_settings').select('*'),
+  ]);
+
+  const due: { dealershipId: string; dealershipName: string; setting: ReminderSetting }[] = [];
+  for (const d of dealerships || []) {
+    for (const channel of ['push', 'email'] as Channel[]) {
+      const row = (stored || []).find((s) => s.dealership_id === String(d.id) && s.channel === channel);
+      const setting: ReminderSetting = { dealership_id: String(d.id), channel, ...DEFAULT_SETTINGS[channel], ...(row ?? {}) };
+      if (!setting.enabled || !setting.days.includes(weekday)) continue;
+      const [h, m] = setting.send_time.split(':').map(Number);
+      const start = h * 60 + m;
+      if (minutes < start || minutes >= start + REMINDER_SEND_WINDOW_MIN) continue;
+      due.push({ dealershipId: String(d.id), dealershipName: d.name as string, setting });
+    }
+  }
+  if (!due.length) return;
+
+  const midnightUtc = new Date(`${today}T00:00:00Z`);
+  const localMidnight = new Date(midnightUtc.getTime() - tzOffsetMs(midnightUtc));
+  const dateLabel = new Date(`${today}T12:00:00Z`).toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric', timeZone: 'UTC' });
+
+  for (const { dealershipId, dealershipName, setting } of due) {
     const { data: fsms } = await admin
       .from('profiles')
-      .select('id, name, dealership_id, email, notify_email')
+      .select('id, name, email, notify_email')
       .eq('role', 'FSM')
+      .eq('dealership_id', dealershipId)
       .eq('pulse_enabled', true)
       .eq('active', true);
 
-    const midnightUtc = new Date(`${today}T00:00:00Z`);
-    const localMidnight = new Date(midnightUtc.getTime() - tzOffsetMs(midnightUtc));
-    const dateLabel = new Date(`${today}T12:00:00Z`).toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric', timeZone: 'UTC' });
-    const { data: dealerships } = await admin.from('dealerships').select('id, name');
-    const dealershipName = new Map((dealerships || []).map((d) => [d.id, d.name as string]));
+    for (const f of (fsms || []).filter((p) => !setting.excluded_ids.includes(p.id))) {
+      // Insert-first: only the tick that creates the log row sends it.
+      const { data: logged } = await admin
+        .from('fsm_reminder_log')
+        .upsert({ profile_id: f.id, channel: setting.channel, local_date: today }, { onConflict: 'profile_id,channel,local_date', ignoreDuplicates: true })
+        .select('profile_id');
+      if (!logged?.length) continue;
 
-    for (const f of fsms || []) {
-      // Insert-first: only the tick that actually creates the row sends it.
-      const { data: created } = await admin
-        .from('fsm_checkins')
-        .upsert(
-          { fsm_id: f.id, dealership_id: f.dealership_id, local_date: today, slot: current.slot },
-          { onConflict: 'fsm_id,local_date,slot', ignoreDuplicates: true },
-        )
-        .select('id');
-      const row = created?.[0];
-      if (!row) continue;
-
-      const { data: entries } = await admin
-        .from('deliveries')
-        .select('customer_name, stock_number, delivery_at, created_at')
-        .eq('fsm_id', f.id)
-        .gte('created_at', localMidnight.toISOString())
-        .order('created_at', { ascending: true });
-      const { title, body } = checkinMessage(current.slot, entries?.length ?? 0);
-      await pushToProfile(f.id, title, body, { url: `/checkin/${row.id}`, type: 'checkin' });
-
-      const emailInput = {
-        slot: current.slot,
-        firstName: String(f.name || 'there').split(' ')[0],
-        dealershipName: f.dealership_id ? dealershipName.get(f.dealership_id) ?? null : null,
-        dateLabel,
-        entries: entries || [],
-        confirmUrl: `${APP_URL}/checkin/${row.id}`,
-        timeZone: DEALERSHIP_TZ,
-      };
-      await sendRawEmail(f.notify_email ?? f.email, checkinEmailSubject(current.slot, dateLabel), checkinEmailHtml(emailInput), checkinEmailText(emailInput));
+      const firstName = String(f.name || 'there').split(' ')[0];
+      if (setting.channel === 'push') {
+        await pushToProfile(
+          f.id,
+          `${greeting(minutes)}, ${firstName}`,
+          'A quick reminder to enter any deliveries from today\'s CDK 180 work orders that aren\'t in Pulse yet — it keeps delivery tracking accurate and gives the team time to complete every requirement.',
+          { url: '/new', type: 'fsm_reminder' },
+        );
+      } else {
+        const { data: entries } = await admin
+          .from('deliveries')
+          .select('customer_name, stock_number, delivery_at, created_at')
+          .eq('fsm_id', f.id)
+          .gte('created_at', localMidnight.toISOString())
+          .order('created_at', { ascending: true });
+        const input = {
+          firstName,
+          dealershipName,
+          dateLabel,
+          entries: entries || [],
+          newDeliveryUrl: `${APP_URL}/new`,
+          timeZone: DEALERSHIP_TZ,
+        };
+        await sendRawEmail(f.notify_email ?? f.email, reminderEmailSubject(), reminderEmailHtml(input), reminderEmailText(input));
+      }
     }
-  }
-
-  if (isQuietHours(now)) return;
-
-  // One follow-up an hour after any check-in still unconfirmed today.
-  const { data: dueReminders } = await admin
-    .from('fsm_checkins')
-    .select('id, fsm_id, slot')
-    .eq('local_date', today)
-    .is('confirmed_at', null)
-    .is('reminder_sent_at', null)
-    .lte('sent_at', new Date(now.getTime() - HOUR_MS).toISOString());
-  for (const c of dueReminders || []) {
-    const label = CHECKIN_SLOTS.find((s) => s.slot === c.slot)?.label ?? c.slot;
-    await pushToProfile(
-      c.fsm_id,
-      'Check-in Still Unconfirmed',
-      `Your ${label} delivery check-in has not been confirmed. Enter any outstanding deliveries in Pulse and confirm now — unconfirmed check-ins are reported to management.`,
-      { url: `/checkin/${c.id}`, type: 'checkin' },
-    );
-    await admin.from('fsm_checkins').update({ reminder_sent_at: now.toISOString() }).eq('id', c.id);
-  }
-
-  // Morning report: anything from a previous day never confirmed goes to the
-  // dealership's GMs and to every Master Administrator, once.
-  const { data: missed } = await admin
-    .from('fsm_checkins')
-    .select('id, fsm_id, dealership_id, local_date, slot')
-    .lt('local_date', today)
-    .is('confirmed_at', null)
-    .is('escalated_at', null);
-  if (!missed?.length) return;
-
-  const { data: names } = await admin.from('profiles').select('id, name').in('id', [...new Set(missed.map((m) => m.fsm_id))]);
-  const nameOf = new Map((names || []).map((n) => [n.id, n.name as string]));
-  const { data: masters } = await admin.from('profiles').select('id, email, notify_email').eq('role', 'Master Administrator').eq('pulse_enabled', true);
-
-  const byDealership = new Map<string, typeof missed>();
-  missed.forEach((m) => byDealership.set(m.dealership_id ?? '', [...(byDealership.get(m.dealership_id ?? '') ?? []), m]));
-
-  for (const [dealershipId, rows] of byDealership) {
-    const multiDay = new Set(rows.map((r) => r.local_date)).size > 1;
-    const byFsm = new Map<string, string[]>();
-    rows
-      .sort((a, b) => a.local_date.localeCompare(b.local_date)
-        || CHECKIN_SLOTS.findIndex((s) => s.slot === a.slot) - CHECKIN_SLOTS.findIndex((s) => s.slot === b.slot))
-      .forEach((r) => {
-        const name = nameOf.get(r.fsm_id) ?? 'A Finance Manager';
-        const label = CHECKIN_SLOTS.find((s) => s.slot === r.slot)?.label ?? r.slot;
-        const when = multiDay
-          ? `${new Date(`${r.local_date}T12:00:00Z`).toLocaleDateString('en-US', { month: 'short', day: 'numeric', timeZone: 'UTC' })} ${label}`
-          : label;
-        byFsm.set(name, [...(byFsm.get(name) ?? []), when]);
-      });
-    const summary = Array.from(byFsm.entries()).map(([name, slots]) => `${name} missed ${slots.join(', ')}`).join('. ');
-
-    const { data: gms } = await admin.from('profiles').select('id, email, notify_email')
-      .eq('role', 'General Manager').eq('dealership_id', dealershipId).eq('pulse_enabled', true);
-    const recipients = new Map([...(gms || []), ...(masters || [])].map((p) => [p.id, p.notify_email ?? p.email]));
-    const reportTitle = multiDay ? 'Missed Delivery Check-ins' : 'Missed Delivery Check-ins — Yesterday';
-    for (const [id, email] of recipients) {
-      await pushToProfile(id, reportTitle, `${summary}. See Settings → Delivery check-ins for the full log.`, { url: '/settings', type: 'checkin_report' });
-      await sendEmail(email, reportTitle, reportTitle, `${summary}.`, 'View the check-in log', '/settings');
-    }
-    await admin.from('fsm_checkins').update({ escalated_at: now.toISOString() }).in('id', rows.map((r) => r.id));
   }
 }
 
@@ -420,6 +358,6 @@ async function runCheckins() {
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response('ok');
   await runReminders();
-  await runCheckins().catch((e) => console.error(`[delivery-reminders] checkins failed: ${(e as Error).message}`));
+  await runFsmReminders().catch((e) => console.error(`[delivery-reminders] FSM reminders failed: ${(e as Error).message}`));
   return new Response(JSON.stringify({ ok: true }), { headers: { 'Content-Type': 'application/json' } });
 });

@@ -14,7 +14,7 @@ import NewDelivery from '@/pages/NewDelivery';
 import EditDelivery from '@/pages/EditDelivery';
 import Settings from '@/pages/Settings';
 import MonthClose from '@/pages/MonthClose';
-import CheckinPage from '@/pages/Checkin';
+import LendersPage from '@/pages/Lenders';
 import InstallPrompt from '@/components/InstallPrompt';
 
 export default function App() {
@@ -76,7 +76,9 @@ function AppRoutes() {
         <Route path="/edit/:id" element={canCreate ? <EditDelivery /> : <Navigate to="/" replace />} />
         <Route path="/settings" element={<Settings />} />
         <Route path="/month-close" element={<MonthClose />} />
-        <Route path="/checkin/:id" element={<CheckinPage />} />
+        <Route path="/lenders" element={<LendersPage />} />
+        {/* Old check-in notifications link here; check-ins were replaced by reminders. */}
+        <Route path="/checkin/:id" element={<Navigate to="/" replace />} />
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
     </Layout>

@@ -5,9 +5,9 @@ import { useActingRole, ACTABLE_ROLES } from '@/lib/actingRole';
 import { useIsDesktop } from '@/lib/useIsDesktop';
 import { AxiomLockup } from '@/components/AxiomMark';
 import { MANAGER_ROLES } from '@/lib/types';
-import { HomeIcon, PlusCircleIcon, GearIcon, CalendarIcon } from '@/components/Icons';
+import { HomeIcon, PlusCircleIcon, GearIcon, CalendarIcon, BankIcon } from '@/components/Icons';
+import { initials } from '@/lib/schedule';
 import MonthCloseBanner from '@/components/MonthCloseBanner';
-import CheckinBanner from '@/components/CheckinBanner';
 import SoldDateBanner from '@/components/SoldDateBanner';
 
 export default function Layout({ children }: { children: ReactNode }) {
@@ -39,6 +39,16 @@ export default function Layout({ children }: { children: ReactNode }) {
         ...(showCalendarTab ? [{ to: '/calendar', label: 'Calendar', icon: CalendarIcon, match: (p: string) => p === '/calendar' }] : []),
         ...(canCreate ? [{ to: '/new', label: 'New', icon: PlusCircleIcon, match: (p: string) => p === '/new' }] : []),
         { to: '/settings', label: 'Settings', icon: GearIcon, match: (p: string) => p === '/settings' },
+      ];
+
+  // Desktop: "New delivery" is a primary button above the nav rather than a
+  // nav item, and Lenders & requirements gets its own place in the rail.
+  const desktopNavItems = isSalespersonView
+    ? navItems
+    : [
+        ...navItems.filter((n) => n.to !== '/new' && n.to !== '/settings'),
+        ...(isManager && !isAdminMode ? [{ to: '/lenders', label: 'Lenders & requirements', icon: BankIcon, match: (p: string) => p === '/lenders' }] : []),
+        ...navItems.filter((n) => n.to === '/settings'),
       ];
 
   const viewingAsBar = isMaster && (
@@ -93,25 +103,41 @@ export default function Layout({ children }: { children: ReactNode }) {
     return (
       <div className="app-shell desktop">
         {viewingAsBar}
-        <CheckinBanner />
-        <MonthCloseBanner />
-        <SoldDateBanner />
         <div className="desktop-body">
           <aside className="desktop-sidebar">
-            <AxiomLockup size={22} />
+            <div style={{ padding: '2px 6px 0' }}><AxiomLockup size={22} /></div>
+            {canCreate && (
+              <Link to="/new" className="btn desktop-new-btn">
+                <PlusCircleIcon size={18} />
+                New delivery
+              </Link>
+            )}
             <nav className="desktop-nav" aria-label="Primary">
-              {navItems.map(({ to, label, icon: Icon, match }) => {
+              {desktopNavItems.map(({ to, label, icon: Icon, match }) => {
                 const active = match(pathname);
                 return (
-                  <Link key={to} to={to} className={`desktop-nav-item ${active ? 'active' : ''}`}>
+                  <Link key={to} to={to} className={`desktop-nav-item ${active ? 'active' : ''}`} aria-current={active ? 'page' : undefined}>
                     <Icon size={18} />
                     <span>{label}</span>
                   </Link>
                 );
               })}
             </nav>
+            {profile && (
+              <Link to="/settings" className="desktop-user" title="Settings">
+                <span className="avatar desktop-user-avatar" aria-hidden="true">{initials(profile.name)}</span>
+                <span style={{ minWidth: 0 }}>
+                  <span className="desktop-user-name">{profile.name}</span>
+                  <span className="desktop-user-role">{profile.role === 'FSM' ? 'Finance Manager' : profile.role}</span>
+                </span>
+              </Link>
+            )}
           </aside>
-          <main className="app-main">{children}</main>
+          <div className="desktop-main">
+            <MonthCloseBanner />
+            <SoldDateBanner />
+            <main className="app-main">{children}</main>
+          </div>
         </div>
       </div>
     );
@@ -123,7 +149,6 @@ export default function Layout({ children }: { children: ReactNode }) {
         <AxiomLockup size={24} />
       </header>
       {viewingAsBar}
-      <CheckinBanner />
       <MonthCloseBanner />
       <SoldDateBanner />
       <main className="app-main">{children}</main>

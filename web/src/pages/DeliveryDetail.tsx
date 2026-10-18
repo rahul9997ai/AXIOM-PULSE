@@ -248,12 +248,13 @@ export default function DeliveryDetail() {
   const bleedX = isDesktop ? 36 : 16;
 
   return (
-    <div style={{
+    <div className="detail-page" style={{
       marginTop: -bleedY, marginLeft: -bleedX, marginRight: -bleedX,
       paddingTop: bleedY, paddingLeft: bleedX, paddingRight: bleedX, paddingBottom: 28,
       background: 'var(--detail-bg)',
     }}>
-      <div style={{ display: 'grid', gap: 14, maxWidth: 640, margin: '0 auto' }}>
+      <div className="detail-layout">
+      <div className="detail-main">
         <Link to="/" style={{ fontSize: 13, color: 'var(--accent)', textDecoration: 'none', fontWeight: 700 }}>‹ Back to Deliveries</Link>
 
         {ownsHattrickDecision && showHattrickChoice && !enteringDate && (
@@ -490,6 +491,10 @@ export default function DeliveryDetail() {
         <button className="btn" onClick={complete}>Mark delivered</button>
       )}
 
+      </div>
+
+      {/* Comments sit beside the delivery on desktop, below it on phones. */}
+      <div className="detail-side">
       <div className="card-3d tint-blue">
         <h3 style={{ marginTop: 0, fontSize: 14 }}>Comments</h3>
         <p style={{ color: 'var(--muted)', fontSize: 12.5, marginTop: -6 }}>
@@ -603,6 +608,7 @@ export default function DeliveryDetail() {
           </button>
         </div>
         )}
+      </div>
       </div>
       </div>
     </div>

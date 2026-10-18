@@ -241,82 +241,84 @@ export default function Deliveries() {
     return by - ay || bm - am;
   });
 
-  return (
-    <div style={{ display: 'grid', gap: 14, maxWidth: showBoard ? 1320 : 640, margin: '0 auto' }}>
-      <div style={{ display: 'grid', gap: 14, maxWidth: 640, width: '100%', margin: showBoard ? 0 : undefined }}>
-        {header}
-      </div>
-      {noticeCard}
+  const searchBox = (
+    <label className="search-box">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--muted)" strokeWidth="2" strokeLinecap="round" aria-hidden="true"><circle cx="11" cy="11" r="7" /><path d="M20 20l-3.5-3.5" /></svg>
+      <input
+        type="search"
+        value={search}
+        onChange={(e) => setSearch(e.target.value)}
+        placeholder="Search customer, stock # or salesperson"
+        aria-label="Search deliveries"
+        style={{ border: 'none', outline: 'none', background: 'transparent', padding: 0, fontSize: 14, flex: 1, minWidth: 0, boxShadow: 'none' }}
+      />
+    </label>
+  );
 
-      <label style={{ display: 'flex', alignItems: 'center', gap: 10, background: 'var(--focus-bg)', border: '1px solid var(--line)', borderRadius: 12, padding: '0 14px', height: 46 }}>
-        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--muted)" strokeWidth="2" strokeLinecap="round" aria-hidden="true"><circle cx="11" cy="11" r="7" /><path d="M20 20l-3.5-3.5" /></svg>
-        <input
-          type="search"
-          value={search}
-          onChange={(e) => setSearch(e.target.value)}
-          placeholder="Search customer, stock # or salesperson"
-          aria-label="Search deliveries"
-          style={{ border: 'none', outline: 'none', background: 'transparent', padding: 0, fontSize: 14, flex: 1, minWidth: 0, boxShadow: 'none' }}
-        />
-      </label>
+  const chipRow = (
+    <div className="chip-row" role="group" aria-label="Filter deliveries">
+      {chips.map(([c, label]) => (
+        <button key={c} type="button" className={`chip${chip === c ? ' is-active' : ''}`} aria-pressed={chip === c} onClick={() => setChip(c)}>{label}</button>
+      ))}
+    </div>
+  );
 
-      <div className="chip-row" role="group" aria-label="Filter deliveries">
-        {chips.map(([c, label]) => (
-          <button key={c} type="button" className={`chip${chip === c ? ' is-active' : ''}`} aria-pressed={chip === c} onClick={() => setChip(c)}>{label}</button>
-        ))}
-      </div>
+  const monthSelect = chip === 'delivered' && deliveredMonthOptions.length > 1 && (
+    <select value={deliveredMonthKey} onChange={(e) => setDeliveredMonthKey(e.target.value)} aria-label="Month" style={isDesktop ? { width: 'auto' } : undefined}>
+      {deliveredMonthOptions.map((key) => { const [y, m] = key.split('-').map(Number); return <option key={key} value={key}>{monthLabel(y, m)}</option>; })}
+    </select>
+  );
 
-      {chip === 'delivered' && deliveredMonthOptions.length > 1 && (
-        <select value={deliveredMonthKey} onChange={(e) => setDeliveredMonthKey(e.target.value)} aria-label="Month">
-          {deliveredMonthOptions.map((key) => { const [y, m] = key.split('-').map(Number); return <option key={key} value={key}>{monthLabel(y, m)}</option>; })}
-        </select>
+  const clashBanner = clashSlots.length > 0 && chip !== 'delivered' && (
+    <div role="alert" style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: 10, background: 'var(--banner-warn-bg)', border: '1px solid var(--banner-warn-border)', borderRadius: 12, padding: '11px 14px', fontSize: 13, color: 'var(--banner-warn-fg)' }}>
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M12 9v4M12 17h.01" /><path d="M10.3 3.9L1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0z" /></svg>
+      <span style={{ flex: 1, minWidth: 200 }}>
+        <strong>Scheduling conflict:</strong> {clashSlots[0].map((d) => d.customer_name).join(' and ')} are booked for the same slot ({timeLabel(atOf(clashSlots[0][0]), now)}).
+        {clashSlots.length > 1 && ` ${clashSlots.length - 1} more slot${clashSlots.length === 2 ? ' is' : 's are'} double-booked.`}
+      </span>
+      {canWrite && <Link to={`/edit/${clashSlots[0][1].id}`} style={{ fontWeight: 800, color: 'inherit' }}>Reschedule one</Link>}
+    </div>
+  );
+
+  const toolbarActions = (
+    <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+      {canWrite && nudgeTargets.length > 0 && (
+        <button
+          type="button"
+          disabled={nudging}
+          onClick={nudge}
+          style={{ display: 'flex', alignItems: 'center', gap: 6, border: '1px solid var(--banner-warn-border)', background: 'var(--banner-warn-bg)', color: 'var(--banner-warn-fg)', borderRadius: 999, padding: '0 12px', height: 34, fontSize: 12.5, fontWeight: 800, cursor: 'pointer' }}
+        >
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" aria-hidden="true"><path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9" /><path d="M10.3 21a1.94 1.94 0 0 0 3.4 0" /></svg>
+          {nudging ? 'Sending…' : `Nudge ${nudgeTargets.length} outstanding`}
+        </button>
       )}
-
-      {clashSlots.length > 0 && chip !== 'delivered' && (
-        <div role="alert" style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: 10, background: 'var(--banner-warn-bg)', border: '1px solid var(--banner-warn-border)', borderRadius: 12, padding: '11px 14px', fontSize: 13, color: 'var(--banner-warn-fg)' }}>
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M12 9v4M12 17h.01" /><path d="M10.3 3.9L1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0z" /></svg>
-          <span style={{ flex: 1, minWidth: 200 }}>
-            <strong>Scheduling conflict:</strong> {clashSlots[0].map((d) => d.customer_name).join(' and ')} are booked for the same slot ({timeLabel(atOf(clashSlots[0][0]), now)}).
-            {clashSlots.length > 1 && ` ${clashSlots.length - 1} more slot${clashSlots.length === 2 ? ' is' : 's are'} double-booked.`}
-          </span>
-          {canWrite && <Link to={`/edit/${clashSlots[0][1].id}`} style={{ fontWeight: 800, color: 'inherit' }}>Reschedule one</Link>}
-        </div>
-      )}
-
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10, flexWrap: 'wrap' }}>
-        <div style={{ fontSize: 12.5, fontWeight: 800, letterSpacing: '0.06em', textTransform: 'uppercase', color: 'var(--muted)' }}>
-          {chipTitle} · {visible.length} deliver{visible.length === 1 ? 'y' : 'ies'}
-        </div>
-        <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
-          {canWrite && nudgeTargets.length > 0 && (
+      {boardAvailable && (
+        <div role="group" aria-label="Layout" style={{ display: 'flex', background: 'var(--surface)', border: '1px solid var(--line)', borderRadius: 10, padding: 3, gap: 3 }}>
+          {(['board', 'list'] as View[]).map((v) => (
             <button
+              key={v}
               type="button"
-              disabled={nudging}
-              onClick={nudge}
-              style={{ display: 'flex', alignItems: 'center', gap: 6, border: '1px solid var(--banner-warn-border)', background: 'var(--banner-warn-bg)', color: 'var(--banner-warn-fg)', borderRadius: 999, padding: '0 12px', height: 34, fontSize: 12.5, fontWeight: 800, cursor: 'pointer' }}
+              aria-pressed={view === v}
+              onClick={() => setViewPersist(v)}
+              style={{ border: 'none', borderRadius: 7, padding: '6px 12px', fontSize: 12.5, fontWeight: 700, cursor: 'pointer', background: view === v ? 'var(--accent)' : 'transparent', color: view === v ? '#fff' : 'var(--muted)' }}
             >
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" aria-hidden="true"><path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9" /><path d="M10.3 21a1.94 1.94 0 0 0 3.4 0" /></svg>
-              {nudging ? 'Sending…' : `Nudge ${nudgeTargets.length} outstanding`}
+              {v === 'board' ? 'Board' : 'List'}
             </button>
-          )}
-          {boardAvailable && (
-            <div role="group" aria-label="Layout" style={{ display: 'flex', background: 'var(--surface)', border: '1px solid var(--line)', borderRadius: 10, padding: 3, gap: 3 }}>
-              {(['board', 'list'] as View[]).map((v) => (
-                <button
-                  key={v}
-                  type="button"
-                  aria-pressed={view === v}
-                  onClick={() => setViewPersist(v)}
-                  style={{ border: 'none', borderRadius: 7, padding: '6px 12px', fontSize: 12.5, fontWeight: 700, cursor: 'pointer', background: view === v ? 'var(--accent)' : 'transparent', color: view === v ? '#fff' : 'var(--muted)' }}
-                >
-                  {v === 'board' ? 'Board' : 'List'}
-                </button>
-              ))}
-            </div>
-          )}
+          ))}
         </div>
-      </div>
+      )}
+    </div>
+  );
 
+  const sectionTitle = (
+    <div style={{ fontSize: 12.5, fontWeight: 800, letterSpacing: '0.06em', textTransform: 'uppercase', color: 'var(--muted)' }}>
+      {chipTitle} · {visible.length} deliver{visible.length === 1 ? 'y' : 'ies'}
+    </div>
+  );
+
+  const content = (
+    <>
       {loading && <Skeletons />}
       {!loading && visible.length === 0 && (
         <div style={{ color: 'var(--muted)', textAlign: 'center', marginTop: 24 }}>
@@ -328,9 +330,78 @@ export default function Deliveries() {
       )}
       {!loading && visible.length > 0 && (showBoard
         ? <StatusBoard rows={visible} now={now} clashes={clashes} showFsm youId={youId} />
-        : visible.map((d) => (
-          <DeliveryCard key={d.id} d={d} now={now} clashWith={clashes.get(d.id)} showSalesperson showFsm youId={youId} />
-        )))}
+        : (
+          <div className={isDesktop ? 'card-grid' : undefined} style={isDesktop ? undefined : { display: 'grid', gap: 14 }}>
+            {visible.map((d) => (
+              <DeliveryCard key={d.id} d={d} now={now} clashWith={clashes.get(d.id)} showSalesperson showFsm youId={youId} />
+            ))}
+          </div>
+        ))}
+    </>
+  );
+
+  if (isDesktop) {
+    const stat = (label: string, value: number, tone: string, target: Chip, hint: string, highlight = true) => (
+      <button type="button" className={`stat-tile${highlight && chip === target ? ' is-active' : ''}`} onClick={() => setChip(target)}>
+        <span className="stat-tile-label">{label}</span>
+        <span className="stat-tile-value" style={{ color: value ? tone : 'var(--ink)' }}>{value}</span>
+        <span className="stat-tile-hint">{hint}</span>
+      </button>
+    );
+    return (
+      <div className="dash">
+        <div className="dash-head">
+          <div style={{ minWidth: 0 }}>
+            <div className="dash-eyebrow">{dateLine} · {greeting}{isMaster && effectiveRole ? ` · Previewing ${ROLE_LABEL[effectiveRole]}` : ''}</div>
+            <h1 className="page-title">Deliveries</h1>
+          </div>
+          <div style={{ width: 380, maxWidth: '45%' }}>{searchBox}</div>
+        </div>
+
+        {isManager && (
+          <div className="stat-strip">
+            <div className="stat-tile stat-tile-month">
+              <ProgressRing percent={monthPercent} trackColor="var(--line)" fillColor="var(--accent)" textColor="var(--ink)" />
+              <div style={{ display: 'grid', gap: 3, minWidth: 0 }}>
+                <span className="stat-tile-label">This month</span>
+                <span style={{ fontSize: 15, fontWeight: 800 }}>{deliveredThisMonth} of {scheduledThisMonth.length} delivered</span>
+              </div>
+            </div>
+            {stat('Today', todayCount, 'var(--accent)', 'today', 'scheduled today')}
+            {stat('Outstanding', outstandingCount, '#b45309', 'outstanding', 'requirements open')}
+            {stat('Overdue', overdueCount, '#dc2626', 'today', 'past delivery time', false)}
+          </div>
+        )}
+
+        {noticeCard}
+        {clashBanner}
+
+        <div className="dash-toolbar">
+          <div style={{ display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap', minWidth: 0 }}>
+            {chipRow}
+            {monthSelect}
+          </div>
+          {toolbarActions}
+        </div>
+        {sectionTitle}
+        {content}
+      </div>
+    );
+  }
+
+  return (
+    <div style={{ display: 'grid', gap: 14, maxWidth: 640, margin: '0 auto' }}>
+      {header}
+      {noticeCard}
+      {searchBox}
+      {chipRow}
+      {monthSelect}
+      {clashBanner}
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10, flexWrap: 'wrap' }}>
+        {sectionTitle}
+        {toolbarActions}
+      </div>
+      {content}
     </div>
   );
 }
