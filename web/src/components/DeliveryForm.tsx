@@ -87,7 +87,7 @@ export default function DeliveryForm({ existing, onSaved }: { existing?: Deliver
   const [financeManagers, setFinanceManagers] = useState<FinanceManager[]>([]);
 
   const [lenderHint, setLenderHint] = useState<string | null>(null);
-  const [slotClash, setSlotClash] = useState<string[]>([]);
+  const [nearby, setNearby] = useState<NearbyDelivery[]>([]);
 
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -164,21 +164,34 @@ export default function DeliveryForm({ existing, onSaved }: { existing?: Deliver
     }
   };
 
-  // Double-booking check: another active delivery at this dealership at the
-  // exact same time. A warning only — saving is still allowed.
+  // Scheduling check: active deliveries at this dealership within an hour
+  // either side of the chosen time. Which of them actually conflict depends
+  // on the salesperson and Finance Manager picked (see `conflicts` below),
+  // so those are filtered client-side as the form changes.
   useEffect(() => {
-    if (!deliveryAt || !effectiveDealershipId) { setSlotClash([]); return; }
+    if (!deliveryAt || !effectiveDealershipId) { setNearby([]); return; }
+    const at = new Date(deliveryAt).getTime();
     let cancelled = false;
-    let q = supabase.from('deliveries').select('id, customer_name')
+    let q = supabase.from('deliveries')
+      .select('id, customer_name, delivery_at, salesperson_id, salesperson_name, fsm_id, fsm_name')
       .eq('dealership_id', effectiveDealershipId)
-      .eq('delivery_at', new Date(deliveryAt).toISOString())
+      .gt('delivery_at', new Date(at - CONFLICT_WINDOW_MIN * 60_000).toISOString())
+      .lt('delivery_at', new Date(at + CONFLICT_WINDOW_MIN * 60_000).toISOString())
       .not('status', 'in', '(delivered,cancelled)');
     if (existing) q = q.neq('id', existing.id);
     q.then(({ data }) => {
-      if (!cancelled) setSlotClash(((data as { customer_name: string }[]) || []).map((r) => r.customer_name));
+      if (!cancelled) setNearby((data as NearbyDelivery[]) || []);
     });
     return () => { cancelled = true; };
   }, [deliveryAt, effectiveDealershipId, existing?.id]);
+
+  const conflicts = schedulingConflicts(nearby, {
+    at: deliveryAt ? new Date(deliveryAt).getTime() : 0,
+    salespersonId: salesperson,
+    salespersonName: salespeople.find((p) => p.id === salesperson)?.name ?? existing?.salesperson_name ?? 'This salesperson',
+    fsmId,
+    fsmName: fsmId === session?.user.id ? null : (financeManagers.find((f) => f.id === fsmId)?.name ?? existing?.fsm_name ?? 'This Finance Manager'),
+  });
 
   const toggleTemplate = (id: string) => {
     setCheckedTemplates((prev) => {
@@ -216,6 +229,9 @@ export default function DeliveryForm({ existing, onSaved }: { existing?: Deliver
       setError('Enter an amount for the due-on-delivery collection or refund.');
       return;
     }
+    if (conflicts.length && !window.confirm(
+      `Scheduling conflict${conflicts.length === 1 ? '' : 's'}:\n\n${conflicts.map((c) => `• ${c.text}`).join('\n')}\n\nSave this delivery anyway?`,
+    )) return;
     setBusy(true);
     setError(null);
 
@@ -433,11 +449,6 @@ export default function DeliveryForm({ existing, onSaved }: { existing?: Deliver
           {QUARTER_HOUR_OPTIONS.map((t) => <option key={t.value} value={t.value}>{t.label}</option>)}
         </select>
       </div>
-      {slotClash.length > 0 && (
-        <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--banner-warn-fg)', background: 'var(--banner-warn-bg)', border: '1px solid var(--banner-warn-border)', borderRadius: 10, padding: '8px 10px', marginTop: -4 }}>
-          ⚠ {slotClash.join(', ')} {slotClash.length === 1 ? 'is' : 'are'} already booked at this exact time — you can still save.
-        </div>
-      )}
 
       <div className="card" style={{ padding: 14 }}>
         <label style={{ display: 'flex', alignItems: 'center', gap: 10, fontWeight: 700, fontSize: 14 }}>
@@ -505,6 +516,19 @@ export default function DeliveryForm({ existing, onSaved }: { existing?: Deliver
       />
 
       {error && <div style={{ color: '#a3261b', fontSize: 13 }}>{error}</div>}
+      {conflicts.length > 0 && (
+        <div role="alert" className="conflict-panel">
+          <div style={{ fontWeight: 800, fontSize: 13.5, display: 'flex', alignItems: 'center', gap: 8 }}>
+            <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M12 9v4M12 17h.01" /><path d="M10.3 3.9L1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0z" /></svg>
+            Scheduling conflict{conflicts.length === 1 ? '' : 's'}
+          </div>
+          <ul style={{ margin: '6px 0 0', paddingLeft: 18, display: 'grid', gap: 4 }}>
+            {conflicts.map((c) => <li key={c.key} style={{ fontSize: 13, lineHeight: 1.45 }}>{c.text}</li>)}
+          </ul>
+          <div style={{ fontSize: 12, marginTop: 8, opacity: 0.85 }}>Consider another time. You can still save — you'll be asked to confirm.</div>
+        </div>
+      )}
+
       <button className="btn" disabled={busy} onClick={save}>
         {busy ? 'Saving…' : isEdit ? 'Save changes' : 'Create delivery'}
       </button>
@@ -518,4 +542,45 @@ function toLocalInput(iso: string): string {
   const d = new Date(iso);
   const pad = (n: number) => String(n).padStart(2, '0');
   return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
+}
+
+// Deliveries within this many minutes of each other count as overlapping.
+const CONFLICT_WINDOW_MIN = 60;
+
+interface NearbyDelivery {
+  id: string;
+  customer_name: string;
+  delivery_at: string;
+  salesperson_id: string;
+  salesperson_name: string | null;
+  fsm_id: string;
+  fsm_name: string | null;
+}
+
+// Plain-language conflicts for the chosen time: the same salesperson already
+// delivering within the hour (whoever entered it), the same Finance Manager
+// already booked within the hour, and anything else at exactly this time.
+function schedulingConflicts(
+  nearby: NearbyDelivery[],
+  ctx: { at: number; salespersonId: string; salespersonName: string; fsmId: string; fsmName: string | null },
+): { key: string; text: string }[] {
+  const time = (iso: string) => new Date(iso).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' });
+  const out: { key: string; text: string }[] = [];
+  for (const d of nearby) {
+    if (!ctx.at || Math.abs(new Date(d.delivery_at).getTime() - ctx.at) >= CONFLICT_WINDOW_MIN * 60_000) continue;
+    const sameSalesperson = !!ctx.salespersonId && d.salesperson_id === ctx.salespersonId;
+    const sameFsm = !!ctx.fsmId && d.fsm_id === ctx.fsmId;
+    if (sameSalesperson) {
+      const by = d.fsm_id === ctx.fsmId ? '' : ` (entered by ${d.fsm_name ?? 'another Finance Manager'})`;
+      out.push({ key: `sp-${d.id}`, text: `${ctx.salespersonName} already has a delivery at ${time(d.delivery_at)} — ${d.customer_name}${by}.` });
+    }
+    if (sameFsm && !sameSalesperson) {
+      const who = ctx.fsmName ? `${ctx.fsmName} already has` : 'You already have';
+      out.push({ key: `fm-${d.id}`, text: `${who} a delivery at ${time(d.delivery_at)} — ${d.customer_name}${d.salesperson_name ? ` with ${d.salesperson_name}` : ''}.` });
+    }
+    if (!sameSalesperson && !sameFsm && new Date(d.delivery_at).getTime() === ctx.at) {
+      out.push({ key: `slot-${d.id}`, text: `${d.customer_name} is already booked at exactly this time${d.salesperson_name ? ` with ${d.salesperson_name}` : ''}.` });
+    }
+  }
+  return out;
 }

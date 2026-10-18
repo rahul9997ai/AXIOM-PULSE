@@ -651,3 +651,6 @@ input::placeholder, textarea::placeholder { color: var(--mut); opacity: 1; }
 
 /* Weekday picker: wrap onto a second line on narrow phones rather than scroll. */
 .reminder-panel .chip-row { flex-wrap: wrap; overflow: visible; }
+
+/* New / edit delivery: scheduling conflicts above the Save button. */
+.conflict-panel { color: var(--banner-warn-fg); background: var(--banner-warn-bg); border: 1px solid var(--banner-warn-border); border-radius: 12px; padding: 12px 14px; }
