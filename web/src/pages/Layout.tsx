@@ -47,7 +47,7 @@ export default function Layout({ children }: { children: ReactNode }) {
     ? navItems
     : [
         ...navItems.filter((n) => n.to !== '/new' && n.to !== '/settings'),
-        ...(isManager && !isAdminMode ? [{ to: '/lenders', label: 'Lenders & requirements', icon: BankIcon, match: (p: string) => p === '/lenders' }] : []),
+        ...(isManager && !isAdminMode ? [{ to: '/lenders', label: 'Lenders & requirements', icon: BankIcon, match: (p: string) => p.startsWith('/lenders') }] : []),
         ...navItems.filter((n) => n.to === '/settings'),
       ];
 

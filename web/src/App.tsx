@@ -15,6 +15,7 @@ import EditDelivery from '@/pages/EditDelivery';
 import Settings from '@/pages/Settings';
 import MonthClose from '@/pages/MonthClose';
 import LendersPage from '@/pages/Lenders';
+import LenderDetail from '@/pages/LenderDetail';
 import InstallPrompt from '@/components/InstallPrompt';
 
 export default function App() {
@@ -77,6 +78,7 @@ function AppRoutes() {
         <Route path="/settings" element={<Settings />} />
         <Route path="/month-close" element={<MonthClose />} />
         <Route path="/lenders" element={<LendersPage />} />
+        <Route path="/lenders/:id" element={<LenderDetail />} />
         {/* Old check-in notifications link here; check-ins were replaced by reminders. */}
         <Route path="/checkin/:id" element={<Navigate to="/" replace />} />
         <Route path="*" element={<Navigate to="/" replace />} />

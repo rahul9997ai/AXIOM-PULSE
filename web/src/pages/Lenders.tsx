@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { Navigate } from 'react-router-dom';
+import { Link, Navigate } from 'react-router-dom';
 import { supabase } from '@/lib/supabase';
 import { useSession } from '@/lib/session';
 import { useActingRole } from '@/lib/actingRole';
@@ -30,8 +30,6 @@ export default function LendersPage() {
 
   const [lenders, setLenders] = useState<Lender[]>([]);
   const [templates, setTemplates] = useState<RequirementTemplate[]>([]);
-  const [nameDrafts, setNameDrafts] = useState<Record<string, string>>({});
-  const [addressDrafts, setAddressDrafts] = useState<Record<string, string>>({});
   const [labelDrafts, setLabelDrafts] = useState<Record<string, string>>({});
   const [newLender, setNewLender] = useState('');
   const [newLenderAddress, setNewLenderAddress] = useState('');
@@ -59,8 +57,6 @@ export default function LendersPage() {
     const lenderList = (l as Lender[]) || [];
     const templateList = (t as RequirementTemplate[]) || [];
     setLenders(lenderList);
-    setAddressDrafts(Object.fromEntries(lenderList.map((x) => [x.id, x.address ?? ''])));
-    setNameDrafts(Object.fromEntries(lenderList.map((x) => [x.id, x.name])));
     setTemplates(templateList);
     setLabelDrafts(Object.fromEntries(templateList.map((x) => [x.id, x.label])));
   };
@@ -74,46 +70,6 @@ export default function LendersPage() {
     const { error } = await supabase.from('lenders').insert({ dealership_id: dealershipId, name, address: newLenderAddress.trim() || null });
     if (error) setError(error.message);
     else { setError(null); setNewLender(''); setNewLenderAddress(''); load(); }
-  };
-
-  const toggleLender = async (l: Lender) => {
-    const { error } = await supabase.from('lenders').update({ active: !l.active }).eq('id', l.id);
-    if (error) setError(error.message);
-    else load();
-  };
-
-  const saveLenderName = async (l: Lender) => {
-    const name = (nameDrafts[l.id] ?? '').trim();
-    if (!name || name === l.name) { setNameDrafts((prev) => ({ ...prev, [l.id]: l.name })); return; }
-    const { error } = await supabase.from('lenders').update({ name }).eq('id', l.id);
-    if (error) setError(error.message);
-    else load();
-  };
-
-  const saveLenderAddress = async (l: Lender) => {
-    const address = (addressDrafts[l.id] ?? '').trim();
-    if (address === (l.address ?? '')) return;
-    const { error } = await supabase.from('lenders').update({ address: address || null }).eq('id', l.id);
-    if (error) setError(error.message);
-    else load();
-  };
-
-  const toggleLenderTemplate = async (l: Lender, templateId: string) => {
-    const current = l.default_template_ids ?? [];
-    const next = current.includes(templateId) ? current.filter((id) => id !== templateId) : [...current, templateId];
-    const { error } = await supabase.from('lenders').update({ default_template_ids: next }).eq('id', l.id);
-    if (error) setError(error.message);
-    else load();
-  };
-
-  const deleteLender = async (l: Lender) => {
-    if (!window.confirm(`Delete "${l.name}"? This can't be undone.`)) return;
-    const { error } = await supabase.from('lenders').delete().eq('id', l.id);
-    if (error) {
-      setError(error.code === FK_IN_USE
-        ? `"${l.name}" is used on an existing delivery — deactivate it instead of deleting.`
-        : error.message);
-    } else { setError(null); load(); }
   };
 
   const addTemplate = async () => {
@@ -204,69 +160,47 @@ export default function LendersPage() {
         </div>
       </div>
 
-      <div className="card">
-        <h3 style={{ marginTop: 0 }}>Lenders &amp; lessors</h3>
-        <p style={{ color: 'var(--muted)', fontSize: 13, marginTop: -4 }}>
-          Add each lender's address so the salesperson can direct customers there when needed, and pick the
-          requirements that lender always needs so they're checked automatically on new deliveries.
-        </p>
-        <div style={{ display: 'grid', gap: 12, marginBottom: 14 }}>
-          {lenders.map((l) => (
-            <div key={l.id} style={{ borderBottom: '1px solid var(--line)', paddingBottom: 10 }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 6 }}>
-                <input type="checkbox" checked={l.active} onChange={() => toggleLender(l)} style={{ width: 'auto' }} />
-                <input
-                  value={nameDrafts[l.id] ?? ''}
-                  onChange={(e) => setNameDrafts((prev) => ({ ...prev, [l.id]: e.target.value }))}
-                  onBlur={() => saveLenderName(l)}
-                  style={{
-                    flex: 1, fontSize: 14, fontWeight: 700, padding: '6px 10px',
-                    textDecoration: l.active ? 'none' : 'line-through',
-                    color: l.active ? 'var(--ink)' : 'var(--muted)',
-                  }}
-                />
-                <button type="button" className="btn secondary" style={{ padding: '4px 10px', fontSize: 12 }} onClick={() => deleteLender(l)}>Remove</button>
-              </div>
-              <input
-                placeholder="Address (shown to the salesperson)"
-                value={addressDrafts[l.id] ?? ''}
-                onChange={(e) => setAddressDrafts((prev) => ({ ...prev, [l.id]: e.target.value }))}
-                onBlur={() => saveLenderAddress(l)}
-                style={{ fontSize: 13 }}
-              />
-              {templates.some((t) => t.active) && (
-                <div style={{ marginTop: 8 }}>
-                  <div style={{ fontSize: 11.5, fontWeight: 700, color: 'var(--muted)', marginBottom: 6 }}>
-                    Always required for this lender — pre-checked on new deliveries
+      <section className="lender-section" aria-label="Lenders and lessors">
+        <div className="lender-section-head">
+          <div>
+            <h3 style={{ margin: 0 }}>Lenders &amp; lessors</h3>
+            <p style={{ color: 'var(--muted)', fontSize: 13, margin: '4px 0 0' }}>Open a lender to edit its address and the requirements it always needs.</p>
+          </div>
+        </div>
+        <div className="lender-grid">
+          {lenders.map((l) => {
+            const required = templates.filter((t) => (l.default_template_ids ?? []).includes(t.id));
+            return (
+              <Link key={l.id} to={`/lenders/${l.id}`} className={`card-3d tint-blue lender-card${l.active ? '' : ' is-inactive'}`}>
+                <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 10 }}>
+                  <div style={{ minWidth: 0 }}>
+                    <div style={{ fontWeight: 800, fontSize: 16, lineHeight: 1.25 }}>{l.name}</div>
+                    <div style={{ fontSize: 12.5, color: 'var(--muted)', marginTop: 3, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                      {l.address || 'No address added'}
+                    </div>
                   </div>
-                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
-                    {templates.filter((t) => t.active).map((t) => {
-                      const on = (l.default_template_ids ?? []).includes(t.id);
-                      return (
-                        <button
-                          key={t.id}
-                          type="button"
-                          className={`chip${on ? ' is-active' : ''}`}
-                          aria-pressed={on}
-                          style={{ height: 30, fontSize: 12, padding: '0 11px' }}
-                          onClick={() => toggleLenderTemplate(l, t.id)}
-                        >
-                          {on ? '✓ ' : ''}{t.label}
-                        </button>
-                      );
-                    })}
-                  </div>
+                  <span className={`pill ${l.active ? 'pill-later' : 'pill-plain'}`}>{l.active ? 'Active' : 'Inactive'}</span>
                 </div>
-              )}
-            </div>
-          ))}
+                {required.length > 0 && (
+                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, alignItems: 'center' }}>
+                    {required.map((t) => <span key={t.id} className="pill pill-stock">{t.label}</span>)}
+                  </div>
+                )}
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: 12.5, fontWeight: 700, color: 'var(--muted)' }}>
+                  <span>{required.length ? `${required.length} standard requirement${required.length === 1 ? '' : 's'}` : 'Tap to choose its requirements'}</span>
+                  <span aria-hidden="true" style={{ fontSize: 18, lineHeight: 1 }}>›</span>
+                </div>
+              </Link>
+            );
+          })}
+          <div className="card-3d lender-card lender-add">
+            <div style={{ fontWeight: 800, fontSize: 14.5 }}>Add a lender or lessor</div>
+            <input placeholder="Name" value={newLender} onChange={(e) => setNewLender(e.target.value)} />
+            <input placeholder="Address (optional)" value={newLenderAddress} onChange={(e) => setNewLenderAddress(e.target.value)} />
+            <button type="button" className="btn" disabled={!newLender.trim()} onClick={addLender}>Add lender</button>
+          </div>
         </div>
-        <div style={{ display: 'grid', gap: 8 }}>
-          <input placeholder="Lender or lessor name" value={newLender} onChange={(e) => setNewLender(e.target.value)} />
-          <input placeholder="Address (optional)" value={newLenderAddress} onChange={(e) => setNewLenderAddress(e.target.value)} />
-          <button type="button" className="btn" onClick={addLender}>Add</button>
-        </div>
-      </div>
+      </section>
       </div>
     </div>
   );

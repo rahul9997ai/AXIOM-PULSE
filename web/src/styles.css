@@ -292,9 +292,18 @@ h1, h2, h3 {
 .settings-link { display: flex; align-items: center; justify-content: space-between; gap: 12px; text-decoration: none; color: inherit; }
 .app-shell.desktop .page-stack { max-width: none; margin: 0; }
 .app-shell.desktop .page-title { font-size: 26px; }
-.app-shell.desktop .lenders-grid { grid-template-columns: minmax(0, 3fr) minmax(0, 2fr); align-items: start; }
-/* Lenders lead on desktop; the requirement checklist sits beside them. */
-.app-shell.desktop .lenders-grid > :first-child { order: 2; }
+/* Lenders lead (as a card grid); the master requirement checklist follows. */
+.lenders-grid > .lender-section { order: -1; }
+.app-shell.desktop .lenders-grid > .card { max-width: 720px; }
+.lender-section { display: grid; gap: 12px; }
+.lender-grid { display: grid; gap: 14px; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); align-items: stretch; }
+.lender-card { display: grid; gap: 12px; align-content: start; text-decoration: none; color: inherit; padding: 16px; transition: transform 0.15s, border-color 0.15s; }
+a.lender-card:hover { border-color: var(--btn3d-border); transform: translateY(-1px); }
+.lender-card.is-inactive { opacity: 0.6; }
+.lender-add { border-style: dashed; gap: 8px; }
+.back-link { font-size: 13px; color: var(--accent); text-decoration: none; font-weight: 700; }
+.field-label { display: grid; gap: 6px; font-size: 12px; font-weight: 700; color: var(--muted); }
+.app-shell.desktop .lender-detail { max-width: 860px; }
 
 /* ---- Shared UI: metallic "Chrome Console" panels + glossy 3D buttons ---- */
 .card {
