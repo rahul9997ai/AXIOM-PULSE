@@ -5,6 +5,7 @@ import { useSession } from '@/lib/session';
 import { useActingRole } from '@/lib/actingRole';
 import type { Lender, RequirementTemplate } from '@/lib/types';
 import { MANAGER_ROLES } from '@/lib/types';
+import { TrashIcon } from '@/components/Icons';
 
 interface Dealership { id: string; name: string; }
 
@@ -34,6 +35,8 @@ export default function LendersPage() {
   const [newLender, setNewLender] = useState('');
   const [newLenderAddress, setNewLenderAddress] = useState('');
   const [newTemplate, setNewTemplate] = useState('');
+  // The checklist row being renamed — names show as plain (wrapping) text until tapped.
+  const [editingId, setEditingId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
@@ -113,7 +116,7 @@ export default function LendersPage() {
     <div className="page-stack">
       <div className="page-head">
         <h1 className="page-title">Lenders &amp; requirements</h1>
-        <p className="page-sub">Lenders and lessors offered on a delivery, the requirements each one always needs, and the master requirement checklist.</p>
+        <p className="page-sub">The requirement checklist used on every delivery, and the lenders and lessors you work with.</p>
       </div>
 
       {isMaster && (
@@ -128,66 +131,84 @@ export default function LendersPage() {
 
       {error && <div className="card" style={{ fontSize: 13, color: '#a3261b' }}>{error}</div>}
 
-      <div className="lenders-grid">
-      <div className="card">
-        <h3 style={{ marginTop: 0 }}>Collection requirements</h3>
-        <p style={{ color: 'var(--muted)', fontSize: 13, marginTop: -4 }}>
-          The master checklist offered when creating a delivery. Salespeople still see a free-form field
-          for anything one-off. Uncheck to retire without deleting; Remove deletes it outright (blocked if
-          it's already used on a delivery).
-        </p>
-        <div style={{ display: 'grid', gap: 8, marginBottom: 12 }}>
-          {templates.map((t) => (
-            <div key={t.id} style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-              <input type="checkbox" checked={t.active} onChange={() => toggleTemplate(t)} style={{ width: 'auto' }} />
-              <input
-                value={labelDrafts[t.id] ?? ''}
-                onChange={(e) => setLabelDrafts((prev) => ({ ...prev, [t.id]: e.target.value }))}
-                onBlur={() => saveTemplateLabel(t)}
-                style={{
-                  flex: 1, fontSize: 14, padding: '6px 10px',
-                  textDecoration: t.active ? 'none' : 'line-through',
-                  color: t.active ? 'var(--ink)' : 'var(--muted)',
-                }}
-              />
-              <button type="button" className="btn secondary" style={{ padding: '4px 10px', fontSize: 12 }} onClick={() => deleteTemplate(t)}>Remove</button>
-            </div>
-          ))}
-        </div>
-        <div style={{ display: 'flex', gap: 8 }}>
-          <input placeholder="Add a requirement (e.g. Proof of insurance)" value={newTemplate} onChange={(e) => setNewTemplate(e.target.value)} />
-          <button type="button" className="btn" onClick={addTemplate}>Add</button>
-        </div>
-      </div>
-
-      <section className="lender-section" aria-label="Lenders and lessors">
-        <div className="lender-section-head">
+      <section className="lr-section" aria-labelledby="req-title">
+        <div className="lr-head">
           <div>
-            <h3 style={{ margin: 0 }}>Lenders &amp; lessors</h3>
-            <p style={{ color: 'var(--muted)', fontSize: 13, margin: '4px 0 0' }}>Open a lender to edit its address and the requirements it always needs.</p>
+            <h2 id="req-title" className="lr-title">Collection requirements</h2>
+            <p className="lr-sub">The checklist offered on every new delivery. Switch one off to retire it; delete removes it for good (blocked if it's on a delivery).</p>
           </div>
+          <span className="lr-count">{templates.filter((t) => t.active).length} active</span>
         </div>
+        <div className="lr-panel">
+          <div className="lr-req-list">
+            {templates.map((t) => (
+              <div key={t.id} className={`lr-req${t.active ? '' : ' is-off'}`}>
+                <button
+                  type="button"
+                  role="switch"
+                  aria-checked={t.active}
+                  aria-label={`${t.label} ${t.active ? 'offered' : 'retired'}`}
+                  className={`switch switch-sm${t.active ? ' is-on' : ''}`}
+                  onClick={() => toggleTemplate(t)}
+                >
+                  <span className="switch-knob" />
+                </button>
+                {editingId === t.id ? (
+                  <input
+                    className="lr-req-input"
+                    aria-label="Requirement name"
+                    autoFocus
+                    value={labelDrafts[t.id] ?? ''}
+                    onChange={(e) => setLabelDrafts((prev) => ({ ...prev, [t.id]: e.target.value }))}
+                    onKeyDown={(e) => { if (e.key === 'Enter') e.currentTarget.blur(); if (e.key === 'Escape') { setLabelDrafts((prev) => ({ ...prev, [t.id]: t.label })); setEditingId(null); } }}
+                    onBlur={() => { saveTemplateLabel(t); setEditingId(null); }}
+                  />
+                ) : (
+                  <button type="button" className="lr-req-label" title="Rename" onClick={() => setEditingId(t.id)}>
+                    {labelDrafts[t.id] ?? t.label}
+                  </button>
+                )}
+                <button type="button" className="lr-icon-btn" aria-label={`Delete ${t.label}`} title="Delete" onClick={() => deleteTemplate(t)}>
+                  <TrashIcon size={15} />
+                </button>
+              </div>
+            ))}
+          </div>
+          <form className="lr-inline-add" onSubmit={(e) => { e.preventDefault(); addTemplate(); }}>
+            <input placeholder="Add a requirement, e.g. Proof of insurance" value={newTemplate} onChange={(e) => setNewTemplate(e.target.value)} />
+            <button type="submit" className="btn" disabled={!newTemplate.trim()}>Add</button>
+          </form>
+        </div>
+      </section>
+
+      <section className="lr-section" aria-labelledby="lender-title">
+        <div className="lr-head">
+          <div>
+            <h2 id="lender-title" className="lr-title">Lenders &amp; lessors</h2>
+            <p className="lr-sub">Open a lender to edit its address and the requirements it always needs.</p>
+          </div>
+          <span className="lr-count">{lenders.length} total</span>
+        </div>
+        <form className="lr-addbar" onSubmit={(e) => { e.preventDefault(); addLender(); }}>
+          <input placeholder="New lender or lessor name" value={newLender} onChange={(e) => setNewLender(e.target.value)} />
+          <input placeholder="Address (optional)" value={newLenderAddress} onChange={(e) => setNewLenderAddress(e.target.value)} />
+          <button type="submit" className="btn" disabled={!newLender.trim()}>Add lender</button>
+        </form>
         <div className="lender-grid">
           {lenders.map((l) => (
             <Link
               key={l.id}
               to={`/lenders/${l.id}`}
-              className={`card-3d tint-blue lender-card${l.active ? '' : ' is-inactive'}`}
+              className={`lender-tile${l.active ? '' : ' is-inactive'}`}
               title={l.active ? undefined : 'Inactive — hidden from new deliveries'}
             >
-              <span className="lender-card-name">{l.name}</span>
-              <span aria-hidden="true" className="lender-card-chevron">›</span>
+              <span className="lender-tile-name">{l.name}</span>
+              {!l.active && <span className="lender-tile-tag">Inactive</span>}
+              <span aria-hidden="true" className="lender-tile-chevron">›</span>
             </Link>
           ))}
-          <div className="card-3d lender-card lender-add">
-            <div style={{ fontWeight: 800, fontSize: 14.5 }}>Add a lender or lessor</div>
-            <input placeholder="Name" value={newLender} onChange={(e) => setNewLender(e.target.value)} />
-            <input placeholder="Address (optional)" value={newLenderAddress} onChange={(e) => setNewLenderAddress(e.target.value)} />
-            <button type="button" className="btn" disabled={!newLender.trim()} onClick={addLender}>Add lender</button>
-          </div>
         </div>
       </section>
-      </div>
     </div>
   );
 }

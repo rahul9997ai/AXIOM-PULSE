@@ -288,26 +288,51 @@ h1, h2, h3 {
 .page-head { display: grid; gap: 4px; }
 .page-title { font-size: 22px; font-weight: 800; letter-spacing: -0.02em; margin: 0; color: var(--ink); }
 .page-sub { margin: 0; color: var(--muted); font-size: 13.5px; line-height: 1.5; }
-.lenders-grid { display: grid; gap: 16px; }
 .settings-link { display: flex; align-items: center; justify-content: space-between; gap: 12px; text-decoration: none; color: inherit; }
 .app-shell.desktop .page-stack { max-width: none; margin: 0; }
 .app-shell.desktop .page-title { font-size: 26px; }
-/* Lenders lead (as a card grid); the master requirement checklist follows. */
-.lenders-grid > .lender-section { order: -1; }
-.app-shell.desktop .lenders-grid > .card { max-width: 720px; }
-.lender-section { display: grid; gap: 12px; }
-.lender-grid { display: grid; gap: 12px; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); align-items: stretch; }
-.lender-grid > .lender-add { align-self: start; }
-.lender-card {
-  display: flex; align-items: center; justify-content: space-between; gap: 10px; min-width: 0;
-  text-decoration: none; color: inherit; padding: 16px 18px; transition: transform 0.15s, border-color 0.15s;
+/* Lenders & requirements page: slim sections, a compact checklist and lender tiles. */
+.lr-section { display: grid; gap: 12px; }
+.lr-head { display: flex; align-items: flex-end; justify-content: space-between; gap: 12px; }
+.lr-title { margin: 0; font-size: 19px; letter-spacing: 0.01em; color: var(--ink); }
+.lr-sub { margin: 3px 0 0; color: var(--muted); font-size: 13px; line-height: 1.45; }
+.lr-count { flex-shrink: 0; font-size: 12px; font-weight: 700; color: var(--muted); background: var(--surface); border: 1px solid var(--line); border-radius: 999px; padding: 3px 10px; }
+.lr-panel { display: grid; gap: 10px; background: var(--card); border: 1px solid var(--line); border-radius: 16px; padding: 10px; box-shadow: inset 0 1px 0 var(--neu-hi), 0 4px 12px var(--neu-lo); }
+.lr-req-list { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 300px), 1fr)); gap: 6px; }
+.lr-req { display: flex; align-items: center; gap: 10px; min-width: 0; padding: 6px 6px 6px 10px; border-radius: 10px; background: var(--surface); border: 1px solid transparent; }
+.lr-req:hover, .lr-req:focus-within { border-color: var(--line); }
+.lr-req.is-off .lr-req-label { color: var(--muted); text-decoration: line-through; }
+.lr-req-label { flex: 1; min-width: 0; text-align: left; font: inherit; font-size: 14px; font-weight: 600; color: var(--ink); background: transparent; border: 1px solid transparent; border-radius: 8px; padding: 6px 8px; cursor: text; line-height: 1.35; overflow-wrap: anywhere; }
+.lr-req-label:hover { border-color: var(--line); background: var(--card); }
+.lr-req-input { flex: 1; min-width: 0; border: 1px solid transparent !important; background: transparent !important; box-shadow: none !important; padding: 6px 8px !important; font-size: 14px; font-weight: 600; color: var(--ink); border-radius: 8px; }
+.lr-req-input:focus { border-color: var(--blue) !important; background: var(--focus-bg) !important; outline: none; }
+.lr-icon-btn { flex-shrink: 0; display: flex; align-items: center; justify-content: center; width: 32px; height: 32px; border-radius: 8px; border: none; background: transparent; color: var(--muted); cursor: pointer; opacity: 0.7; }
+.lr-icon-btn:hover, .lr-icon-btn:focus-visible { color: #b42318; background: var(--card); opacity: 1; }
+.lr-inline-add { display: flex; gap: 8px; padding: 4px; border-top: 1px solid var(--line); padding-top: 10px; }
+.lr-inline-add input { flex: 1; min-width: 0; }
+.lr-inline-add .btn, .lr-addbar .btn { padding: 10px 18px; white-space: nowrap; }
+.lr-addbar { display: grid; grid-template-columns: minmax(0, 1.2fr) minmax(0, 1.6fr) auto; gap: 8px; background: var(--card); border: 1px dashed var(--btn3d-border); border-radius: 14px; padding: 8px; }
+.switch.switch-sm { width: 38px; height: 22px; }
+.switch.switch-sm .switch-knob { width: 16px; height: 16px; }
+.switch.switch-sm.is-on .switch-knob { transform: translateX(16px); }
+.lender-grid { display: grid; gap: 10px; grid-template-columns: repeat(auto-fill, minmax(min(100%, 240px), 1fr)); }
+.lender-tile {
+  display: flex; align-items: center; gap: 10px; min-width: 0; min-height: 54px;
+  padding: 10px 14px; border-radius: 12px; text-decoration: none; color: var(--ink);
+  background: var(--card); border: 1px solid var(--line);
+  box-shadow: inset 0 1px 0 var(--neu-hi), 0 3px 8px var(--neu-lo);
+  transition: border-color 0.15s, transform 0.15s;
 }
-.lender-card-name { min-width: 0; font-weight: 800; font-size: 15px; line-height: 1.3; overflow-wrap: anywhere; }
-.lender-card-chevron { flex-shrink: 0; font-size: 20px; line-height: 1; color: var(--muted); }
-a.lender-card:hover { border-color: var(--btn3d-border); transform: translateY(-1px); }
-a.lender-card:focus-visible { outline: 2px solid var(--blue); outline-offset: 2px; }
-.lender-card.is-inactive { opacity: 0.55; }
-.lender-add { display: grid; grid-template-columns: minmax(0, 1fr); border-style: dashed; gap: 8px; padding: 16px; }
+.lender-tile:hover { border-color: var(--blue); transform: translateY(-1px); }
+.lender-tile:focus-visible { outline: 2px solid var(--blue); outline-offset: 2px; }
+.lender-tile-name { flex: 1; min-width: 0; font-weight: 700; font-size: 13.5px; line-height: 1.3; overflow-wrap: anywhere; }
+.lender-tile-tag { flex-shrink: 0; font-size: 10.5px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.05em; color: var(--muted); }
+.lender-tile-chevron { flex-shrink: 0; font-size: 18px; line-height: 1; color: var(--muted); }
+.lender-tile.is-inactive .lender-tile-name { color: var(--muted); }
+@media (max-width: 640px) {
+  .lr-addbar { grid-template-columns: 1fr; }
+  .lr-head { align-items: flex-start; }
+}
 .back-link { font-size: 13px; color: var(--accent); text-decoration: none; font-weight: 700; }
 .field-label { display: grid; gap: 6px; font-size: 12px; font-weight: 700; color: var(--muted); }
 .app-shell.desktop .lender-detail { max-width: 860px; }
