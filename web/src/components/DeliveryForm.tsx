@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '@/lib/supabase';
+import { CONFLICT_WINDOW_MIN } from '@/lib/schedule';
 import { useSession } from '@/lib/session';
 import { inputToCents, centsToInput, formatCents } from '@/lib/money';
 import { capitalizeWords } from '@/lib/text';
@@ -164,17 +165,18 @@ export default function DeliveryForm({ existing, onSaved }: { existing?: Deliver
     }
   };
 
-  // Scheduling check: other active deliveries at this dealership at exactly
-  // the chosen time. Only those for the same salesperson or the same Finance
-  // Manager are conflicts (see `conflicts` below) — filtered client-side as
-  // the form changes.
+  // Scheduling check: other active deliveries at this dealership within
+  // CONFLICT_WINDOW_MIN of the chosen time. Only those for the same
+  // salesperson or the same Finance Manager are conflicts (see `conflicts`
+  // below) — filtered client-side as the form changes.
   useEffect(() => {
     if (!deliveryAt || !effectiveDealershipId) { setNearby([]); return; }
     let cancelled = false;
     let q = supabase.from('deliveries')
       .select('id, customer_name, delivery_at, salesperson_id, salesperson_name, fsm_id, fsm_name')
       .eq('dealership_id', effectiveDealershipId)
-      .eq('delivery_at', new Date(deliveryAt).toISOString())
+      .gte('delivery_at', new Date(new Date(deliveryAt).getTime() - CONFLICT_WINDOW_MIN * 60_000).toISOString())
+      .lte('delivery_at', new Date(new Date(deliveryAt).getTime() + CONFLICT_WINDOW_MIN * 60_000).toISOString())
       .not('status', 'in', '(delivered,cancelled)');
     if (existing) q = q.neq('id', existing.id);
     q.then(({ data }) => {
@@ -552,7 +554,7 @@ interface NearbyDelivery {
   fsm_name: string | null;
 }
 
-// Plain-language conflicts at the chosen time: the same salesperson already
+// Plain-language conflicts within the window: the same salesperson already
 // booked (whoever entered it), or the same Finance Manager already booked.
 function schedulingConflicts(
   nearby: NearbyDelivery[],
@@ -561,7 +563,7 @@ function schedulingConflicts(
   const time = (iso: string) => new Date(iso).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' });
   const out: { key: string; text: string }[] = [];
   for (const d of nearby) {
-    if (!ctx.at || new Date(d.delivery_at).getTime() !== ctx.at) continue;
+    if (!ctx.at || Math.abs(new Date(d.delivery_at).getTime() - ctx.at) > CONFLICT_WINDOW_MIN * 60_000) continue;
     const sameSalesperson = !!ctx.salespersonId && d.salesperson_id === ctx.salespersonId;
     const sameFsm = !!ctx.fsmId && d.fsm_id === ctx.fsmId;
     if (sameSalesperson) {

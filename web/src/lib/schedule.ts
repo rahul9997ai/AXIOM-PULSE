@@ -45,20 +45,23 @@ export function requirementProgress(d: Delivery): { done: number; total: number;
 
 // Two active deliveries at the same dealership booked for the exact same
 // time — one of them almost certainly needs to move.
+// Two deliveries for the same salesperson or the same Finance Manager this
+// close together (either side) are a scheduling conflict.
+export const CONFLICT_WINDOW_MIN = 30;
+
 export function findClashes(rows: Delivery[]): Map<string, Delivery[]> {
-  const bySlot = new Map<string, Delivery[]>();
-  rows.filter(isActive).forEach((d) => {
-    const key = `${d.dealership_id}|${new Date(d.delivery_at).getTime()}`;
-    bySlot.set(key, [...(bySlot.get(key) ?? []), d]);
-  });
   // Only a real double-booking counts: the same salesperson or the same
-  // Finance Manager at the same time. Two different teams sharing a slot is fine.
+  // Finance Manager within the window. Two different teams overlapping is fine.
+  const active = rows.filter(isActive);
+  const windowMs = CONFLICT_WINDOW_MIN * 60_000;
   const clashes = new Map<string, Delivery[]>();
-  bySlot.forEach((group) => {
-    group.forEach((d) => {
-      const others = group.filter((o) => o.id !== d.id && (o.salesperson_id === d.salesperson_id || o.fsm_id === d.fsm_id));
-      if (others.length) clashes.set(d.id, others);
-    });
+  active.forEach((d) => {
+    const at = new Date(d.delivery_at).getTime();
+    const others = active.filter((o) => o.id !== d.id
+      && o.dealership_id === d.dealership_id
+      && (o.salesperson_id === d.salesperson_id || o.fsm_id === d.fsm_id)
+      && Math.abs(new Date(o.delivery_at).getTime() - at) <= windowMs);
+    if (others.length) clashes.set(d.id, others);
   });
   return clashes;
 }

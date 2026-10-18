@@ -7,7 +7,7 @@ import type { Delivery } from '@/lib/types';
 import { DEALERSHIP_VIEW_ROLES, MANAGER_ROLES, ROLE_LABEL } from '@/lib/types';
 import { monthLabel } from '@/lib/monthClose';
 import { monthKeyOf } from '@/lib/bonus';
-import { findClashes, initials, isActive, requirementProgress, timeLabel } from '@/lib/schedule';
+import { CONFLICT_WINDOW_MIN, findClashes, initials, isActive, requirementProgress, timeLabel } from '@/lib/schedule';
 import { useIsDesktop } from '@/lib/useIsDesktop';
 import ProgressRing from '@/components/ProgressRing';
 import DeliveryCard from '@/components/DeliveryCard';
@@ -273,8 +273,8 @@ export default function Deliveries() {
     <div role="alert" style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: 10, background: 'var(--banner-warn-bg)', border: '1px solid var(--banner-warn-border)', borderRadius: 12, padding: '11px 14px', fontSize: 13, color: 'var(--banner-warn-fg)' }}>
       <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M12 9v4M12 17h.01" /><path d="M10.3 3.9L1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0z" /></svg>
       <span style={{ flex: 1, minWidth: 200 }}>
-        <strong>Scheduling conflict:</strong> {clashSlots[0].map((d) => d.customer_name).join(' and ')} are booked for the same slot ({timeLabel(atOf(clashSlots[0][0]), now)}).
-        {clashSlots.length > 1 && ` ${clashSlots.length - 1} more slot${clashSlots.length === 2 ? ' is' : 's are'} double-booked.`}
+        <strong>Scheduling conflict:</strong> {clashSlots[0].map((d) => d.customer_name).join(' and ')} are booked within {CONFLICT_WINDOW_MIN} minutes for the same salesperson or Finance Manager ({timeLabel(atOf(clashSlots[0][0]), now)}).
+        {clashSlots.length > 1 && ` ${clashSlots.length - 1} more conflict${clashSlots.length === 2 ? '' : 's'}.`}
       </span>
       {canWrite && <Link to={`/edit/${clashSlots[0][1].id}`} style={{ fontWeight: 800, color: 'inherit' }}>Reschedule one</Link>}
     </div>

@@ -69,7 +69,7 @@ export default function DeliveryCard({
           </div>
           {clashWith && clashWith.length > 0 && (
             <span style={{ fontSize: 11.5, fontWeight: 800, color: '#b45309' }}>
-              Same slot as {clashWith.map((o) => o.customer_name.split(' ')[0]).join(', ')}
+              Conflicts with {clashWith.map((o) => o.customer_name.split(' ')[0]).join(', ')}
             </span>
           )}
         </div>
