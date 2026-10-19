@@ -102,7 +102,9 @@ export function customerMessage(i: ThankYouInput): CustomerMessage {
 
   if (isUsed(i)) {
     const vehicle = i.vehicle?.trim() ? `your ${i.vehicle.trim()}` : 'your vehicle';
-    const reviewUrl = i.dealership.googleReviewUrl?.trim();
+    // Only a real web link is used — anything else falls back to "search on Google".
+    const typed = i.dealership.googleReviewUrl?.trim();
+    const reviewUrl = typed && /^https?:\/\//i.test(typed) ? typed : undefined;
     return {
       subject: `Thank you, ${first} — enjoy ${vehicle}`,
       paragraphs: [
@@ -113,7 +115,7 @@ export function customerMessage(i: ThankYouInput): CustomerMessage {
           ? 'It only takes a minute:'
           : `It only takes a minute — just search "${store}" on Google and tap "Write a review".`,
       ],
-      link: reviewUrl ? { label: `Review ${store} on Google`, url: reviewUrl } : undefined,
+      link: reviewUrl ? { label: `Write a Google review for ${store}`, url: reviewUrl } : undefined,
       bulletsIntro: 'The best compliment I can receive is a referral. If friends, family or co-workers are shopping for a vehicle — new or pre-owned — please send them my way, and I\'ll look after them just as carefully. And I\'m always here for you too:',
       bullets: [
         helpFeatures,
@@ -151,11 +153,32 @@ export function customerMessageText(i: ThankYouInput): string {
   return [
     greeting, '',
     ...rest.flatMap((p) => [p, '']),
-    ...(m.link ? [m.link.url, ''] : []),
+    ...(m.link ? [`${m.link.label}:`, m.link.url, ''] : []),
     m.bulletsIntro, '',
     ...m.bullets.map((x) => `• ${x}`), '',
     ...m.signature,
   ].join('\n');
+}
+
+// The customer message as HTML with inline styles, so it pastes cleanly into
+// Gmail and Outlook. The Google review link shows as short text ("Write a
+// Google review for ...") that opens the review page, never the raw URL.
+export function customerMessageHtml(i: ThankYouInput): string {
+  const m = customerMessage(i);
+  const accent = i.dealership.brandColor || '#1e3a8a';
+  const para = (p: string) => `<p style="margin:0 0 14px;font-size:15px;line-height:1.6;color:#1f2937">${esc(p)}</p>`;
+  const link = m.link
+    ? `<p style="margin:0 0 14px;font-size:15px;line-height:1.6"><a href="${esc(m.link.url)}" style="color:${accent};font-weight:700;text-decoration:underline">${esc(m.link.label)}</a></p>`
+    : '';
+  const bullets = m.bullets.map((x) => `<li style="margin:0 0 6px;font-size:15px;line-height:1.55;color:#1f2937">${esc(x)}</li>`).join('');
+  const sig = m.signature.map((l) => l ? esc(l) : '&nbsp;').join('<br>');
+  return `<div style="font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif">
+${m.paragraphs.map(para).join('\n')}
+${link}
+${para(m.bulletsIntro)}
+<ul style="margin:0 0 14px;padding-left:20px">${bullets}</ul>
+<p style="margin:0;font-size:15px;line-height:1.6;color:#1f2937">${sig}</p>
+</div>`;
 }
 
 export function mailtoHref(i: ThankYouInput): string {
@@ -208,13 +231,6 @@ export function thankYouEmailHtml(i: ThankYouInput, deliveryUrl?: string): strin
   const store = titleCase(i.dealership.name);
   const used = isUsed(i);
 
-  const para = (p: string) => `<p style="margin:0 0 14px;font-size:15px;line-height:1.6;color:#1f2937">${esc(p)}</p>`;
-  const bullets = m.bullets.map((x) => `<li style="margin:0 0 6px;font-size:15px;line-height:1.55;color:#1f2937">${esc(x)}</li>`).join('');
-  const sig = m.signature.map((l) => l ? esc(l) : '&nbsp;').join('<br>');
-  const link = m.link
-    ? `<p style="margin:0 0 14px;font-size:15px;line-height:1.6"><a href="${esc(m.link.url)}" style="color:${accent};font-weight:700">${esc(m.link.url)}</a></p>`
-    : '';
-
   const steps = [
     ['Copy', 'Select everything inside the box below, from the subject line down to your signature.'],
     ['Paste', `Start a new email from your work address to ${esc(first)}, and paste.`],
@@ -258,11 +274,7 @@ export function thankYouEmailHtml(i: ThankYouInput, deliveryUrl?: string): strin
               <span style="font-size:15px;font-weight:700;color:#0f172a">${esc(m.subject)}</span>
             </td></tr>
             <tr><td style="padding:18px 18px 16px">
-              ${m.paragraphs.map(para).join('\n              ')}
-              ${link}
-              ${para(m.bulletsIntro)}
-              <ul style="margin:0 0 14px;padding-left:20px">${bullets}</ul>
-              <p style="margin:0;font-size:15px;line-height:1.6;color:#1f2937">${sig}</p>
+              ${customerMessageHtml(i)}
             </td></tr>
           </table>
         </td></tr>

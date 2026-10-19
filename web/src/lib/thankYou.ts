@@ -2,7 +2,7 @@ import { supabase } from './supabase';
 import type { Delivery } from './types';
 import type { DealershipConfig, ThankYouInput } from '../../../supabase/functions/delivery-reminders/thankYouEmail';
 
-export { customerMessage, customerMessageText, mailtoHref } from '../../../supabase/functions/delivery-reminders/thankYouEmail';
+export { customerMessage, customerMessageHtml, customerMessageText, mailtoHref } from '../../../supabase/functions/delivery-reminders/thankYouEmail';
 export type { ThankYouInput } from '../../../supabase/functions/delivery-reminders/thankYouEmail';
 
 export interface ThankYouSettings {

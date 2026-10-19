@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import type { Delivery } from '@/lib/types';
-import { customerMessage, customerMessageText, mailtoHref, thankYouInputFor, type ThankYouInput } from '@/lib/thankYou';
+import { customerMessage, customerMessageHtml, customerMessageText, mailtoHref, thankYouInputFor, type ThankYouInput } from '@/lib/thankYou';
 
 // The ready-to-send customer thank-you on a delivered vehicle, with Copy and
 // "Open in my email app" — the same message that's emailed to the
@@ -23,13 +23,23 @@ export default function ThankYouCard({ delivery }: { delivery: Delivery }) {
   const text = customerMessageText(input);
   const used = input.condition === 'used';
 
+  // The message copies as rich text, so pasting into Gmail or Outlook keeps
+  // "Write a Google review" as a clickable link instead of a long raw URL;
+  // apps that only take plain text get the plain version.
   const copy = async (what: 'subject' | 'message') => {
     try {
-      await navigator.clipboard.writeText(what === 'subject' ? message.subject : text);
+      if (what === 'message' && typeof ClipboardItem !== 'undefined' && navigator.clipboard.write) {
+        await navigator.clipboard.write([new ClipboardItem({
+          'text/html': new Blob([customerMessageHtml(input)], { type: 'text/html' }),
+          'text/plain': new Blob([text], { type: 'text/plain' }),
+        })]);
+      } else {
+        await navigator.clipboard.writeText(what === 'subject' ? message.subject : text);
+      }
       setCopied(what);
       setTimeout(() => setCopied(null), 1800);
     } catch {
-      // Clipboard blocked (e.g. an old in-app browser) — the text is still selectable below.
+      // Clipboard blocked (e.g. an old in-app browser) — the message is still selectable below.
     }
   };
 
@@ -57,7 +67,7 @@ export default function ThankYouCard({ delivery }: { delivery: Delivery }) {
               {copied === 'subject' ? '✓ Copied' : 'Copy'}
             </button>
           </div>
-          <div className="thankyou-body">{text}</div>
+          <div className="thankyou-body" dangerouslySetInnerHTML={{ __html: customerMessageHtml(input) }} />
           <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
             <button type="button" className="btn" style={{ flex: '1 1 140px', fontSize: 14 }} onClick={() => copy('message')}>
               {copied === 'message' ? '✓ Message copied' : 'Copy message'}
