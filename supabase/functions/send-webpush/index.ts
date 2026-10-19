@@ -56,6 +56,7 @@ Deno.serve(async (req) => {
 
     const body: RequestBody = await req.json().catch(() => ({}));
     const targetIds = body.profile_ids?.length ? body.profile_ids : [user.id];
+    console.log(`[send-webpush] caller=${user.id} targets=${JSON.stringify(targetIds)} type=${(body.data as { type?: string })?.type ?? 'n/a'}`);
 
     const targetingOthers = targetIds.some((id) => id !== user.id);
     if (targetingOthers) {
@@ -74,8 +75,11 @@ Deno.serve(async (req) => {
           return json({ error: 'Only FSM/manager roles can notify other users' }, 403);
         }
       } else if (caller.role !== 'Master Administrator') {
-        const { data: targets } = await admin.from('profiles').select('id, dealership_id').in('id', targetIds);
-        const unauthorized = (targets || []).some((t) => t.dealership_id !== caller.dealership_id);
+        // A Master Administrator has no dealership of their own but can be
+        // the assigned Finance Manager on any dealership's deliveries, so
+        // they're reachable from every dealership's managers.
+        const { data: targets } = await admin.from('profiles').select('id, role, dealership_id').in('id', targetIds);
+        const unauthorized = (targets || []).some((t) => t.role !== 'Master Administrator' && t.dealership_id !== caller.dealership_id);
         if (unauthorized || (targets || []).length !== targetIds.length) {
           return json({ error: 'Cannot notify profiles outside your dealership' }, 403);
         }
@@ -88,6 +92,7 @@ Deno.serve(async (req) => {
       .in('profile_id', targetIds);
 
     if (error) return json({ error: error.message }, 400);
+    console.log(`[send-webpush] found ${subs?.length ?? 0} subscription(s) for ${targetIds.length} target(s)`);
 
     const payload = JSON.stringify({
       title: body.title || 'Mahanex Pulse',
@@ -100,14 +105,16 @@ Deno.serve(async (req) => {
 
     await Promise.all((subs || []).map(async (sub) => {
       try {
-        await webpush.sendNotification(
+        const result = await webpush.sendNotification(
           { endpoint: sub.endpoint, keys: { p256dh: sub.p256dh, auth: sub.auth } },
           payload,
         );
         sent++;
+        console.log(`[send-webpush] OK sub=${sub.id} profile=${sub.profile_id} status=${result.statusCode}`);
       } catch (err) {
-        const status = (err as { statusCode?: number }).statusCode;
-        if (status === 404 || status === 410) stale.push(sub.id);
+        const e = err as { statusCode?: number; body?: string; message?: string };
+        console.error(`[send-webpush] FAIL sub=${sub.id} profile=${sub.profile_id} status=${e.statusCode} body=${e.body} message=${e.message}`);
+        if (e.statusCode === 404 || e.statusCode === 410) stale.push(sub.id);
       }
     }));
 
@@ -115,6 +122,7 @@ Deno.serve(async (req) => {
 
     return json({ sent, removed: stale.length });
   } catch (e) {
+    console.error(`[send-webpush] UNCAUGHT ${(e as Error).message}`);
     return json({ error: (e as Error).message }, 500);
   }
 });
