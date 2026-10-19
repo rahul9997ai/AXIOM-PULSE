@@ -15,10 +15,12 @@
 //
 // The same tick also sends the Finance Managers' daily reminder to enter
 // their deliveries (push and email, on a schedule the GM sets) — see
-// runFsmReminders below.
+// runFsmReminders below — and, once a delivery is marked delivered, emails
+// the salesperson a ready-to-send customer thank-you (runThankYous).
 import { createClient } from 'jsr:@supabase/supabase-js@2';
 import webpush from 'npm:web-push@3.6.7';
 import { reminderEmailHtml, reminderEmailSubject, reminderEmailText } from './reminderEmail.ts';
+import { testEmailHtml, thankYouEmailHtml, thankYouEmailSubject, thankYouEmailText, type ThankYouInput } from './thankYouEmail.ts';
 
 webpush.setVapidDetails(
   'mailto:007.splinter@gmail.com',
@@ -358,11 +360,104 @@ async function runFsmReminders() {
   }
 }
 
+// ---------------------------------------------------------------------------
+// Customer thank-you emails. When a delivery is marked delivered, its
+// salesperson is emailed a ready-to-send thank-you for the customer (survey
+// version for new vehicles, Google review + referral version for used) to
+// send from their own work email. Needs the salesperson's notification email
+// (profiles.notify_email); a delivery is picked up for THANKYOU_WINDOW_HOURS
+// after it's delivered, so one added a little later still gets it.
+// thankyou_log keeps it to one email per delivery.
+
+const THANKYOU_WINDOW_HOURS = 72;
+
+// Placeholder sign-in addresses that can't receive mail.
+const deliverable = (email: string | null | undefined) => (email && !/@pulse\.local$/i.test(email) ? email : null);
+
+async function runThankYous() {
+  const since = new Date(Date.now() - THANKYOU_WINDOW_HOURS * HOUR_MS).toISOString();
+  const { data: delivered } = await admin
+    .from('deliveries')
+    .select('id, dealership_id, salesperson_id, salesperson_name, customer_name, vehicle, vehicle_condition')
+    .eq('status', 'delivered')
+    .gte('delivered_at', since);
+  if (!delivered?.length) return;
+
+  const { data: done } = await admin.from('thankyou_log').select('delivery_id').in('delivery_id', delivered.map((d) => d.id));
+  const pending = delivered.filter((d) => !(done || []).some((l) => l.delivery_id === d.id));
+  if (!pending.length) return;
+
+  const dealershipIds = [...new Set(pending.map((d) => String(d.dealership_id)))];
+  const [{ data: dealerships }, { data: settings }, { data: people }] = await Promise.all([
+    admin.from('dealerships').select('id, name, data').in('id', dealershipIds),
+    admin.from('thankyou_settings').select('*').in('dealership_id', dealershipIds),
+    admin.from('profiles').select('id, name, email, notify_email').in('id', [...new Set(pending.map((d) => d.salesperson_id))]),
+  ]);
+
+  for (const d of pending) {
+    const setting = (settings || []).find((s) => s.dealership_id === String(d.dealership_id));
+    if (setting && !setting.enabled) continue;
+    const person = (people || []).find((p) => p.id === d.salesperson_id);
+    const to = deliverable(person?.notify_email) ?? deliverable(person?.email);
+    if (!to) continue;
+    const dealership = (dealerships || []).find((x) => String(x.id) === String(d.dealership_id));
+    const data = (dealership?.data ?? {}) as Record<string, string | undefined>;
+
+    // Insert-first: only the tick that creates the log row sends it.
+    const { data: logged } = await admin
+      .from('thankyou_log')
+      .upsert({ delivery_id: d.id, sent_to: to }, { onConflict: 'delivery_id', ignoreDuplicates: true })
+      .select('delivery_id');
+    if (!logged?.length) continue;
+
+    const input: ThankYouInput = {
+      customerName: d.customer_name,
+      vehicle: d.vehicle,
+      condition: d.vehicle_condition,
+      salespersonName: person?.name || d.salesperson_name || 'Your salesperson',
+      dealership: {
+        name: dealership?.name ?? data.name ?? '',
+        address: data.address,
+        city: data.city,
+        phone: data.phone,
+        brandKey: data.brandKey,
+        brandColor: data.brandColor,
+        googleReviewUrl: setting?.google_review_url,
+      },
+    };
+    const sent = await sendRawEmail(to, thankYouEmailSubject(input), thankYouEmailHtml(input, `${APP_URL}/delivery/${d.id}`), thankYouEmailText(input));
+    // Not sent (e.g. a temporary email failure) — let a later tick retry.
+    if (!sent) await admin.from('thankyou_log').delete().eq('delivery_id', d.id);
+  }
+}
+
+// Sends a signed-in person a test email at their notification address, so
+// a typo is caught the moment they save it.
+async function sendTestEmail(req: Request): Promise<Response> {
+  const json = (body: unknown, status = 200) => new Response(JSON.stringify(body), { status, headers: { ...CORS, 'Content-Type': 'application/json' } });
+  const token = req.headers.get('Authorization')?.replace(/^Bearer\s+/i, '');
+  const { data: { user } } = token ? await admin.auth.getUser(token) : { data: { user: null } };
+  if (!user) return json({ error: 'Not signed in' }, 401);
+  const { data: me } = await admin.from('profiles').select('name, notify_email').eq('id', user.id).single();
+  const to = deliverable(me?.notify_email);
+  if (!to) return json({ error: 'Save your email first' }, 400);
+  const sent = await sendRawEmail(to, 'Your email is connected to Mahanex Pulse', testEmailHtml(me?.name ?? ''), `You're all set. ${to} is now connected to Mahanex Pulse — customer thank-you emails and other Pulse notifications will arrive here.`);
+  return sent ? json({ ok: true, to }) : json({ error: 'The email couldn\'t be sent — check the address and try again.' }, 502);
+}
+
+const CORS = {
+  'Access-Control-Allow-Origin': '*',
+  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+};
+
 // Called by the pg_cron job via HTTP. Also safe to call directly for
-// manual testing.
+// manual testing. The app calls it with { action: 'test_email' } instead.
 Deno.serve(async (req) => {
-  if (req.method === 'OPTIONS') return new Response('ok');
+  if (req.method === 'OPTIONS') return new Response('ok', { headers: CORS });
+  const body = await req.json().catch(() => ({}));
+  if (body?.action === 'test_email') return sendTestEmail(req);
   await runReminders();
   await runFsmReminders().catch((e) => console.error(`[delivery-reminders] FSM reminders failed: ${(e as Error).message}`));
+  await runThankYous().catch((e) => console.error(`[delivery-reminders] thank-yous failed: ${(e as Error).message}`));
   return new Response(JSON.stringify({ ok: true }), { headers: { 'Content-Type': 'application/json' } });
 });

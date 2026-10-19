@@ -3,6 +3,9 @@ import react from '@vitejs/plugin-react';
 import { VitePWA } from 'vite-plugin-pwa';
 
 export default defineConfig({
+  // The customer thank-you template is shared with the delivery-reminders
+  // edge function and lives beside it, outside this folder.
+  server: { fs: { allow: ['..'] } },
   plugins: [
     react(),
     VitePWA({

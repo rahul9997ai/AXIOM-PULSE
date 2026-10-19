@@ -1,6 +1,8 @@
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import ReminderSettings from '@/components/ReminderSettings';
+import ThankYouSettingsPanel from '@/components/ThankYouSettingsPanel';
+import NotifyEmailCard from '@/components/NotifyEmailCard';
 import { supabase } from '@/lib/supabase';
 import { useSession } from '@/lib/session';
 import { useActingRole } from '@/lib/actingRole';
@@ -318,6 +320,8 @@ export default function Settings() {
         </div>
       </div>
 
+      <NotifyEmailCard />
+
       <div className="card">
         <div style={{ color: 'var(--muted)', fontWeight: 800, fontSize: 12, letterSpacing: 1, marginBottom: 10 }}>APPEARANCE</div>
         <div style={{ display: 'flex', gap: 8 }}>
@@ -449,6 +453,8 @@ export default function Settings() {
       )}
 
       {(isMaster || profile?.role === 'General Manager') && dealershipId && <ReminderSettings dealershipId={dealershipId} />}
+
+      {(isMaster || profile?.role === 'General Manager') && dealershipId && <ThankYouSettingsPanel dealershipId={dealershipId} />}
 
       {error && <div className="card" style={{ fontSize: 13, color: '#a3261b' }}>{error}</div>}
 

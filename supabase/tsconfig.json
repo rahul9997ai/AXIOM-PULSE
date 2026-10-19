@@ -1,0 +1,4 @@
+{
+  "//": "Stops tools resolving the legacy Expo tsconfig at the repo root when the web app imports the shared thank-you template from here.",
+  "compilerOptions": { "strict": true, "target": "ES2020", "module": "ESNext" }
+}

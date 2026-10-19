@@ -11,6 +11,7 @@ import { downloadDeliveryIcs } from '@/lib/ics';
 import { useIsDesktop } from '@/lib/useIsDesktop';
 import DateTimePill from '@/components/DateTimePill';
 import RequirementTiles from '@/components/RequirementTiles';
+import ThankYouCard from '@/components/ThankYouCard';
 import { completeDelivery } from '@/lib/deliveryActions';
 import {
   PinIcon, CarIcon,
@@ -465,6 +466,8 @@ export default function DeliveryDetail() {
       </div>
 
       {notice && <div className="card-3d tint-blue" style={{ fontSize: 13 }}>{notice}</div>}
+
+      {d.status === 'delivered' && <ThankYouCard delivery={d} />}
 
       {requirements.length > 0 && (
         <div className="card-3d tint-blue">

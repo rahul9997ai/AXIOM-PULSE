@@ -705,3 +705,12 @@ input::placeholder, textarea::placeholder { color: var(--mut); opacity: 1; }
 
 /* New / edit delivery: scheduling conflicts above the Save button. */
 .conflict-panel { color: var(--banner-warn-fg); background: var(--banner-warn-bg); border: 1px solid var(--banner-warn-border); border-radius: 12px; padding: 12px 14px; }
+
+/* Customer thank-you emails */
+.team-email-row { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.4fr); align-items: center; gap: 10px; padding: 8px 10px; border-radius: 10px; background: var(--card); border: 1px solid var(--line); }
+.team-email-row input { padding: 7px 9px; font-size: 13.5px; }
+@media (max-width: 520px) { .team-email-row { grid-template-columns: minmax(0, 1fr); gap: 6px; } }
+.email-setup-banner { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 12px 14px; border-radius: 14px; text-decoration: none; color: var(--text); background: var(--surface); border: 1px solid var(--line); border-left: 4px solid #f0b94a; font-size: 14px; }
+.thankyou-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; width: 100%; background: none; border: none; padding: 0; color: inherit; cursor: pointer; font: inherit; }
+.thankyou-subject { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; padding: 9px 12px; border-radius: 10px; background: var(--card); border: 1px solid var(--line); }
+.thankyou-body { white-space: pre-wrap; font-size: 13.5px; line-height: 1.55; padding: 12px 14px; border-radius: 10px; background: var(--card); border: 1px dashed var(--line); max-height: 360px; overflow: auto; user-select: text; }

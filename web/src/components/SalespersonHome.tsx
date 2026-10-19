@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import type { Delivery } from '@/lib/types';
+import { useSession } from '@/lib/session';
 import { HATTRICK_BONUS_CENTS, groupHattricks, monthKeyOf, nextVolumeTier, volumeBonusFor } from '@/lib/bonus';
 import type { HattrickRow } from '@/lib/bonus';
 import { completeDelivery } from '@/lib/deliveryActions';
@@ -52,6 +53,7 @@ export default function SalespersonHome({
 
   return (
     <div style={{ display: 'grid', gap: 14 }}>
+      <EmailSetupBanner />
       <BonusTracker rows={rows} now={now} />
 
       <div className="chip-row" role="group" aria-label="Show">
@@ -288,5 +290,21 @@ function HattrickGroup({ soldAt, members, badge }: { soldAt: string; members: Ha
         );
       })}
     </div>
+  );
+}
+
+// Shown to a salesperson until they've told Pulse where to email them —
+// without it their customer thank-you drafts only appear in the app.
+function EmailSetupBanner() {
+  const { profile } = useSession();
+  if (profile?.role !== 'Salesperson' || profile.notify_email) return null;
+  return (
+    <Link to="/settings#email" className="email-setup-banner">
+      <span style={{ minWidth: 0 }}>
+        <strong>Add your work email</strong>
+        <span style={{ display: 'block', fontSize: 12.5, marginTop: 2, opacity: 0.85 }}>Get a ready-to-send thank-you email for every customer you deliver.</span>
+      </span>
+      <span aria-hidden="true" style={{ fontSize: 20 }}>›</span>
+    </Link>
   );
 }

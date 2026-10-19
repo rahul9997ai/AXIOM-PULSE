@@ -13,6 +13,9 @@ export interface Profile {
   pulse_enabled: boolean;
   must_change_password: boolean;
   has_seen_welcome: boolean;
+  // Where Pulse emails this person (thank-you drafts, reminders) — separate
+  // from the sign-in, which for salespeople is a placeholder address.
+  notify_email?: string | null;
 }
 
 export type RequirementStatus = 'outstanding' | 'completed' | 'exception';
