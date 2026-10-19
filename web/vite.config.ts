@@ -12,7 +12,7 @@ export default defineConfig({
       injectRegister: false,
       manifest: {
         name: 'Mahanex Pulse',
-        short_name: 'Mahanex',
+        short_name: 'Pulse',
         description: 'Mahanex Pulse — the pulse of every delivery. Management AI for Human Advancement & Next-gen EXecution.',
         theme_color: '#0B1430',
         background_color: '#0B1430',
