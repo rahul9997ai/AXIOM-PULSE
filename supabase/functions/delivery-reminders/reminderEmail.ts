@@ -92,7 +92,7 @@ export function reminderEmailHtml(i: ReminderEmailInput): string {
     <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="max-width:600px;background:#ffffff;border:1px solid #dbe2ea;border-radius:14px;overflow:hidden">
       <tr><td style="background:#0B1430;padding:20px 28px">
         <table role="presentation" width="100%" cellpadding="0" cellspacing="0"><tr>
-          <td style="font-family:'Sora',-apple-system,'Segoe UI',Helvetica,Arial,sans-serif;color:#ffffff;font-size:19px;font-weight:800;letter-spacing:.09em">MAHAN<span style="color:#F0B94A">-EX</span> <span style="font-style:italic;font-weight:700;letter-spacing:0;color:#D4E1F7">Pulse</span></td>
+          <td style="font-family:'Sora',-apple-system,'Segoe UI',Helvetica,Arial,sans-serif;color:#ffffff;font-size:19px;font-weight:800;letter-spacing:.02em">Mahan<span style="color:#F0B94A">-Ex</span> <span style="font-style:italic;font-weight:700;letter-spacing:0;color:#D4E1F7">Pulse</span></td>
           <td align="right" style="color:#D4E1F7;font-size:12px;font-weight:600;letter-spacing:.06em;text-transform:uppercase">${esc(i.dateLabel)}</td>
         </tr></table>
       </td></tr>
@@ -124,7 +124,7 @@ export function reminderEmailHtml(i: ReminderEmailInput): string {
         <p style="margin:0;font-size:14px;line-height:1.6;color:#334155">Thank you for your support,<br><strong>Mahanex Pulse</strong> — Delivery Coordination${i.dealershipName ? `<br><span style="color:#64748b">${esc(i.dealershipName)}</span>` : ''}</p>
       </td></tr>
       <tr><td style="background:#f6f8fb;border-top:1px solid #e5e9f0;padding:14px 28px;font-size:11.5px;line-height:1.5;color:#94a3b8">
-        This is an automated reminder from Mahanex Pulse. Please do not reply to this email.<br>Mahanex · Great minds, built with AI.
+        This is an automated reminder from Mahanex Pulse. Please do not reply to this email.<br>Mahanex · Management AI for Human Advancement &amp; Next-gen EXecution
       </td></tr>
     </table>
   </td></tr></table>

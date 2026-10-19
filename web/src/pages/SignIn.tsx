@@ -28,7 +28,7 @@ export default function SignIn() {
       <div className="landing-bg" aria-hidden="true" />
       <header className="landing-head">
         <MahanexLockup size={30} />
-        <p className="ax-tagline" style={{ marginTop: 8 }}>Great minds, built with AI.</p>
+        <p className="ax-tagline" style={{ marginTop: 8, textTransform: 'none', letterSpacing: '0.03em', fontSize: 11.5 }}>Management AI for Human Advancement &amp; Next-gen EXecution</p>
         <div className="ax-sig" style={{ marginTop: 2 }}>by Rahul Champaneri</div>
       </header>
 
@@ -88,7 +88,6 @@ export default function SignIn() {
 
       <footer className="landing-foot">
         <span className="landing-tagline">From FSM's Mind to FSM's Desk</span>
-        <div className="mx-acronym">Mahanex · Management AI for Human Advancement &amp; Next-gen EXecution</div>
       </footer>
     </div>
   );

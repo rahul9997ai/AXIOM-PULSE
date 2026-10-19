@@ -1,11 +1,11 @@
-// The Mahanex wordmark (shown as MAHAN-EX: the dash is visual only — the name
+// The Mahanex wordmark (shown as Mahan-Ex: the dash is visual only — the name
 // is always "Mahanex" in text) with this app's product name beside it.
 export function MahanexWordmark({ size = 22 }: { size?: number }) {
   return (
     <span className="mx-wm" role="img" aria-label="Mahanex" style={{ fontSize: size }}>
-      <span className="mx-mahan">MAHAN</span>
+      <span className="mx-mahan">Mahan</span>
       <span className="mx-dash" aria-hidden="true" />
-      <span className="mx-ex">EX</span>
+      <span className="mx-ex">Ex</span>
     </span>
   );
 }
