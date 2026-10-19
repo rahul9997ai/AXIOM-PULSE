@@ -140,11 +140,21 @@ h1, h2, h3 {
 :root[data-theme="dark"] .mx-wm .mx-dash { background: linear-gradient(90deg, #ffd27a, #e3a52f); }
 .mx-product { font-family: 'Sora', system-ui, sans-serif; font-style: italic; font-weight: 700; color: var(--blue); letter-spacing: 0.01em; }
 :root[data-theme="dark"] .mx-product { color: #f0b94a; }
+/* The "by Rahul Champaneri" signature, matching Dealership Command: Pinyon
+   Script that writes itself in from left to right as the page opens. */
 .ax-sig {
+  display: inline-block;
   font-family: 'Pinyon Script', 'Snell Roundhand', cursive;
-  font-size: 18px;
+  font-size: clamp(19px, 1.5vw, 27px);
+  line-height: 1.15;
+  letter-spacing: 0.01em;
+  padding: 0.05em 0.5em 0.15em 0.05em;
   color: var(--ink);
+  clip-path: inset(0 100% 0 0);
+  animation: axSigWrite 2.2s cubic-bezier(0.55, 0.1, 0.25, 1) 0.5s forwards;
 }
+@keyframes axSigWrite { from { clip-path: inset(0 100% 0 0); } to { clip-path: inset(0 -10% 0 0); } }
+@media (prefers-reduced-motion: reduce) { .ax-sig { animation: none; clip-path: none; } }
 .ax-tagline {
   font-size: 10px;
   letter-spacing: 0.16em;
@@ -571,7 +581,7 @@ input::placeholder, textarea::placeholder { color: var(--mut); opacity: 1; }
     radial-gradient(circle at 90% 25%, rgba(30, 58, 138, 0.12), transparent 50%);
   pointer-events: none;
 }
-.landing-head { position: relative; z-index: 1; padding-top: 28px; text-align: center; }
+.landing-head { position: relative; z-index: 1; padding-top: 28px; text-align: center; display: flex; flex-direction: column; align-items: center; }
 .landing-head .mx-lockup { justify-content: center; }
 
 .landing-main {
@@ -624,6 +634,10 @@ input::placeholder, textarea::placeholder { color: var(--mut); opacity: 1; }
   .landing-main { flex-direction: row; align-items: center; justify-content: center; gap: 64px; }
   .landing-hero { text-align: left; }
   .landing-label { justify-content: flex-start; }
+  /* Tagline and signature sit under the wordmark, past the 30px lockup's
+     mark (30px x 3.1) and its 14px gap. */
+  .landing-head { align-items: flex-start; text-align: left; }
+  .landing-head .ax-tagline, .landing-head .ax-sig { margin-left: 107px; }
 }
 
 /* Bonus tracker: tappable stat boxes and their breakdown panels (always on
