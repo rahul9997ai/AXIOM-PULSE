@@ -124,7 +124,7 @@ export function reminderEmailHtml(i: ReminderEmailInput): string {
         <p style="margin:0;font-size:14px;line-height:1.6;color:#334155">Thank you for your support,<br><strong>Mahanex Pulse</strong> — Delivery Coordination${i.dealershipName ? `<br><span style="color:#64748b">${esc(i.dealershipName)}</span>` : ''}</p>
       </td></tr>
       <tr><td style="background:#f6f8fb;border-top:1px solid #e5e9f0;padding:14px 28px;font-size:11.5px;line-height:1.5;color:#94a3b8">
-        This is an automated reminder from Mahanex Pulse. Please do not reply to this email.<br>Mahanex · Management AI for Human Advancement &amp; Next-gen EXecution
+        This is an automated reminder from Mahanex Pulse. Please do not reply to this email.<br>Mahanex · Machine-Augmented Human Intelligence &amp; eXecution
       </td></tr>
     </table>
   </td></tr></table>

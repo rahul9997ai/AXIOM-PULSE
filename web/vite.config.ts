@@ -16,7 +16,7 @@ export default defineConfig({
       manifest: {
         name: 'Mahanex Pulse',
         short_name: 'Pulse',
-        description: 'Mahanex Pulse — the pulse of every delivery. Management AI for Human Advancement & Next-gen EXecution.',
+        description: 'Mahanex Pulse — the pulse of every delivery. Machine-Augmented Human Intelligence & eXecution.',
         theme_color: '#0B1430',
         background_color: '#0B1430',
         display: 'standalone',

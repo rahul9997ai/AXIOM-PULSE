@@ -282,7 +282,7 @@ export function thankYouEmailHtml(i: ThankYouInput, deliveryUrl?: string): strin
 
         <tr><td style="padding:16px 28px 22px;border-top:1px solid #e5e9f0;font-size:11.5px;line-height:1.6;color:#94a3b8">
           Sent by Mahanex Pulse for ${esc(store)} because this delivery was marked Delivered.<br>
-          Mahanex · Management AI for Human Advancement &amp; Next-gen EXecution
+          Mahanex · Machine-Augmented Human Intelligence &amp; eXecution
         </td></tr>
       </table>
     </td></tr>
