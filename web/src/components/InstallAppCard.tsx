@@ -13,7 +13,7 @@ export default function InstallAppCard() {
         <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
           <div style={{ color: '#15803d' }}><DownloadIcon /></div>
           <div>
-            <div style={{ fontWeight: 700, fontSize: 14 }}>Axiom Pulse is installed</div>
+            <div style={{ fontWeight: 700, fontSize: 14 }}>Mahanex Pulse is installed</div>
             <div style={{ color: 'var(--muted)', fontSize: 13 }}>You're using the installed app.</div>
           </div>
         </div>
@@ -31,7 +31,7 @@ export default function InstallAppCard() {
       <div className="card">
         <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 8 }}>
           <div style={{ color: 'var(--blue)' }}><DownloadIcon /></div>
-          <div style={{ fontWeight: 700, fontSize: 15 }}>Install Axiom Pulse</div>
+          <div style={{ fontWeight: 700, fontSize: 15 }}>Install Mahanex Pulse</div>
         </div>
         <p style={{ color: 'var(--muted)', fontSize: 13, marginTop: 0 }}>
           Add it to your home screen for one-tap access and background delivery notifications, even

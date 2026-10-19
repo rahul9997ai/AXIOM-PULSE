@@ -26,7 +26,7 @@ export default function IosInstallModal({ onClose }: { onClose: () => void }) {
             <strong>Share</strong> button in Safari's toolbar
           </Step>
           <Step n={2}>Scroll down and tap <strong>Add to Home Screen</strong></Step>
-          <Step n={3}>Tap <strong>Add</strong> — Axiom Pulse now opens like any other app</Step>
+          <Step n={3}>Tap <strong>Add</strong> — Mahanex Pulse now opens like any other app</Step>
         </div>
         <p style={{ color: 'var(--muted)', fontSize: 12, marginTop: 14 }}>
           This must be done from Safari itself — Apple doesn't allow installing from inside another

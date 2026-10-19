@@ -22,7 +22,7 @@ export function pushSupported(): boolean {
 // Give every async step a hard ceiling so a stall becomes a clear error.
 function withTimeout<T>(promise: Promise<T>, ms: number, stage: string): Promise<T> {
   return new Promise((resolve, reject) => {
-    const timer = setTimeout(() => reject(new Error(`Timed out ${stage}. Close and reopen Axiom Pulse, then try again.`)), ms);
+    const timer = setTimeout(() => reject(new Error(`Timed out ${stage}. Close and reopen Mahanex Pulse, then try again.`)), ms);
     promise.then((v) => { clearTimeout(timer); resolve(v); }, (e) => { clearTimeout(timer); reject(e); });
   });
 }
@@ -31,7 +31,7 @@ export async function enablePush(): Promise<void> {
   if (!window.isSecureContext) throw new Error('Notifications require a secure connection.');
   if (!pushSupported()) throw new Error('Push notifications are not supported on this device or browser.');
   if (isIOS() && !isStandaloneDisplay()) {
-    throw new Error('On iPhone or iPad, add Axiom Pulse to your Home Screen first, then open it from there to enable notifications.');
+    throw new Error('On iPhone or iPad, add Mahanex Pulse to your Home Screen first, then open it from there to enable notifications.');
   }
 
   // iOS/Safari only shows the allow/deny dialog once per app install. A prior
@@ -41,8 +41,8 @@ export async function enablePush(): Promise<void> {
   if (Notification.permission === 'denied') {
     throw new Error(
       isIOS()
-        ? 'Notifications are blocked for Axiom Pulse. Open iOS Settings, scroll to Axiom Pulse, turn on Notifications, then come back and try again.'
-        : 'Notifications are blocked for Axiom Pulse in this browser. Enable them in your browser/site settings, then try again.',
+        ? 'Notifications are blocked for Mahanex Pulse. Open iOS Settings, scroll to Mahanex Pulse, turn on Notifications, then come back and try again.'
+        : 'Notifications are blocked for Mahanex Pulse in this browser. Enable them in your browser/site settings, then try again.',
     );
   }
 
@@ -62,7 +62,7 @@ export async function enablePush(): Promise<void> {
         'turning on notifications',
       );
     } catch (e) {
-      throw new Error(`Couldn't turn on notifications on this device (${(e as Error).message}). Close and reopen Axiom Pulse from the Home Screen icon, then try again.`);
+      throw new Error(`Couldn't turn on notifications on this device (${(e as Error).message}). Close and reopen Mahanex Pulse from the Home Screen icon, then try again.`);
     }
   }
 

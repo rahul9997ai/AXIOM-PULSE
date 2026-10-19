@@ -1,4 +1,5 @@
 import { HATTRICK_BONUS_CENTS, volumeBonusFor } from './bonus';
+import { drawMahanexWordmark } from './pdfBrand';
 
 export interface MonthlyReportRow {
   id: string;
@@ -110,14 +111,7 @@ async function buildPdf(
   doc.setFillColor(...NAVY);
   doc.rect(0, 0, pageW, 3, 'F');
 
-  doc.setFont('helvetica', 'bold');
-  doc.setFontSize(22);
-  doc.setTextColor(...DARK);
-  doc.text('AXIOM', margin, 36);
-  const axiomW = doc.getTextWidth('AXIOM ');
-  doc.setFont('helvetica', 'italic');
-  doc.setTextColor(...NAVY);
-  doc.text('Pulse', margin + axiomW, 36);
+  drawMahanexWordmark(doc, margin, 36, [11, 27, 58], NAVY);
 
   doc.setFont('helvetica', 'italic');
   doc.setFontSize(10);
@@ -477,7 +471,7 @@ async function buildPdf(
 }
 
 function filenameFor(monthLabel: string): string {
-  return `axiom-pulse-deliveries-${monthLabel.replace(/\s+/g, '-').toLowerCase()}.pdf`;
+  return `mahanex-pulse-deliveries-${monthLabel.replace(/\s+/g, '-').toLowerCase()}.pdf`;
 }
 
 export async function downloadMonthlyReport(
@@ -514,7 +508,7 @@ export async function shareMonthlyReport(
     try {
       await nav.share({
         files: [file],
-        title: 'Axiom Pulse — Monthly Delivery Report',
+        title: 'Mahanex Pulse — Monthly Delivery Report',
         text: `Deliveries for ${salespersonName} — ${monthLabel}`,
       });
       return 'shared';

@@ -36,7 +36,7 @@ export default function InstallPrompt() {
     <>
       <div
         role="complementary"
-        aria-label="Install Axiom Pulse"
+        aria-label="Install Mahanex Pulse"
         style={{
           position: 'fixed', left: 14, right: 14, bottom: 'calc(84px + env(safe-area-inset-bottom))', zIndex: 40,
           maxWidth: 420, margin: '0 auto',
@@ -47,7 +47,7 @@ export default function InstallPrompt() {
       >
         <div style={{ color: 'var(--blue)', display: 'flex', flexShrink: 0 }}><DownloadIcon size={22} /></div>
         <div style={{ flex: 1, minWidth: 0 }}>
-          <div style={{ fontWeight: 700, fontSize: 13.5 }}>Install Axiom Pulse</div>
+          <div style={{ fontWeight: 700, fontSize: 13.5 }}>Install Mahanex Pulse</div>
           <div style={{ color: 'var(--muted)', fontSize: 11.5, marginTop: 1 }}>One-tap access &amp; delivery alerts</div>
         </div>
         <button type="button" className="btn" style={{ padding: '8px 14px', fontSize: 12.5, flexShrink: 0 }} onClick={onInstallClick}>

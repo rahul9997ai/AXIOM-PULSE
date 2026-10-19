@@ -120,10 +120,20 @@ h1, h2, h3 {
   letter-spacing: 0.02em;
 }
 
-/* ---- Axiom brand lockup (shared: landing header + app header) ---- */
-.ax-lockup { display: flex; align-items: baseline; gap: 8px; }
-.ax-xiom { font-size: 22px; font-weight: 800; letter-spacing: 0.12em; color: var(--ink); }
-.ax-pulse { font-style: italic; font-weight: 700; font-size: 20px; color: var(--blue); }
+/* ---- Mahanex brand lockup (shared: landing header + app header) ----
+   MAHAN in the page's heading navy, the dash and EX in the page's accent
+   blue on light; chrome and gold on dark. */
+.mx-lockup { display: flex; align-items: baseline; gap: 10px; }
+.mx-wm { display: inline-flex; align-items: baseline; font-family: 'Sora', system-ui, sans-serif; font-weight: 800; letter-spacing: 0.09em; line-height: 1; }
+.mx-wm .mx-mahan, .mx-wm .mx-ex { -webkit-background-clip: text; background-clip: text; color: transparent; }
+.mx-wm .mx-mahan { background-image: linear-gradient(180deg, #1d3263 0%, #0b1b3a 100%); }
+.mx-wm .mx-ex { background-image: linear-gradient(180deg, #2f5bd3 0%, #1e3a8a 100%); }
+.mx-wm .mx-dash { display: inline-block; width: 0.34em; height: 0.11em; margin: 0 0.1em 0 0.02em; border-radius: 0.06em; align-self: center; transform: translateY(-0.04em); background: linear-gradient(90deg, #2f5bd3, #1e3a8a); }
+:root[data-theme="dark"] .mx-wm .mx-mahan { background-image: linear-gradient(180deg, #ffffff 0%, #d4e1f7 42%, #4f6c9c 52%, #e7efff 100%); }
+:root[data-theme="dark"] .mx-wm .mx-ex { background-image: linear-gradient(180deg, #fff6d6 0%, #ffd27a 42%, #a6650a 53%, #ffe29a 100%); }
+:root[data-theme="dark"] .mx-wm .mx-dash { background: linear-gradient(90deg, #ffd27a, #e3a52f); }
+.mx-product { font-family: 'Sora', system-ui, sans-serif; font-style: italic; font-weight: 700; color: var(--blue); letter-spacing: 0.01em; }
+:root[data-theme="dark"] .mx-product { color: #f0b94a; }
 .ax-sig {
   font-family: 'Pinyon Script', 'Snell Roundhand', cursive;
   font-size: 18px;
@@ -556,7 +566,7 @@ input::placeholder, textarea::placeholder { color: var(--mut); opacity: 1; }
   pointer-events: none;
 }
 .landing-head { position: relative; z-index: 1; padding-top: 28px; text-align: center; }
-.landing-head .ax-lockup { justify-content: center; }
+.landing-head .mx-lockup { justify-content: center; }
 
 .landing-main {
   position: relative;
@@ -695,3 +705,6 @@ input::placeholder, textarea::placeholder { color: var(--mut); opacity: 1; }
 
 /* New / edit delivery: scheduling conflicts above the Save button. */
 .conflict-panel { color: var(--banner-warn-fg); background: var(--banner-warn-bg); border: 1px solid var(--banner-warn-border); border-radius: 12px; padding: 12px 14px; }
+
+/* Sign-in footer: the Mahanex acronym line under the product tagline. */
+.mx-acronym { margin-top: 6px; font-size: 11px; letter-spacing: 0.04em; color: var(--landing-tagline); font-weight: 500; }

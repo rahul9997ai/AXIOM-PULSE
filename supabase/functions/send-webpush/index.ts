@@ -90,7 +90,7 @@ Deno.serve(async (req) => {
     if (error) return json({ error: error.message }, 400);
 
     const payload = JSON.stringify({
-      title: body.title || 'AXIOM PULSE',
+      title: body.title || 'Mahanex Pulse',
       body: body.body || 'Test notification — push is working.',
       data: body.data || { url: '/' },
     });

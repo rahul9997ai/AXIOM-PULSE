@@ -3,7 +3,7 @@ import { Link, useLocation } from 'react-router-dom';
 import { useSession } from '@/lib/session';
 import { useActingRole, ACTABLE_ROLES } from '@/lib/actingRole';
 import { useIsDesktop } from '@/lib/useIsDesktop';
-import { AxiomLockup } from '@/components/AxiomMark';
+import { MahanexLockup } from '@/components/MahanexMark';
 import { MANAGER_ROLES } from '@/lib/types';
 import { HomeIcon, PlusCircleIcon, GearIcon, CalendarIcon, BankIcon } from '@/components/Icons';
 import { initials } from '@/lib/schedule';
@@ -105,7 +105,7 @@ export default function Layout({ children }: { children: ReactNode }) {
         {viewingAsBar}
         <div className="desktop-body">
           <aside className="desktop-sidebar">
-            <div style={{ padding: '2px 6px 0' }}><AxiomLockup size={22} /></div>
+            <div style={{ padding: '2px 6px 0' }}><MahanexLockup size={19} /></div>
             {canCreate && (
               <Link to="/new" className="btn desktop-new-btn">
                 <PlusCircleIcon size={18} />
@@ -146,7 +146,7 @@ export default function Layout({ children }: { children: ReactNode }) {
   return (
     <div className="app-shell">
       <header className="app-header">
-        <AxiomLockup size={24} />
+        <MahanexLockup size={20} />
       </header>
       {viewingAsBar}
       <MonthCloseBanner />

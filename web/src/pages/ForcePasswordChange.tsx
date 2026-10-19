@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { supabase } from '@/lib/supabase';
 import { useSession } from '@/lib/session';
-import { AxiomLockup } from '@/components/AxiomMark';
+import { MahanexLockup } from '@/components/MahanexMark';
 
 export default function ForcePasswordChange() {
   const { refresh } = useSession();
@@ -31,7 +31,7 @@ export default function ForcePasswordChange() {
     <div className="landing">
       <div className="landing-bg" aria-hidden="true" />
       <header className="landing-head">
-        <AxiomLockup size={40} />
+        <MahanexLockup size={30} />
       </header>
       <main className="landing-main">
         <section className="landing-card-wrap">

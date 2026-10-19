@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { supabase } from '@/lib/supabase';
-import { AxiomLockup } from '@/components/AxiomMark';
+import { MahanexLockup } from '@/components/MahanexMark';
 
 export default function SignIn() {
   const [identifier, setIdentifier] = useState('');
@@ -27,8 +27,8 @@ export default function SignIn() {
     <div className="landing">
       <div className="landing-bg" aria-hidden="true" />
       <header className="landing-head">
-        <AxiomLockup size={40} />
-        <p className="ax-tagline" style={{ marginTop: 6 }}>AI eXecutive Intelligence &amp; Operations Management</p>
+        <MahanexLockup size={30} />
+        <p className="ax-tagline" style={{ marginTop: 8 }}>Great minds, built with AI.</p>
         <div className="ax-sig" style={{ marginTop: 2 }}>by Rahul Champaneri</div>
       </header>
 
@@ -45,7 +45,7 @@ export default function SignIn() {
         <section className="landing-card-wrap">
           <form className="landing-card" onSubmit={submit}>
             <h2>Welcome Back</h2>
-            <p className="landing-sub">Sign in to Axiom Pulse</p>
+            <p className="landing-sub">Sign in to Mahanex Pulse</p>
             {error && <div className="landing-err" role="alert">{error}</div>}
             <div className="landing-field">
               <UserIcon />
@@ -88,6 +88,7 @@ export default function SignIn() {
 
       <footer className="landing-foot">
         <span className="landing-tagline">From FSM's Mind to FSM's Desk</span>
+        <div className="mx-acronym">Mahanex · Management AI for Human Advancement &amp; Next-gen EXecution</div>
       </footer>
     </div>
   );

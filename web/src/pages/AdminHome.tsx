@@ -104,7 +104,7 @@ export default function AdminHome() {
     setCreatingDealership(false);
     if (error) { setNotice({ text: error.message, tone: 'err' }); return; }
     setNewDealershipName('');
-    setNotice({ text: `${name} created. Fine-tune brand, tax and finance defaults for it in Axiom Command Center.`, tone: 'ok' });
+    setNotice({ text: `${name} created. Fine-tune brand, tax and finance defaults for it in Mahanex Dealership Command.`, tone: 'ok' });
     loadDealerships();
   };
 
@@ -297,7 +297,7 @@ export default function AdminHome() {
       </div>
 
       <p style={{ color: 'var(--muted)', fontSize: 12, textAlign: 'center' }}>
-        For full dealership settings (brand, tax, finance defaults), use Axiom Command Center.
+        For full dealership settings (brand, tax, finance defaults), use Mahanex Dealership Command.
       </p>
     </div>
   );

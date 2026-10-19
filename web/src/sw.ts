@@ -20,7 +20,7 @@ interface PushPayload {
 self.addEventListener('push', (event: PushEvent) => {
   let payload: PushPayload = {};
   try { payload = event.data ? event.data.json() : {}; }
-  catch { payload = { title: 'AXIOM PULSE', body: event.data ? event.data.text() : '' }; }
+  catch { payload = { title: 'Mahanex Pulse', body: event.data ? event.data.text() : '' }; }
 
   // The Notification spec throws a TypeError if `renotify` is true while
   // `tag` is empty — and showNotification() throwing here kills the whole
@@ -38,7 +38,7 @@ self.addEventListener('push', (event: PushEvent) => {
     requireInteraction: payload.data?.type === 'urgent' || payload.data?.type === 'delivery_time' || payload.data?.type === 'delivery_overdue',
   };
 
-  event.waitUntil(self.registration.showNotification(payload.title || 'AXIOM PULSE', options));
+  event.waitUntil(self.registration.showNotification(payload.title || 'Mahanex Pulse', options));
 });
 
 self.addEventListener('notificationclick', (event: NotificationEvent) => {

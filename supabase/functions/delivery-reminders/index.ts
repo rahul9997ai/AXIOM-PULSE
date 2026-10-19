@@ -208,7 +208,12 @@ async function runReminders() {
 // RESEND_API_KEY and EMAIL_FROM are set as function secrets this is a
 // no-op, so push keeps working on its own.
 const RESEND_API_KEY = Deno.env.get('RESEND_API_KEY');
-const EMAIL_FROM = Deno.env.get('EMAIL_FROM'); // e.g. 'Axiom Pulse <pulse@rahulchamp.ca>'
+// The sending address comes from the EMAIL_FROM secret; the display name is
+// always the product name, whatever name the secret was saved with.
+const EMAIL_FROM_RAW = Deno.env.get('EMAIL_FROM'); // e.g. 'Mahanex Pulse <no-reply@rahulchamp.ca>'
+const EMAIL_FROM = EMAIL_FROM_RAW
+  ? `Mahanex Pulse <${EMAIL_FROM_RAW.match(/<([^>]+)>/)?.[1] ?? EMAIL_FROM_RAW.trim()}>`
+  : undefined;
 const APP_URL = 'https://pulse.rahulchamp.ca';
 
 async function sendRawEmail(to: string | null | undefined, subject: string, html: string, text: string) {

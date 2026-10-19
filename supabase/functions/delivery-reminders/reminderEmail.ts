@@ -35,7 +35,7 @@ function esc(s: string): string {
 }
 
 export function reminderEmailSubject(): string {
-  return 'Reminder: Please enter today\'s deliveries in Axiom Pulse';
+  return 'Reminder: Please enter today\'s deliveries in Mahanex Pulse';
 }
 
 export function reminderEmailText(i: ReminderEmailInput): string {
@@ -43,7 +43,7 @@ export function reminderEmailText(i: ReminderEmailInput): string {
   return [
     `Hi ${i.firstName},`,
     '',
-    'As the day winds down, please make sure every delivery with a work order sent in CDK 180 today has been entered in Axiom Pulse.',
+    'As the day winds down, please make sure every delivery with a work order sent in CDK 180 today has been entered in Mahanex Pulse.',
     '',
     'Why timely entry matters:',
     ...BENEFITS.map(([t, d]) => `  - ${t}: ${d}`),
@@ -59,7 +59,7 @@ export function reminderEmailText(i: ReminderEmailInput): string {
     ...i.entries.map((e) => `  - ${e.customer_name}${e.stock_number ? ` (Stock #${e.stock_number})` : ''}, delivery ${fmt(e.delivery_at, { weekday: 'short', month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' })}`),
     '',
     'Thank you for your support,',
-    `Axiom Pulse — Delivery Coordination${i.dealershipName ? `\n${i.dealershipName}` : ''}`,
+    `Mahanex Pulse — Delivery Coordination${i.dealershipName ? `\n${i.dealershipName}` : ''}`,
   ].join('\n');
 }
 
@@ -90,16 +90,16 @@ export function reminderEmailHtml(i: ReminderEmailInput): string {
   <div style="display:none;max-height:0;overflow:hidden">Please make sure every CDK 180 work order from today is entered in Pulse.</div>
   <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#eef1f5;padding:28px 12px"><tr><td align="center">
     <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="max-width:600px;background:#ffffff;border:1px solid #dbe2ea;border-radius:14px;overflow:hidden">
-      <tr><td style="background:#1e3a8a;padding:20px 28px">
+      <tr><td style="background:#0B1430;padding:20px 28px">
         <table role="presentation" width="100%" cellpadding="0" cellspacing="0"><tr>
-          <td style="color:#ffffff;font-size:19px;font-weight:800;letter-spacing:.12em">AXIOM <span style="font-style:italic;font-weight:700;letter-spacing:0;color:#bcd0ff">Pulse</span></td>
-          <td align="right" style="color:#c9d6f2;font-size:12px;font-weight:600;letter-spacing:.06em;text-transform:uppercase">${esc(i.dateLabel)}</td>
+          <td style="font-family:'Sora',-apple-system,'Segoe UI',Helvetica,Arial,sans-serif;color:#ffffff;font-size:19px;font-weight:800;letter-spacing:.09em">MAHAN<span style="color:#F0B94A">-EX</span> <span style="font-style:italic;font-weight:700;letter-spacing:0;color:#D4E1F7">Pulse</span></td>
+          <td align="right" style="color:#D4E1F7;font-size:12px;font-weight:600;letter-spacing:.06em;text-transform:uppercase">${esc(i.dateLabel)}</td>
         </tr></table>
       </td></tr>
       <tr><td style="padding:30px 28px 6px">
         <div style="font-size:23px;font-weight:800;line-height:1.3;margin-bottom:16px">Daily delivery entry reminder</div>
         <p style="margin:0 0 12px;font-size:15px;line-height:1.6;color:#334155">Hi ${esc(i.firstName)},</p>
-        <p style="margin:0 0 22px;font-size:15px;line-height:1.6;color:#334155">As the day winds down, please take a moment to make sure every delivery with a work order sent in <strong>CDK 180</strong> today has been entered in Axiom Pulse.</p>
+        <p style="margin:0 0 22px;font-size:15px;line-height:1.6;color:#334155">As the day winds down, please take a moment to make sure every delivery with a work order sent in <strong>CDK 180</strong> today has been entered in Mahanex Pulse.</p>
       </td></tr>
       <tr><td style="padding:0 28px">
         <div style="font-size:12px;font-weight:800;letter-spacing:.08em;text-transform:uppercase;color:#1e3a8a;margin-bottom:12px">Why timely entry matters</div>
@@ -121,10 +121,10 @@ export function reminderEmailHtml(i: ReminderEmailInput): string {
         ${entries}
       </td></tr>
       <tr><td style="padding:22px 28px 26px">
-        <p style="margin:0;font-size:14px;line-height:1.6;color:#334155">Thank you for your support,<br><strong>Axiom Pulse</strong> — Delivery Coordination${i.dealershipName ? `<br><span style="color:#64748b">${esc(i.dealershipName)}</span>` : ''}</p>
+        <p style="margin:0;font-size:14px;line-height:1.6;color:#334155">Thank you for your support,<br><strong>Mahanex Pulse</strong> — Delivery Coordination${i.dealershipName ? `<br><span style="color:#64748b">${esc(i.dealershipName)}</span>` : ''}</p>
       </td></tr>
       <tr><td style="background:#f6f8fb;border-top:1px solid #e5e9f0;padding:14px 28px;font-size:11.5px;line-height:1.5;color:#94a3b8">
-        This is an automated reminder from Axiom Pulse. Please do not reply to this email.
+        This is an automated reminder from Mahanex Pulse. Please do not reply to this email.<br>Mahanex · Great minds, built with AI.
       </td></tr>
     </table>
   </td></tr></table>

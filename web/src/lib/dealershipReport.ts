@@ -1,5 +1,6 @@
 import type { DealershipDetails } from './monthlyReport';
 import type { VehicleCondition } from './types';
+import { drawMahanexWordmark } from './pdfBrand';
 
 export interface DealershipReportRow {
   id: string;
@@ -78,14 +79,7 @@ async function buildPdf(rows: DealershipReportRow[], dealershipName: string, mon
   doc.setFillColor(...NAVY);
   doc.rect(0, 0, pageW, 3, 'F');
 
-  doc.setFont('helvetica', 'bold');
-  doc.setFontSize(22);
-  doc.setTextColor(...DARK);
-  doc.text('AXIOM', MARGIN, 36);
-  const axiomW = doc.getTextWidth('AXIOM ');
-  doc.setFont('helvetica', 'italic');
-  doc.setTextColor(...NAVY);
-  doc.text('Pulse', MARGIN + axiomW, 36);
+  drawMahanexWordmark(doc, MARGIN, 36, [11, 27, 58], NAVY);
 
   doc.setFont('helvetica', 'italic');
   doc.setFontSize(10);
@@ -241,7 +235,7 @@ async function buildPdf(rows: DealershipReportRow[], dealershipName: string, mon
 }
 
 function filenameFor(monthLabel: string): string {
-  return `axiom-pulse-dealership-report-${monthLabel.replace(/\s+/g, '-').toLowerCase()}.pdf`;
+  return `mahanex-pulse-dealership-report-${monthLabel.replace(/\s+/g, '-').toLowerCase()}.pdf`;
 }
 
 export async function downloadDealershipReport(
@@ -270,7 +264,7 @@ export async function shareDealershipReport(
   const nav = navigator as Navigator & { canShare?: (data: { files: File[] }) => boolean };
   if (nav.share && nav.canShare?.({ files: [file] })) {
     try {
-      await nav.share({ files: [file], title: 'Axiom Pulse — Dealership Delivery Report', text: `Deliveries — ${monthLabel}` });
+      await nav.share({ files: [file], title: 'Mahanex Pulse — Dealership Delivery Report', text: `Deliveries — ${monthLabel}` });
       return 'shared';
     } catch {
       // User cancelled the share sheet, or it failed — fall through to download.

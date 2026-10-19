@@ -25,7 +25,7 @@ export function downloadDeliveryIcs(delivery: Delivery): void {
   const ics = [
     'BEGIN:VCALENDAR',
     'VERSION:2.0',
-    'PRODID:-//Axiom Pulse//Delivery//EN',
+    'PRODID:-//Mahanex Pulse//Delivery//EN',
     'BEGIN:VEVENT',
     `UID:${delivery.id}@axiompulse`,
     `DTSTAMP:${toIcsDate(new Date().toISOString())}`,

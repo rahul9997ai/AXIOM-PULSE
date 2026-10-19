@@ -64,7 +64,7 @@ export default function PushCard() {
         <div className="card">
           <h3 style={{ marginTop: 0 }}>Enable Notifications</h3>
           <p style={{ color: 'var(--muted)', fontSize: 13 }}>
-            On iPhone/iPad, add Axiom Pulse to your Home Screen first, then open it from there to enable notifications.
+            On iPhone/iPad, add Mahanex Pulse to your Home Screen first, then open it from there to enable notifications.
           </p>
         </div>
       )}
@@ -73,8 +73,8 @@ export default function PushCard() {
           <h3 style={{ marginTop: 0, color: '#a3261b' }}>Notifications Are Blocked</h3>
           <p style={{ color: 'var(--muted)', fontSize: 13 }}>
             {isIOS()
-              ? 'Notifications for Axiom Pulse were previously turned off on this iPhone. Open iOS Settings, scroll down to Axiom Pulse, and turn Notifications on — then come back to this screen.'
-              : 'Notifications for Axiom Pulse are blocked in this browser. Enable them in your browser or site settings, then come back to this screen.'}
+              ? 'Notifications for Mahanex Pulse were previously turned off on this iPhone. Open iOS Settings, scroll down to Mahanex Pulse, and turn Notifications on — then come back to this screen.'
+              : 'Notifications for Mahanex Pulse are blocked in this browser. Enable them in your browser or site settings, then come back to this screen.'}
           </p>
         </div>
       )}
