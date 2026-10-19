@@ -31,7 +31,7 @@ export default function ForcePasswordChange() {
     <div className="landing">
       <div className="landing-bg" aria-hidden="true" />
       <header className="landing-head">
-        <MahanexLockup size={30} />
+        <MahanexLockup size={30} mark="large" />
       </header>
       <main className="landing-main">
         <section className="landing-card-wrap">

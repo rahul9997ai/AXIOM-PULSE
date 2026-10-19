@@ -111,7 +111,7 @@ async function buildPdf(
   doc.setFillColor(...NAVY);
   doc.rect(0, 0, pageW, 3, 'F');
 
-  drawMahanexWordmark(doc, margin, 36, [11, 27, 58], NAVY);
+  await drawMahanexWordmark(doc, margin, 36, [11, 27, 58], NAVY);
 
   doc.setFont('helvetica', 'italic');
   doc.setFontSize(10);

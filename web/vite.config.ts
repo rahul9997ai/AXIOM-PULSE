@@ -22,11 +22,11 @@ export default defineConfig({
         display: 'standalone',
         start_url: '/',
         icons: [
-          { src: '/icons/mx-192.png', sizes: '192x192', type: 'image/png', purpose: 'any' },
-          { src: '/icons/mx-512.png', sizes: '512x512', type: 'image/png', purpose: 'any' },
-          { src: '/icons/mx-192.png', sizes: '192x192', type: 'image/png', purpose: 'maskable' },
-          { src: '/icons/mx-512.png', sizes: '512x512', type: 'image/png', purpose: 'maskable' },
-          { src: '/icons/mx.svg', sizes: 'any', type: 'image/svg+xml', purpose: 'any' },
+          { src: '/icons/mh-192.png', sizes: '192x192', type: 'image/png', purpose: 'any' },
+          { src: '/icons/mh-512.png', sizes: '512x512', type: 'image/png', purpose: 'any' },
+          { src: '/icons/mh-192.png', sizes: '192x192', type: 'image/png', purpose: 'maskable' },
+          { src: '/icons/mh-512.png', sizes: '512x512', type: 'image/png', purpose: 'maskable' },
+          { src: '/icons/mh.svg', sizes: 'any', type: 'image/svg+xml', purpose: 'any' },
         ],
       },
       injectManifest: {

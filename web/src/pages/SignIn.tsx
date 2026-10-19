@@ -27,7 +27,7 @@ export default function SignIn() {
     <div className="landing">
       <div className="landing-bg" aria-hidden="true" />
       <header className="landing-head">
-        <MahanexLockup size={30} />
+        <MahanexLockup size={30} mark="large" />
         <p className="ax-tagline" style={{ marginTop: 8, textTransform: 'none', letterSpacing: '0.03em', fontSize: 11.5 }}>Machine-Augmented Human Intelligence &amp; eXecution</p>
         <div className="ax-sig" style={{ marginTop: 2 }}>by Rahul Champaneri</div>
       </header>

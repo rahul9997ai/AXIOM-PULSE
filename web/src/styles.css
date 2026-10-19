@@ -123,6 +123,12 @@ h1, h2, h3 {
 /* ---- Mahanex brand lockup (shared: landing header + app header) ----
    MAHAN in the page's heading navy, the dash and EX in the page's accent
    blue on light; chrome and gold on dark. */
+.mx-brand { display: flex; align-items: center; }
+.mx-brand-small { gap: 9px; }
+.mx-brand-large { gap: 14px; }
+.mh-mark-wrap { display: inline-flex; flex-shrink: 0; line-height: 0; }
+.mh-mark-wrap svg { width: 100%; height: auto; display: block; }
+@media (max-width: 420px) { .mx-brand-large { --mx: 23px !important; gap: 10px; } }
 .mx-lockup { display: flex; align-items: baseline; gap: 10px; }
 .mx-wm { display: inline-flex; align-items: baseline; font-family: 'Sora', system-ui, sans-serif; font-weight: 800; letter-spacing: 0.02em; line-height: 1; }
 .mx-wm .mx-mahan, .mx-wm .mx-ex { -webkit-background-clip: text; background-clip: text; color: transparent; }

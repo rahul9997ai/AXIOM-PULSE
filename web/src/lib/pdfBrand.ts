@@ -1,11 +1,42 @@
 import type { jsPDF } from 'jspdf';
+import { mhMark } from './mhMark';
 
 type RGB = [number, number, number];
 
-// The Mahanex wordmark for PDF headers: Mahan, a short dash and Ex (the
-// dash and EX in the accent colour), then the product name in italics.
-// jsPDF has no gradient text, so these are flat brand colours.
-export function drawMahanexWordmark(doc: jsPDF, x: number, y: number, ink: RGB, accent: RGB): void {
+const MARK_PT = 30;
+
+// The hexagon mark as a PNG (jsPDF can't draw SVG), rendered once at 4x for
+// a crisp print. Null if the browser can't rasterize it — the header then
+// falls back to the wordmark alone.
+let markPng: Promise<string | null> | null = null;
+function mahanexMarkPng(): Promise<string | null> {
+  markPng ??= new Promise((resolve) => {
+    const px = MARK_PT * 4;
+    const img = new Image();
+    img.onload = () => {
+      const canvas = document.createElement('canvas');
+      canvas.width = px;
+      canvas.height = px;
+      const ctx = canvas.getContext('2d');
+      if (!ctx) return resolve(null);
+      ctx.drawImage(img, 0, 0, px, px);
+      resolve(canvas.toDataURL('image/png'));
+    };
+    img.onerror = () => resolve(null);
+    img.src = `data:image/svg+xml;charset=utf-8,${encodeURIComponent(mhMark({ label: '' }))}`;
+  });
+  return markPng;
+}
+
+// The Mahanex logo for PDF headers: the hexagon mark, then Mahan, a short
+// dash and Ex (the dash and EX in the accent colour), then the product name
+// in italics. jsPDF has no gradient text, so these are flat brand colours.
+export async function drawMahanexWordmark(doc: jsPDF, x: number, y: number, ink: RGB, accent: RGB): Promise<void> {
+  const mark = await mahanexMarkPng();
+  if (mark) {
+    doc.addImage(mark, 'PNG', x, y - MARK_PT + 7, MARK_PT, MARK_PT);
+    x += MARK_PT + 8;
+  }
   doc.setFont('helvetica', 'bold');
   doc.setFontSize(21);
   doc.setTextColor(...ink);

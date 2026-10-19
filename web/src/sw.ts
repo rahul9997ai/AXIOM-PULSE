@@ -30,8 +30,8 @@ self.addEventListener('push', (event: PushEvent) => {
   const tag = payload.data?.deliveryId;
   const options: NotificationOptions & { renotify?: boolean } = {
     body: payload.body || '',
-    icon: payload.icon || '/icons/icon-512.png',
-    badge: payload.badge || '/icons/icon-192.png',
+    icon: payload.icon || '/icons/mh-512.png',
+    badge: payload.badge || '/icons/mh-192.png',
     data: { url: payload.data?.url || '/', ...payload.data },
     tag,
     renotify: !!tag,
