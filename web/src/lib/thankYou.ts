@@ -20,7 +20,7 @@ export async function loadThankYouSettings(dealershipId: string): Promise<ThankY
 }
 
 // Everything the thank-you template needs for one delivery: the dealership's
-// details and brand (from its Command Center record) plus its review link.
+// details and brand (from its Mahanex Dealership Command record) plus its review link.
 export async function thankYouInputFor(d: Delivery, salespersonName: string): Promise<{ input: ThankYouInput; enabled: boolean }> {
   const [{ data: dealership }, settings] = await Promise.all([
     supabase.from('dealerships').select('name, data').eq('id', d.dealership_id).maybeSingle(),

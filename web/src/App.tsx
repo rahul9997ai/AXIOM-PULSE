@@ -44,7 +44,7 @@ function AppBody({ session, profile }: { session: ReturnType<typeof useSession>[
   );
 }
 
-// Removing someone from Pulse who still uses Command Center only turns
+// Removing someone from Pulse who still uses Mahanex Dealership Command only turns
 // pulse_enabled off (sign-in stays allowed for the other app), so Pulse has
 // to refuse them itself.
 function NoPulseAccess() {
