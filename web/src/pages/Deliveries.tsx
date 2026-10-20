@@ -188,9 +188,21 @@ export default function Deliveries() {
       case 'delivered': return d.status === 'delivered' && monthKeyOf(atOf(d)) === deliveredMonthKey;
     }
   };
-  const visible = rows.filter((d) => inChip(d) && matches(d)).sort((a, b) => chip === 'delivered'
-    ? (b.delivered_at ?? b.delivery_at).localeCompare(a.delivered_at ?? a.delivery_at)
-    : Number(!isActive(a)) - Number(!isActive(b)) || a.delivery_at.localeCompare(b.delivery_at));
+  // Typing in the search box searches every delivery — any date, any status,
+  // any Finance Manager or salesperson — instead of only whatever the
+  // selected filter chip (Today, Mine, …) happens to be showing.
+  const searching = q.length > 0;
+  const visible = rows.filter((d) => (searching || inChip(d)) && matches(d)).sort((a, b) => {
+    if (searching) {
+      // Open deliveries first (soonest first), then finished ones, newest first.
+      const open = Number(!isActive(a)) - Number(!isActive(b));
+      if (open) return open;
+      return isActive(a) ? a.delivery_at.localeCompare(b.delivery_at) : b.delivery_at.localeCompare(a.delivery_at);
+    }
+    return chip === 'delivered'
+      ? (b.delivered_at ?? b.delivery_at).localeCompare(a.delivered_at ?? a.delivery_at)
+      : Number(!isActive(a)) - Number(!isActive(b)) || a.delivery_at.localeCompare(b.delivery_at);
+  });
 
   const clashes = findClashes(rows.filter((d) => isActive(d) && atOf(d) >= startOfToday));
   const clashSlots: Delivery[][] = [];
@@ -235,8 +247,8 @@ export default function Deliveries() {
     ...(showMine ? [['mine', 'Mine'] as [Chip, string]] : []),
     ['all', 'All active'], ['delivered', 'Delivered'],
   ];
-  const chipTitle = chips.find(([c]) => c === chip)?.[1] ?? '';
-  const boardAvailable = isDesktop && chip !== 'delivered';
+  const chipTitle = searching ? 'Search results · all dates' : (chips.find(([c]) => c === chip)?.[1] ?? '');
+  const boardAvailable = isDesktop && (chip !== 'delivered' || searching);
   const showBoard = boardAvailable && view === 'board';
   const setViewPersist = (v: View) => { setView(v); try { localStorage.setItem(VIEW_KEY, v); } catch { /* ignore */ } };
 
@@ -266,12 +278,12 @@ export default function Deliveries() {
   const chipRow = (
     <div className="chip-row" role="group" aria-label="Filter deliveries">
       {chips.map(([c, label]) => (
-        <button key={c} type="button" className={`chip${chip === c ? ' is-active' : ''}`} aria-pressed={chip === c} onClick={() => setChip(c)}>{label}</button>
+        <button key={c} type="button" className={`chip${!searching && chip === c ? ' is-active' : ''}`} aria-pressed={!searching && chip === c} onClick={() => { setSearch(''); setChip(c); }}>{label}</button>
       ))}
     </div>
   );
 
-  const monthSelect = chip === 'delivered' && deliveredMonthOptions.length > 1 && (
+  const monthSelect = chip === 'delivered' && !searching && deliveredMonthOptions.length > 1 && (
     <select value={deliveredMonthKey} onChange={(e) => setDeliveredMonthKey(e.target.value)} aria-label="Month" style={isDesktop ? { width: 'auto' } : undefined}>
       {deliveredMonthOptions.map((key) => { const [y, m] = key.split('-').map(Number); return <option key={key} value={key}>{monthLabel(y, m)}</option>; })}
     </select>
@@ -330,7 +342,7 @@ export default function Deliveries() {
       {loading && <Skeletons />}
       {!loading && visible.length === 0 && (
         <div style={{ color: 'var(--muted)', textAlign: 'center', marginTop: 24 }}>
-          {q ? 'No deliveries match your search.'
+          {q ? 'No deliveries match your search (all dates and statuses were checked).'
             : chip === 'today' ? 'Nothing scheduled for today.'
             : chip === 'delivered' ? 'No delivered units for this month.'
             : 'Nothing here right now.'}
@@ -350,7 +362,7 @@ export default function Deliveries() {
 
   if (isDesktop) {
     const stat = (label: string, value: number, tone: string, target: Chip, hint: string, highlight = true) => (
-      <button type="button" className={`stat-tile${highlight && chip === target ? ' is-active' : ''}`} onClick={() => setChip(target)}>
+      <button type="button" className={`stat-tile${highlight && !searching && chip === target ? ' is-active' : ''}`} onClick={() => { setSearch(''); setChip(target); }}>
         <span className="stat-tile-label">{label}</span>
         <span className="stat-tile-value" style={{ color: value ? tone : 'var(--ink)' }}><CountUp value={value} id={`stat-${label}`} duration={650} /></span>
         <span className="stat-tile-hint">{hint}</span>
