@@ -1,3 +1,4 @@
+import { useConfirm } from '@/components/Feedback';
 import { useEffect, useState, useCallback } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import { supabase } from '@/lib/supabase';
@@ -19,6 +20,7 @@ import {
 } from '@/components/Icons';
 
 export default function DeliveryDetail() {
+  const confirm = useConfirm();
   const { id } = useParams();
   const navigate = useNavigate();
   const { profile, session } = useSession();
@@ -136,7 +138,13 @@ export default function DeliveryDetail() {
   };
 
   const deleteDelivery = async () => {
-    if (!window.confirm(`Permanently delete the delivery record for ${d.customer_name}? This can't be undone.`)) return;
+    const ok = await confirm({
+      title: 'Delete this delivery?',
+      message: `${d.customer_name}'s delivery record will be permanently deleted. This can't be undone.`,
+      confirmLabel: 'Delete delivery',
+      destructive: true,
+    });
+    if (!ok) return;
     const { error } = await supabase.from('deliveries').delete().eq('id', d.id);
     if (error) setNotice(error.message);
     else navigate('/');

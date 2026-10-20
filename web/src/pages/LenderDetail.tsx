@@ -1,3 +1,4 @@
+import { useToast } from '@/components/Feedback';
 import { useEffect, useState } from 'react';
 import { Link, Navigate, useNavigate, useParams } from 'react-router-dom';
 import { supabase } from '@/lib/supabase';
@@ -10,6 +11,7 @@ const FK_IN_USE = '23503';
 // One lender or lessor: its name, address, whether it's offered on new
 // deliveries, and the standard requirements pre-checked whenever it's picked.
 export default function LenderDetail() {
+  const toast = useToast();
   const { id } = useParams();
   const navigate = useNavigate();
   const { profile } = useSession();
@@ -70,15 +72,26 @@ export default function LenderDetail() {
   };
 
   const remove = async () => {
-    if (!lender || !window.confirm(`Delete "${lender.name}"? This can't be undone.`)) return;
-    const { error: err } = await supabase.from('lenders').delete().eq('id', lender.id);
+    if (!lender) return;
+    const removed = lender;
+    const { error: err } = await supabase.from('lenders').delete().eq('id', removed.id);
     if (err) {
       setError(err.code === FK_IN_USE
-        ? `"${lender.name}" is used on an existing delivery — mark it inactive instead of deleting.`
+        ? `"${removed.name}" is used on an existing delivery — mark it inactive instead of deleting.`
         : err.message);
       return;
     }
     navigate('/lenders');
+    // Deleting only succeeds when no delivery uses it, so putting the same
+    // row back restores it exactly. The Lenders page reloads on this event.
+    toast({
+      message: `Deleted "${removed.name}"`,
+      actionLabel: 'Undo',
+      onAction: async () => {
+        const { error: undoErr } = await supabase.from('lenders').insert(removed);
+        if (!undoErr) window.dispatchEvent(new Event('pulse:lenders-changed'));
+      },
+    });
   };
 
   if (profile && !canManage) return <Navigate to="/" replace />;

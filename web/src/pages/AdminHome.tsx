@@ -1,3 +1,4 @@
+import { useConfirm } from '@/components/Feedback';
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { supabase } from '@/lib/supabase';
@@ -13,6 +14,7 @@ function newDealershipId(): string {
 }
 
 export default function AdminHome() {
+  const confirm = useConfirm();
   const [dealerships, setDealerships] = useState<Dealership[]>([]);
   const [loadingDealerships, setLoadingDealerships] = useState(true);
   const [newDealershipName, setNewDealershipName] = useState('');
@@ -59,7 +61,13 @@ export default function AdminHome() {
   useEffect(() => { loadDealerships(); loadUsers(); }, []);
 
   const deleteUser = async (u: AppUser) => {
-    if (!window.confirm(`Remove ${u.name} (${u.role})? This can't be undone.`)) return;
+    const ok = await confirm({
+      title: `Remove ${u.name}?`,
+      message: `${u.role}. This can't be undone. If they have records in Pulse they'll be deactivated instead and can no longer sign in.`,
+      confirmLabel: 'Remove',
+      destructive: true,
+    });
+    if (!ok) return;
     setDeletingId(u.id);
     const { data, error } = await supabase.functions.invoke('admin-users', { body: { action: 'delete', id: u.id } });
     setDeletingId(null);

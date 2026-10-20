@@ -1,3 +1,4 @@
+import PageTransition from '@/components/PageTransition';
 import type { ReactNode } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { useSession } from '@/lib/session';
@@ -136,7 +137,7 @@ export default function Layout({ children }: { children: ReactNode }) {
           <div className="desktop-main">
             <MonthCloseBanner />
             <SoldDateBanner />
-            <main className="app-main">{children}</main>
+            <main className="app-main"><PageTransition>{children}</PageTransition></main>
           </div>
         </div>
       </div>
@@ -151,7 +152,7 @@ export default function Layout({ children }: { children: ReactNode }) {
       {viewingAsBar}
       <MonthCloseBanner />
       <SoldDateBanner />
-      <main className="app-main">{children}</main>
+      <main className="app-main"><PageTransition>{children}</PageTransition></main>
       <nav className="app-tabbar" aria-label="Primary">
         {navItems.map(({ to, label, icon: Icon, match }) => {
           const active = match(pathname);

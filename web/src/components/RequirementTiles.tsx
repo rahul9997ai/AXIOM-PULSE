@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import type { Delivery, DeliveryRequirement } from '@/lib/types';
 import { notifyRequirementOnBehalf, setRequirementStatus } from '@/lib/deliveryActions';
 
@@ -22,6 +22,21 @@ export default function RequirementTiles({
   const [exceptionFor, setExceptionFor] = useState<string | null>(null);
   const [reason, setReason] = useState('');
   const [busyId, setBusyId] = useState<string | null>(null);
+
+  // Tiles that were just completed pop once. Compared against the previous
+  // render so tiles that are already done when the page opens stay still.
+  const lastStatus = useRef<Record<string, string> | null>(null);
+  const [popIds, setPopIds] = useState<string[]>([]);
+  useEffect(() => {
+    const before = lastStatus.current;
+    lastStatus.current = Object.fromEntries(requirements.map((r) => [r.id, r.status]));
+    if (!before) return;
+    const fresh = requirements.filter((r) => r.status === 'completed' && before[r.id] && before[r.id] !== 'completed').map((r) => r.id);
+    if (!fresh.length) return;
+    setPopIds(fresh);
+    const t = setTimeout(() => setPopIds([]), 650);
+    return () => clearTimeout(t);
+  }, [requirements]);
 
   const resolve = async (id: string, status: 'completed' | 'exception' | 'outstanding', why?: string) => {
     setBusyId(id);
@@ -51,7 +66,7 @@ export default function RequirementTiles({
             <div key={r.id} style={{ position: 'relative' }}>
               <button
                 type="button"
-                className={`req-tile ${tone}`}
+                className={`req-tile ${tone}${popIds.includes(r.id) ? ' just-done' : ''}`}
                 disabled={!canEdit || busyId === r.id}
                 aria-pressed={r.status !== 'outstanding'}
                 title={r.status === 'exception' && r.exception_reason ? r.exception_reason : undefined}

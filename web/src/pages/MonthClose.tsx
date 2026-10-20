@@ -1,3 +1,4 @@
+import { useConfirm } from '@/components/Feedback';
 import { useEffect, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { supabase } from '@/lib/supabase';
@@ -150,6 +151,7 @@ function FsmClosePanel() {
 }
 
 function ReopenPanel() {
+  const confirm = useConfirm();
   const [rows, setRows] = useState<ClosureWithFsm[]>([]);
   const [loading, setLoading] = useState(true);
   const [reopeningId, setReopeningId] = useState<string | null>(null);
@@ -171,7 +173,12 @@ function ReopenPanel() {
   useEffect(() => { load(); }, []);
 
   const reopen = async (c: ClosureWithFsm) => {
-    if (!window.confirm(`Reopen ${monthLabel(c.year, c.month)} for the dealership? Every Finance Manager will be prompted to close it again.`)) return;
+    const ok = await confirm({
+      title: `Reopen ${monthLabel(c.year, c.month)}?`,
+      message: 'Every Finance Manager will be prompted to close it again.',
+      confirmLabel: 'Reopen month',
+    });
+    if (!ok) return;
     setReopeningId(c.id);
     const { error } = await supabase.rpc('reopen_month', { p_closure_id: c.id });
     setReopeningId(null);

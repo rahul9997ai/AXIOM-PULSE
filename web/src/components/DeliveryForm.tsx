@@ -1,3 +1,4 @@
+import { useConfirm } from '@/components/Feedback';
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '@/lib/supabase';
@@ -41,6 +42,7 @@ const QUARTER_HOUR_OPTIONS = Array.from({ length: (DELIVERY_WINDOW_END_HOUR - DE
 });
 
 export default function DeliveryForm({ existing, onSaved }: { existing?: Delivery; onSaved: () => void }) {
+  const confirm = useConfirm();
   const { profile, session } = useSession();
   const { actingDealershipId } = useActingRole();
   const navigate = useNavigate();
@@ -229,9 +231,19 @@ export default function DeliveryForm({ existing, onSaved }: { existing?: Deliver
       setError('Enter an amount for the due-on-delivery collection or refund.');
       return;
     }
-    if (conflicts.length && !window.confirm(
-      `Scheduling conflict${conflicts.length === 1 ? '' : 's'}:\n\n${conflicts.map((c) => `• ${c.text}`).join('\n')}\n\nSave this delivery anyway?`,
-    )) return;
+    if (conflicts.length && !(await confirm({
+      title: `Scheduling conflict${conflicts.length === 1 ? '' : 's'}`,
+      message: (
+        <>
+          <ul style={{ margin: '0 0 8px', paddingLeft: 18, display: 'grid', gap: 4 }}>
+            {conflicts.map((c) => <li key={c.key}>{c.text}</li>)}
+          </ul>
+          Save this delivery anyway?
+        </>
+      ),
+      confirmLabel: 'Save anyway',
+      cancelLabel: 'Go back',
+    }))) return;
     setBusy(true);
     setError(null);
 

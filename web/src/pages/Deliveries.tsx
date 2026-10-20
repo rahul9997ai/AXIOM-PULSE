@@ -1,3 +1,4 @@
+import { useConfirm } from '@/components/Feedback';
 import { useEffect, useState, useCallback } from 'react';
 import { Link } from 'react-router-dom';
 import { supabase } from '@/lib/supabase';
@@ -20,6 +21,7 @@ type View = 'list' | 'board';
 const VIEW_KEY = 'pulse_home_view';
 
 export default function Deliveries() {
+  const confirm = useConfirm();
   const { profile, session } = useSession();
   const { isMaster, actingRole, actingDealershipId, isAdminMode, effectiveSalespersonId } = useActingRole();
   const isDesktop = useIsDesktop();
@@ -200,7 +202,12 @@ export default function Deliveries() {
   const nudgeTargets = rows.filter((d) => isActive(d) && atOf(d) < endOfToday && requirementProgress(d).open > 0);
   const nudge = async () => {
     const people = new Set(nudgeTargets.map((d) => d.salesperson_id)).size;
-    if (!window.confirm(`Send a reminder to ${people} salesperson${people === 1 ? '' : 's'} about ${nudgeTargets.length} deliver${nudgeTargets.length === 1 ? 'y' : 'ies'} with items still outstanding?`)) return;
+    const ok = await confirm({
+      title: 'Send a reminder?',
+      message: `${people} salesperson${people === 1 ? '' : 's'} will be notified about ${nudgeTargets.length} deliver${nudgeTargets.length === 1 ? 'y' : 'ies'} with items still outstanding.`,
+      confirmLabel: 'Send reminder',
+    });
+    if (!ok) return;
     setNudging(true);
     let reached = 0;
     for (const d of nudgeTargets) {

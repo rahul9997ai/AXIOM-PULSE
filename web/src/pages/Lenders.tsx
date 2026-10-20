@@ -1,3 +1,4 @@
+import { useToast } from '@/components/Feedback';
 import { useEffect, useState } from 'react';
 import { Link, Navigate } from 'react-router-dom';
 import { supabase } from '@/lib/supabase';
@@ -16,6 +17,7 @@ const FK_IN_USE = '23503';
 // picks come from that checklist. Managers only; a desktop nav item, and
 // linked from Settings on mobile.
 export default function LendersPage() {
+  const toast = useToast();
   const { profile } = useSession();
   const { actingDealershipId } = useActingRole();
   const isMaster = profile?.role === 'Master Administrator';
@@ -66,6 +68,13 @@ export default function LendersPage() {
 
   useEffect(() => { load(); }, [dealershipId]);
 
+  // A deleted lender brought back by Undo (from the lender page) shows up here.
+  useEffect(() => {
+    const reload = () => { load(); };
+    window.addEventListener('pulse:lenders-changed', reload);
+    return () => window.removeEventListener('pulse:lenders-changed', reload);
+  }, [dealershipId]);
+
   const addLender = async () => {
     const name = newLender.trim();
     if (!name) return;
@@ -101,13 +110,25 @@ export default function LendersPage() {
   };
 
   const deleteTemplate = async (t: RequirementTemplate) => {
-    if (!window.confirm(`Delete "${t.label}"? This can't be undone.`)) return;
     const { error } = await supabase.from('requirement_templates').delete().eq('id', t.id);
     if (error) {
       setError(error.code === FK_IN_USE
         ? `"${t.label}" is used on an existing delivery — deactivate it instead of deleting.`
         : error.message);
-    } else { setError(null); load(); }
+      return;
+    }
+    setError(null);
+    load();
+    // Deleting only succeeds when nothing uses it, so putting the same row
+    // back restores it exactly.
+    toast({
+      message: `Deleted "${t.label}"`,
+      actionLabel: 'Undo',
+      onAction: async () => {
+        const { error: undoErr } = await supabase.from('requirement_templates').insert(t);
+        if (undoErr) setError(undoErr.message); else load();
+      },
+    });
   };
 
   if (profile && !canManageLists) return <Navigate to="/" replace />;

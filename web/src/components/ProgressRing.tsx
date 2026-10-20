@@ -21,7 +21,7 @@ export default function ProgressRing({ percent, size = 64, stroke = 6, trackColo
         strokeLinecap="round" strokeDasharray={c} strokeDashoffset={offset}
         transform={`rotate(-90 ${center} ${center})`}
       />
-      <text x={center} y={center + size * 0.055} textAnchor="middle" fontSize={size * 0.23} fontWeight={800} fill={textColor} fontFamily="Inter, system-ui, sans-serif">
+      <text x={center} y={center + size * 0.055} textAnchor="middle" fontSize={size * 0.23} fontWeight={800} fill={textColor} fontFamily="system-ui, -apple-system, sans-serif">
         {Math.round(clamped)}%
       </text>
     </svg>
