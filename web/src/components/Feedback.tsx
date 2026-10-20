@@ -146,7 +146,7 @@ function ConfirmSheet({ options, onDecide, onGone }: { options: ConfirmOptions; 
         onClick={(e) => e.stopPropagation()}
         onAnimationEnd={(e) => { if (leaving && e.target === e.currentTarget) finish(); }}
       >
-        <h3 id={titleId} className="confirm-title">{title}</h3>
+        <h2 id={titleId} className="confirm-title">{title}</h2>
         {message && <div id={bodyId} className="confirm-body">{message}</div>}
         <div className="confirm-actions">
           <button ref={cancelRef} type="button" className="btn secondary" onClick={() => decide(false)}>{cancelLabel}</button>

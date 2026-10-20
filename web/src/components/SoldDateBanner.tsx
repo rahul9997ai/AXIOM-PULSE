@@ -32,7 +32,7 @@ export default function SoldDateBanner() {
   if (missing.length === 0) return null;
 
   return (
-    <div style={{
+    <div role="region" aria-label="Sold date reminder" style={{
       padding: '9px 14px', background: 'var(--banner-warn-bg)', borderBottom: '1px solid var(--banner-warn-border)',
       fontSize: '0.78125rem', color: 'var(--banner-warn-fg)',
     }}>

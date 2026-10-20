@@ -391,7 +391,7 @@ export default function DeliveryForm({ existing, onSaved }: { existing?: Deliver
       {isMaster && !isEdit && (
         <>
           <div style={fieldLabel}>DEALERSHIP</div>
-          <select value={selectedDealershipId} onChange={(e) => setSelectedDealershipId(e.target.value)}>
+          <select aria-label="Dealership" value={selectedDealershipId} onChange={(e) => setSelectedDealershipId(e.target.value)}>
             {dealerships.length === 0 && <option value="">No dealerships yet</option>}
             {dealerships.map((d) => <option key={d.id} value={d.id}>{d.name}</option>)}
           </select>
@@ -426,7 +426,7 @@ export default function DeliveryForm({ existing, onSaved }: { existing?: Deliver
               flex: 1, padding: '8px 0', borderRadius: 7, cursor: 'pointer',
               fontSize: '0.8125rem', fontWeight: 700, letterSpacing: 0.2,
               border: vehicleCondition === c ? 'none' : '1px solid var(--line)',
-              background: vehicleCondition === c ? 'var(--accent)' : 'var(--focus-bg)',
+              background: vehicleCondition === c ? 'var(--accent-fill)' : 'var(--focus-bg)',
               color: vehicleCondition === c ? '#fff' : 'var(--muted)',
               boxShadow: vehicleCondition === c ? '0 1px 3px rgba(0,0,0,0.15)' : 'none',
               transition: 'background 0.15s, color 0.15s',
@@ -438,21 +438,22 @@ export default function DeliveryForm({ existing, onSaved }: { existing?: Deliver
       </div>
 
       <div style={fieldLabel}>LENDER / LESSOR</div>
-      <select value={lenderId} onChange={(e) => pickLender(e.target.value)}>
+      <select aria-label="Lender or lessor" value={lenderId} onChange={(e) => pickLender(e.target.value)}>
         <option value="">Not selected</option>
         {lenders.map((l) => <option key={l.id} value={l.id}>{l.name}</option>)}
       </select>
       {lenderHint && <div style={{ fontSize: '0.78125rem', fontWeight: 600, color: 'var(--blue)', marginTop: -4 }}>{lenderHint}</div>}
 
       <div style={fieldLabel}>APPROVAL STATUS</div>
-      <select value={approvalStatus} onChange={(e) => setApprovalStatus(e.target.value as ApprovalStatus)}>
+      <select aria-label="Approval status" value={approvalStatus} onChange={(e) => setApprovalStatus(e.target.value as ApprovalStatus)}>
         {APPROVAL_OPTIONS.map((s) => <option key={s} value={s}>{s[0].toUpperCase() + s.slice(1)}</option>)}
       </select>
 
       <div style={fieldLabel}>DELIVERY DATE &amp; TIME</div>
       <div style={{ display: 'flex', gap: 8 }}>
-        <input type="date" value={deliveryDate} onChange={(e) => setDeliveryDate(e.target.value)} style={{ flex: 1.2 }} />
+        <input type="date" aria-label="Delivery date" value={deliveryDate} onChange={(e) => setDeliveryDate(e.target.value)} style={{ flex: 1.2 }} />
         <select
+          aria-label="Delivery time"
           value={deliveryTime}
           onChange={(e) => setDeliveryTime(e.target.value)}
           style={{ flex: 1 }}
@@ -485,7 +486,7 @@ export default function DeliveryForm({ existing, onSaved }: { existing?: Deliver
       </div>
 
       <div style={fieldLabel}>ASSIGN SALESPERSON</div>
-      <select value={salesperson} onChange={(e) => setSalesperson(e.target.value)}>
+      <select aria-label="Assign salesperson" value={salesperson} onChange={(e) => setSalesperson(e.target.value)}>
         <option value="">Select a salesperson</option>
         {disambiguate(salespeople).map((p) => <option key={p.id} value={p.id}>{p.label}</option>)}
       </select>
@@ -493,7 +494,7 @@ export default function DeliveryForm({ existing, onSaved }: { existing?: Deliver
       {canAssignFsm && (
         <>
           <div style={fieldLabel}>FINANCE MANAGER</div>
-          <select value={fsmId} onChange={(e) => setFsmId(e.target.value)}>
+          <select aria-label="Finance Manager" value={fsmId} onChange={(e) => setFsmId(e.target.value)}>
             <option value="">Select a Finance Manager</option>
             {disambiguate(financeManagers).map((f) => <option key={f.id} value={f.id}>{f.label}</option>)}
           </select>

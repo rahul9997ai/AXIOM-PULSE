@@ -143,7 +143,7 @@ export default function LendersPage() {
       {isMaster && (
         <div className="card">
           <div style={{ color: 'var(--muted)', fontWeight: 800, fontSize: '0.75rem', letterSpacing: 1, marginBottom: 8 }}>DEALERSHIP</div>
-          <select value={selectedDealershipId} onChange={(e) => setSelectedDealershipId(e.target.value)}>
+          <select aria-label="Dealership" value={selectedDealershipId} onChange={(e) => setSelectedDealershipId(e.target.value)}>
             {dealerships.length === 0 && <option value="">No dealerships yet</option>}
             {dealerships.map((d) => <option key={d.id} value={d.id}>{d.name}</option>)}
           </select>

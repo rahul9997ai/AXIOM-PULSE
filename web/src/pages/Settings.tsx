@@ -3,6 +3,8 @@ import { Link } from 'react-router-dom';
 import ReminderSettings from '@/components/ReminderSettings';
 import ThankYouSettingsPanel from '@/components/ThankYouSettingsPanel';
 import NotifyEmailCard from '@/components/NotifyEmailCard';
+import LegalSettingsPanel from '@/components/LegalSettingsPanel';
+import LegalLinks from '@/components/LegalLinks';
 import { supabase } from '@/lib/supabase';
 import { useSession } from '@/lib/session';
 import { useActingRole } from '@/lib/actingRole';
@@ -347,6 +349,7 @@ export default function Settings() {
             {isMaster && ` Viewing ${reportSalespersonName}'s report.`}
           </p>
           <select
+            aria-label="Report month"
             value={reportMonthKey}
             onChange={(e) => setReportMonthKey(e.target.value)}
             style={{ marginBottom: 10 }}
@@ -415,6 +418,7 @@ export default function Settings() {
             A PDF of every delivery completed dealership-wide for the selected month — customer name, salesperson, Finance Manager and delivery date.
           </p>
           <select
+            aria-label="Report month"
             value={reportMonthKey}
             onChange={(e) => setReportMonthKey(e.target.value)}
             style={{ marginBottom: 10 }}
@@ -445,7 +449,7 @@ export default function Settings() {
       {canManageLists && isMaster && (
         <div className="card">
           <div style={{ color: 'var(--muted)', fontWeight: 800, fontSize: '0.75rem', letterSpacing: 1, marginBottom: 8 }}>DEALERSHIP</div>
-          <select value={selectedDealershipId} onChange={(e) => setSelectedDealershipId(e.target.value)}>
+          <select aria-label="Dealership" value={selectedDealershipId} onChange={(e) => setSelectedDealershipId(e.target.value)}>
             {dealerships.length === 0 && <option value="">No dealerships yet</option>}
             {dealerships.map((d) => <option key={d.id} value={d.id}>{d.name}</option>)}
           </select>
@@ -456,7 +460,11 @@ export default function Settings() {
 
       {(isMaster || profile?.role === 'General Manager') && dealershipId && <ThankYouSettingsPanel dealershipId={dealershipId} />}
 
+      {(isMaster || profile?.role === 'General Manager') && dealershipId && <LegalSettingsPanel dealershipId={dealershipId} />}
+
       {error && <div className="card" style={{ fontSize: '0.8125rem', color: '#a3261b' }}>{error}</div>}
+
+      <LegalLinks dealershipId={isMaster ? dealershipId : profile?.dealership_id} />
 
       {canManageLists && (
         <Link to="/lenders" className="card settings-link">

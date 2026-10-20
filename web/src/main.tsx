@@ -4,6 +4,10 @@ import { BrowserRouter } from 'react-router-dom';
 import { SessionProvider } from '@/lib/session';
 import { FeedbackProvider } from '@/components/Feedback';
 import { applyTheme, getStoredTheme } from '@/lib/theme';
+// Fonts are served from this app itself (nothing is fetched from Google).
+import '@fontsource/sora/latin-700.css';
+import '@fontsource/sora/latin-800.css';
+import '@fontsource/pinyon-script/latin-400.css';
 import App from './App';
 import './styles.css';
 

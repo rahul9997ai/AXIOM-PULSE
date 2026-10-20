@@ -186,7 +186,7 @@ export default function AdminHome() {
       )}
 
       <div className="card">
-        <h3 style={{ marginTop: 0 }}>Dealerships</h3>
+        <h2 style={{ marginTop: 0 }}>Dealerships</h2>
         {loadingDealerships && <div style={{ color: 'var(--muted)', fontSize: '0.8125rem' }}>Loading…</div>}
         {!loadingDealerships && dealerships.length === 0 && (
           <div style={{ color: 'var(--muted)', fontSize: '0.8125rem', marginBottom: 10 }}>No dealerships yet.</div>
@@ -212,15 +212,15 @@ export default function AdminHome() {
       </div>
 
       <div className="card">
-        <h3 style={{ marginTop: 0 }}>Invite a user</h3>
+        <h2 style={{ marginTop: 0 }}>Invite a user</h2>
         <div style={{ display: 'grid', gap: 8 }}>
           <input placeholder="Full name" value={inviteName} onChange={(e) => setInviteName(e.target.value)} />
 
-          <select value={inviteRole} onChange={(e) => { setInviteRole(e.target.value as Role); setInviteIdentifier(''); }}>
+          <select aria-label="Role" value={inviteRole} onChange={(e) => { setInviteRole(e.target.value as Role); setInviteIdentifier(''); }}>
             {INVITE_ROLES.map((r) => <option key={r} value={r}>{r}</option>)}
           </select>
 
-          <select value={inviteDealershipId} onChange={(e) => setInviteDealershipId(e.target.value)}>
+          <select aria-label="Dealership" value={inviteDealershipId} onChange={(e) => setInviteDealershipId(e.target.value)}>
             {dealerships.length === 0 && <option value="">No dealerships yet</option>}
             {dealerships.map((d) => <option key={d.id} value={d.id}>{d.name}</option>)}
           </select>
@@ -247,7 +247,7 @@ export default function AdminHome() {
       </div>
 
       <div className="card">
-        <h3 style={{ marginTop: 0 }}>Users</h3>
+        <h2 style={{ marginTop: 0 }}>Users</h2>
         {loadingUsers && <div style={{ color: 'var(--muted)', fontSize: '0.8125rem' }}>Loading…</div>}
         {!loadingUsers && users.length === 0 && (
           <div style={{ color: 'var(--muted)', fontSize: '0.8125rem' }}>No General Managers, FSMs or Salespeople yet.</div>

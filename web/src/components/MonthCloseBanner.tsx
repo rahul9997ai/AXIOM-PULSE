@@ -80,7 +80,7 @@ export default function MonthCloseBanner() {
   // needs action every time they open the app until it's actually resolved.
   if (profile?.role === 'Salesperson' && myUndelivered.length > 0) {
     return (
-      <div style={{
+      <div role="region" aria-label="Month close reminder" style={{
         padding: '9px 14px', background: 'var(--banner-warn-bg)', borderBottom: '1px solid var(--banner-warn-border)',
         fontSize: '0.78125rem', color: 'var(--banner-warn-fg)',
       }}>
@@ -115,7 +115,7 @@ export default function MonthCloseBanner() {
 
   if (profile?.role === 'FSM' && fsmNeedsClose) {
     return (
-      <div style={{
+      <div role="region" aria-label="Month close reminder" style={{
         display: 'flex', flexWrap: 'wrap', gap: 8, alignItems: 'center', justifyContent: 'space-between',
         padding: '9px 14px', background: 'var(--banner-warn-bg)', borderBottom: '1px solid var(--banner-warn-border)',
         fontSize: '0.78125rem', color: 'var(--banner-warn-fg)',
@@ -128,7 +128,7 @@ export default function MonthCloseBanner() {
 
   if (profile?.role === 'Salesperson' && salespersonClosedBy) {
     return (
-      <div style={{
+      <div role="region" aria-label="Month close reminder" style={{
         display: 'flex', flexWrap: 'wrap', gap: 8, alignItems: 'center', justifyContent: 'space-between',
         padding: '9px 14px', background: 'var(--banner-ok-bg)', borderBottom: '1px solid var(--banner-ok-border)',
         fontSize: '0.78125rem', color: 'var(--banner-ok-fg)',

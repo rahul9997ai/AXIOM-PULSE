@@ -47,7 +47,7 @@ export default function ThankYouCard({ delivery }: { delivery: Delivery }) {
     <div className="card-3d tint-blue thankyou-card">
       <button type="button" className="thankyou-head" aria-expanded={open} onClick={() => setOpen((v) => !v)}>
         <div style={{ minWidth: 0, textAlign: 'left' }}>
-          <h3 style={{ margin: 0, fontSize: '0.875rem' }}>Customer thank-you email</h3>
+          <h2 style={{ margin: 0, fontSize: '0.875rem' }}>Customer thank-you email</h2>
           <div style={{ fontSize: '0.75rem', color: 'var(--muted)', marginTop: 3 }}>
             {used ? 'Pre-owned · asks for a Google review and referrals' : 'New vehicle · asks them to complete the survey'}
           </div>

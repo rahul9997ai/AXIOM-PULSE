@@ -1,4 +1,4 @@
-import { Routes, Route, Navigate } from 'react-router-dom';
+import { Routes, Route, Navigate, useLocation } from 'react-router-dom';
 import { useSession } from '@/lib/session';
 import { supabase } from '@/lib/supabase';
 import { ActingRoleProvider, useActingRole } from '@/lib/actingRole';
@@ -17,9 +17,17 @@ import MonthClose from '@/pages/MonthClose';
 import LendersPage from '@/pages/Lenders';
 import LenderDetail from '@/pages/LenderDetail';
 import InstallPrompt from '@/components/InstallPrompt';
+import LegalPage from '@/pages/Legal';
+import { matchLegalPath } from '@/lib/legal';
 
 export default function App() {
   const { session, profile, loading } = useSession();
+  const { pathname } = useLocation();
+
+  // Privacy, terms and cookies pages are public: shown whether or not anyone
+  // is signed in, without waiting on the session.
+  const legal = matchLegalPath(pathname);
+  if (legal) return <LegalPage key={`${legal.slug ?? ''}/${legal.kind}`} kind={legal.kind} slug={legal.slug} />;
 
   if (loading) return null;
 
@@ -51,7 +59,7 @@ function NoPulseAccess() {
   return (
     <div style={{ display: 'grid', placeItems: 'center', minHeight: '100vh', padding: 16 }}>
       <div className="card" style={{ maxWidth: 380, textAlign: 'center' }}>
-        <h3 style={{ marginTop: 0 }}>No Mahanex Pulse access</h3>
+        <h1 style={{ marginTop: 0, fontSize: '1.17rem' }}>No Mahanex Pulse access</h1>
         <p style={{ color: 'var(--muted)', fontSize: '0.8125rem' }}>
           Your account doesn't have access to Mahanex Pulse. Contact your administrator if you think this is a mistake.
         </p>

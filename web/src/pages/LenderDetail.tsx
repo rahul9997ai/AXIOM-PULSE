@@ -109,6 +109,7 @@ export default function LenderDetail() {
 
   return (
     <div className="page-stack lender-detail">
+      <h1 className="sr-only">{lender.name} — lender details</h1>
       <Link to="/lenders" className="back-link">‹ Lenders &amp; requirements</Link>
 
       <div className="card-3d tint-blue" style={{ display: 'grid', gap: 12 }}>
@@ -144,7 +145,7 @@ export default function LenderDetail() {
 
       <div className="card-3d tint-blue" style={{ display: 'grid', gap: 12 }}>
         <div>
-          <h3 style={{ margin: 0 }}>Standard requirements</h3>
+          <h2 style={{ margin: 0 }}>Standard requirements</h2>
           <p style={{ color: 'var(--muted)', fontSize: '0.8125rem', margin: '4px 0 0', lineHeight: 1.5 }}>
             Tap the requirements {lender.name} always needs. They're checked automatically when this lender is picked on a new delivery.
           </p>

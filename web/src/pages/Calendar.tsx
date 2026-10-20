@@ -109,7 +109,7 @@ export default function CalendarPage() {
                 onClick={() => setSelected(key)}
                 style={{
                   aspectRatio: '1', border: isToday ? '1.5px solid var(--accent)' : '1.5px solid transparent',
-                  borderRadius: 8, background: isSelected ? 'var(--accent)' : 'var(--surface)',
+                  borderRadius: 8, background: isSelected ? 'var(--accent-fill)' : 'var(--surface)',
                   color: isSelected ? '#fff' : 'var(--ink)', fontSize: '0.8125rem', fontWeight: isToday ? 800 : 600,
                   cursor: 'pointer', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 2,
                 }}

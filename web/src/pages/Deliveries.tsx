@@ -123,6 +123,7 @@ export default function Deliveries() {
 
   const header = (
     <div className="card-3d" style={{ padding: '18px 18px 16px', display: 'grid', gap: 14 }}>
+      <h1 className="sr-only">Deliveries</h1>
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12 }}>
         <div style={{ minWidth: 0 }}>
           <div style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--muted)', textTransform: 'uppercase', letterSpacing: '0.07em' }}>{dateLine} · {greeting}</div>
@@ -131,7 +132,7 @@ export default function Deliveries() {
             <div style={{ fontSize: '0.71875rem', fontWeight: 700, color: 'var(--accent)', marginTop: 2 }}>Previewing · {ROLE_LABEL[effectiveRole]}</div>
           )}
         </div>
-        <span aria-hidden="true" style={{ width: 42, height: 42, borderRadius: '50%', background: 'var(--accent)', color: '#fff', fontWeight: 800, fontSize: '0.875rem', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+        <span aria-hidden="true" style={{ width: 42, height: 42, borderRadius: '50%', background: 'var(--accent-fill)', color: '#fff', fontWeight: 800, fontSize: '0.875rem', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
           {initials(profile?.name)}
         </span>
       </div>
@@ -321,7 +322,7 @@ export default function Deliveries() {
               type="button"
               aria-pressed={view === v}
               onClick={() => setViewPersist(v)}
-              style={{ border: 'none', borderRadius: 7, padding: '6px 12px', fontSize: '0.78125rem', fontWeight: 700, cursor: 'pointer', background: view === v ? 'var(--accent)' : 'transparent', color: view === v ? '#fff' : 'var(--muted)' }}
+              style={{ border: 'none', borderRadius: 7, padding: '6px 12px', fontSize: '0.78125rem', fontWeight: 700, cursor: 'pointer', background: view === v ? 'var(--accent-fill)' : 'transparent', color: view === v ? '#fff' : 'var(--muted)' }}
             >
               {v === 'board' ? 'Board' : 'List'}
             </button>

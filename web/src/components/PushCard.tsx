@@ -52,7 +52,7 @@ export default function PushCard() {
     <>
       {pushState === 'offer' && (
         <div className="card">
-          <h3 style={{ marginTop: 0 }}>Enable Notifications</h3>
+          <h2 style={{ marginTop: 0 }}>Enable Notifications</h2>
           <p style={{ color: 'var(--muted)', fontSize: '0.8125rem' }}>
             {isDesktop ? 'Get delivery reminders and urgent alerts as desktop notifications on this computer.' : 'Get delivery reminders and urgent alerts even when Pulse is closed.'}
           </p>
@@ -62,7 +62,7 @@ export default function PushCard() {
       )}
       {pushState === 'ios-install' && (
         <div className="card">
-          <h3 style={{ marginTop: 0 }}>Enable Notifications</h3>
+          <h2 style={{ marginTop: 0 }}>Enable Notifications</h2>
           <p style={{ color: 'var(--muted)', fontSize: '0.8125rem' }}>
             On iPhone/iPad, add Mahanex Pulse to your Home Screen first, then open it from there to enable notifications.
           </p>
@@ -70,7 +70,7 @@ export default function PushCard() {
       )}
       {pushState === 'blocked' && (
         <div className="card">
-          <h3 style={{ marginTop: 0, color: '#a3261b' }}>Notifications Are Blocked</h3>
+          <h2 style={{ marginTop: 0, color: '#a3261b' }}>Notifications Are Blocked</h2>
           <p style={{ color: 'var(--muted)', fontSize: '0.8125rem' }}>
             {isIOS()
               ? 'Notifications for Mahanex Pulse were previously turned off on this iPhone. Open iOS Settings, scroll down to Mahanex Pulse, and turn Notifications on — then come back to this screen.'

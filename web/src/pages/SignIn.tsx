@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { Link } from 'react-router-dom';
 import { supabase } from '@/lib/supabase';
 import { MahanexLockup } from '@/components/MahanexMark';
 
@@ -78,6 +79,9 @@ export default function SignIn() {
               {busy ? 'Signing in…' : 'Sign In'}
             </button>
             <p className="landing-note">
+              By signing in you agree to the <Link to="/terms">Terms of use</Link> and acknowledge the <Link to="/privacy">Privacy notice</Link>.
+            </p>
+            <p className="landing-note">
               Your Finance Manager or dealership admin provides your account.
               You cannot self-register. Forgot your password? Contact your
               Finance Manager to reset it.
@@ -88,6 +92,11 @@ export default function SignIn() {
 
       <footer className="landing-foot">
         <span className="landing-tagline">From FSM's Mind to FSM's Desk</span>
+        <nav className="landing-legal" aria-label="Legal">
+          <Link to="/privacy">Privacy notice</Link>
+          <Link to="/terms">Terms of use</Link>
+          <Link to="/cookies">Cookies &amp; storage</Link>
+        </nav>
       </footer>
     </div>
   );

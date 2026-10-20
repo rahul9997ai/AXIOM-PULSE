@@ -84,7 +84,7 @@ export default function ReminderSettings({ dealershipId }: { dealershipId: strin
   if (!settings) {
     return (
       <div className="card">
-        <h3 style={{ marginTop: 0 }}>Finance Manager reminders</h3>
+        <h2 style={{ marginTop: 0 }}>Finance Manager reminders</h2>
         <div style={{ color: 'var(--muted)', fontSize: '0.8125rem' }}>Loading…</div>
       </div>
     );
@@ -93,7 +93,7 @@ export default function ReminderSettings({ dealershipId }: { dealershipId: strin
   return (
     <div className="card" id="reminders" style={{ display: 'grid', gap: 14 }}>
       <div>
-        <h3 style={{ margin: 0 }}>Finance Manager reminders</h3>
+        <h2 style={{ margin: 0 }}>Finance Manager reminders</h2>
         <p style={{ color: 'var(--muted)', fontSize: '0.8125rem', margin: '6px 0 0', lineHeight: 1.5 }}>
           A daily reminder to enter every delivery from that day's CDK 180 work orders in Pulse. Choose when each is sent and who receives it. Times are Eastern.
         </p>

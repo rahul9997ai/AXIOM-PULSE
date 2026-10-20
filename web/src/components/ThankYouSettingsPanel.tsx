@@ -71,7 +71,7 @@ export default function ThankYouSettingsPanel({ dealershipId }: { dealershipId: 
   if (!settings) {
     return (
       <div className="card">
-        <h3 style={{ marginTop: 0 }}>Customer thank-you emails</h3>
+        <h2 style={{ marginTop: 0 }}>Customer thank-you emails</h2>
         <div style={{ color: 'var(--muted)', fontSize: '0.8125rem' }}>Loading…</div>
       </div>
     );
@@ -84,7 +84,7 @@ export default function ThankYouSettingsPanel({ dealershipId }: { dealershipId: 
     <div className="card" id="thank-you" style={{ display: 'grid', gap: 14 }}>
       <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 12 }}>
         <div style={{ minWidth: 0 }}>
-          <h3 style={{ margin: 0 }}>Customer thank-you emails</h3>
+          <h2 style={{ margin: 0 }}>Customer thank-you emails</h2>
           <p style={{ color: 'var(--muted)', fontSize: '0.8125rem', margin: '6px 0 0', lineHeight: 1.5 }}>
             When a delivery is marked delivered, the salesperson is emailed a ready-to-send thank-you to forward from their own work email —
             asking new-vehicle buyers to complete the manufacturer survey, and pre-owned buyers for a Google review and referrals.

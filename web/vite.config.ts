@@ -43,6 +43,7 @@ export default defineConfig({
         // build the worker as a classic (IIFE) script so it registers on
         // iOS/iPadOS at all, not just Chromium-based browsers.
         rollupFormat: 'iife',
+        globPatterns: ['**/*.{js,css,html,woff2}'],
       },
       devOptions: { enabled: true, type: 'classic' },
     }),

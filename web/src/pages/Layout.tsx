@@ -53,7 +53,7 @@ export default function Layout({ children }: { children: ReactNode }) {
       ];
 
   const viewingAsBar = isMaster && (
-    <div style={{
+    <div role="region" aria-label="Viewing as" style={{
       display: 'flex', flexWrap: 'wrap', gap: 8, alignItems: 'center',
       padding: '8px 14px', background: isAdminMode ? 'transparent' : 'var(--banner-warn-bg)',
       borderBottom: isAdminMode ? 'none' : '1px solid var(--banner-warn-border)', fontSize: '0.78125rem',
@@ -61,6 +61,7 @@ export default function Layout({ children }: { children: ReactNode }) {
     }}>
       <span style={{ fontWeight: 700, color: 'var(--muted)' }}>Viewing as</span>
       <select
+        aria-label="Viewing as role"
         value={actingRole}
         onChange={(e) => setActingRole(e.target.value as typeof actingRole)}
         style={{ padding: '3px 6px', fontSize: '0.78125rem', width: 'auto' }}
@@ -70,6 +71,7 @@ export default function Layout({ children }: { children: ReactNode }) {
       </select>
       {!isAdminMode && dealerships.length > 0 && (
         <select
+          aria-label="Dealership"
           value={actingDealershipId}
           onChange={(e) => setActingDealershipId(e.target.value)}
           style={{ padding: '3px 6px', fontSize: '0.78125rem', width: 'auto' }}
@@ -79,6 +81,7 @@ export default function Layout({ children }: { children: ReactNode }) {
       )}
       {!isAdminMode && actingRole === 'Salesperson' && (
         <select
+          aria-label="Salesperson"
           value={actingSalespersonId}
           onChange={(e) => setActingSalespersonId(e.target.value)}
           style={{ padding: '3px 6px', fontSize: '0.78125rem', width: 'auto' }}
@@ -103,6 +106,7 @@ export default function Layout({ children }: { children: ReactNode }) {
   if (isDesktop) {
     return (
       <div className="app-shell desktop">
+        <a href="#main" className="skip-link">Skip to main content</a>
         {viewingAsBar}
         <div className="desktop-body">
           <aside className="desktop-sidebar">
@@ -137,7 +141,7 @@ export default function Layout({ children }: { children: ReactNode }) {
           <div className="desktop-main">
             <MonthCloseBanner />
             <SoldDateBanner />
-            <main className="app-main"><PageTransition>{children}</PageTransition></main>
+            <main className="app-main" id="main" tabIndex={-1}><PageTransition>{children}</PageTransition></main>
           </div>
         </div>
       </div>
@@ -146,13 +150,14 @@ export default function Layout({ children }: { children: ReactNode }) {
 
   return (
     <div className="app-shell">
+      <a href="#main" className="skip-link">Skip to main content</a>
       <header className="app-header">
         <MahanexLockup size={20} />
       </header>
       {viewingAsBar}
       <MonthCloseBanner />
       <SoldDateBanner />
-      <main className="app-main"><PageTransition>{children}</PageTransition></main>
+      <main className="app-main" id="main" tabIndex={-1}><PageTransition>{children}</PageTransition></main>
       <nav className="app-tabbar" aria-label="Primary">
         {navItems.map(({ to, label, icon: Icon, match }) => {
           const active = match(pathname);

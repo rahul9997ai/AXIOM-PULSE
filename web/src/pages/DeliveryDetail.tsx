@@ -264,6 +264,7 @@ export default function DeliveryDetail() {
     }}>
       <div className="detail-layout">
       <div className="detail-main">
+        <h1 className="sr-only">{d.customer_name} — delivery details</h1>
         <Link to="/" style={{ fontSize: '0.8125rem', color: 'var(--accent)', textDecoration: 'none', fontWeight: 700 }}>‹ Back to Deliveries</Link>
 
         {ownsHattrickDecision && showHattrickChoice && !enteringDate && (
@@ -319,6 +320,7 @@ export default function DeliveryDetail() {
             <div style={{ display: 'flex', gap: 8 }}>
               <input
                 type="date"
+                aria-label="Date the vehicle was sold"
                 value={soldAtDraft}
                 onChange={(e) => setSoldAtDraft(e.target.value)}
                 style={{ flex: 1 }}
@@ -479,7 +481,7 @@ export default function DeliveryDetail() {
 
       {requirements.length > 0 && (
         <div className="card-3d tint-blue">
-          <h3 style={{ marginTop: 0, fontSize: '0.875rem' }}>Requirements</h3>
+          <h2 style={{ marginTop: 0, fontSize: '0.875rem' }}>Requirements</h2>
           <p style={{ color: 'var(--muted)', fontSize: '0.75rem', marginTop: -6, marginBottom: 14 }}>
             {canActOnBehalf
               ? 'Tap to complete on the salesperson\'s behalf, tap again to undo — they\'re notified of each change. Tap the ! badge to record an exception.'
@@ -507,7 +509,7 @@ export default function DeliveryDetail() {
       {/* Comments sit beside the delivery on desktop, below it on phones. */}
       <div className="detail-side">
       <div className="card-3d tint-blue">
-        <h3 style={{ marginTop: 0, fontSize: '0.875rem' }}>Comments</h3>
+        <h2 style={{ marginTop: 0, fontSize: '0.875rem' }}>Comments</h2>
         <p style={{ color: 'var(--muted)', fontSize: '0.78125rem', marginTop: -6 }}>
           A comment flagged "Needs approval" gets a Finance Manager decision — approve or deny (with a reason).
         </p>

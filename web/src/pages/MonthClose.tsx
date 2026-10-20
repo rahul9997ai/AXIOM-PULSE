@@ -100,7 +100,7 @@ function FsmClosePanel() {
       {!loading && !closed && (
         <>
           <div className="card">
-            <h3 style={{ marginTop: 0, fontSize: '0.875rem' }}>Summary</h3>
+            <h2 style={{ marginTop: 0, fontSize: '0.875rem' }}>Summary</h2>
             <p style={{ color: 'var(--muted)', fontSize: '0.8125rem', marginTop: -4 }}>
               Review what's still open from {label} before closing it. Closing doesn't change or lock any
               records — it's a confirmation that you've reviewed the month.
@@ -113,7 +113,7 @@ function FsmClosePanel() {
 
           {undelivered.length > 0 && (
             <div className="card">
-              <h3 style={{ marginTop: 0, fontSize: '0.875rem' }}>Still not delivered</h3>
+              <h2 style={{ marginTop: 0, fontSize: '0.875rem' }}>Still not delivered</h2>
               <div style={{ display: 'grid', gap: 10 }}>
                 {undelivered.map((d) => {
                   const open = (d.delivery_requirements || []).filter((r) => r.status === 'outstanding');
