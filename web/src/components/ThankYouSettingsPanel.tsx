@@ -72,7 +72,7 @@ export default function ThankYouSettingsPanel({ dealershipId }: { dealershipId: 
     return (
       <div className="card">
         <h3 style={{ marginTop: 0 }}>Customer thank-you emails</h3>
-        <div style={{ color: 'var(--muted)', fontSize: 13 }}>Loading…</div>
+        <div style={{ color: 'var(--muted)', fontSize: '0.8125rem' }}>Loading…</div>
       </div>
     );
   }
@@ -85,7 +85,7 @@ export default function ThankYouSettingsPanel({ dealershipId }: { dealershipId: 
       <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 12 }}>
         <div style={{ minWidth: 0 }}>
           <h3 style={{ margin: 0 }}>Customer thank-you emails</h3>
-          <p style={{ color: 'var(--muted)', fontSize: 13, margin: '6px 0 0', lineHeight: 1.5 }}>
+          <p style={{ color: 'var(--muted)', fontSize: '0.8125rem', margin: '6px 0 0', lineHeight: 1.5 }}>
             When a delivery is marked delivered, the salesperson is emailed a ready-to-send thank-you to forward from their own work email —
             asking new-vehicle buyers to complete the manufacturer survey, and pre-owned buyers for a Google review and referrals.
           </p>
@@ -112,7 +112,7 @@ export default function ThankYouSettingsPanel({ dealershipId }: { dealershipId: 
             onChange={(e) => setReviewUrl(e.target.value)}
             onBlur={() => reviewUrl.trim() !== (settings.google_review_url ?? '') && save({ google_review_url: reviewUrl })}
           />
-          <span style={{ fontSize: 12, fontWeight: 500, color: 'var(--muted)' }}>
+          <span style={{ fontSize: '0.75rem', fontWeight: 500, color: 'var(--muted)' }}>
             From your Google Business Profile → “Ask for reviews”. Without it, customers are told to search the dealership on Google.
           </span>
         </label>
@@ -127,7 +127,7 @@ export default function ThankYouSettingsPanel({ dealershipId }: { dealershipId: 
         </label>
 
         <div>
-          <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--muted)', marginBottom: 6 }}>
+          <div style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--muted)', marginBottom: 6 }}>
             Team work emails · {connected} of {salespeople.length} salespeople connected
           </div>
           <div style={{ display: 'grid', gap: 6 }}>
@@ -136,8 +136,8 @@ export default function ThankYouSettingsPanel({ dealershipId }: { dealershipId: 
               return (
                 <div key={m.id} className="team-email-row">
                   <div style={{ minWidth: 0 }}>
-                    <div style={{ fontWeight: 700, fontSize: 13.5 }}>{m.name}</div>
-                    <div style={{ fontSize: 11.5, color: st.error ? '#a3261b' : 'var(--muted)' }}>
+                    <div style={{ fontWeight: 700, fontSize: '0.84375rem' }}>{m.name}</div>
+                    <div style={{ fontSize: '0.71875rem', color: st.error ? '#a3261b' : 'var(--muted)' }}>
                       {st.error ?? (st.saving ? 'Saving…' : st.saved ? '✓ Saved' : ROLE_LABEL[m.role] ?? m.role)}
                     </div>
                   </div>
@@ -158,7 +158,7 @@ export default function ThankYouSettingsPanel({ dealershipId }: { dealershipId: 
         </div>
       </fieldset>
 
-      <div style={{ fontSize: 12, fontWeight: 600, color: error ? '#a3261b' : 'var(--muted)', minHeight: 16 }}>
+      <div style={{ fontSize: '0.75rem', fontWeight: 600, color: error ? '#a3261b' : 'var(--muted)', minHeight: 16 }}>
         {error ?? status ?? (settings.enabled ? 'On — sent shortly after each delivery is marked delivered.' : 'Off — no thank-you emails are being sent.')}
       </div>
     </div>

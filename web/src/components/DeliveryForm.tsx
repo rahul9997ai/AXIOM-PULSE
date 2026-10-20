@@ -374,7 +374,7 @@ export default function DeliveryForm({ existing, onSaved }: { existing?: Deliver
 
   return (
     <div className="form-page">
-      <h1 style={{ fontSize: 22, fontWeight: 700, letterSpacing: '-0.02em', margin: 0 }}>{isEdit ? 'Edit Delivery' : 'New Delivery'}</h1>
+      <h1 style={{ fontSize: '1.375rem', fontWeight: 700, letterSpacing: '-0.02em', margin: 0 }}>{isEdit ? 'Edit Delivery' : 'New Delivery'}</h1>
 
       {isMaster && !isEdit && (
         <>
@@ -412,7 +412,7 @@ export default function DeliveryForm({ existing, onSaved }: { existing?: Deliver
             onClick={() => setVehicleCondition(c)}
             style={{
               flex: 1, padding: '8px 0', borderRadius: 7, cursor: 'pointer',
-              fontSize: 13, fontWeight: 700, letterSpacing: 0.2,
+              fontSize: '0.8125rem', fontWeight: 700, letterSpacing: 0.2,
               border: vehicleCondition === c ? 'none' : '1px solid var(--line)',
               background: vehicleCondition === c ? 'var(--accent)' : 'var(--focus-bg)',
               color: vehicleCondition === c ? '#fff' : 'var(--muted)',
@@ -430,7 +430,7 @@ export default function DeliveryForm({ existing, onSaved }: { existing?: Deliver
         <option value="">Not selected</option>
         {lenders.map((l) => <option key={l.id} value={l.id}>{l.name}</option>)}
       </select>
-      {lenderHint && <div style={{ fontSize: 12.5, fontWeight: 600, color: 'var(--blue)', marginTop: -4 }}>{lenderHint}</div>}
+      {lenderHint && <div style={{ fontSize: '0.78125rem', fontWeight: 600, color: 'var(--blue)', marginTop: -4 }}>{lenderHint}</div>}
 
       <div style={fieldLabel}>APPROVAL STATUS</div>
       <select value={approvalStatus} onChange={(e) => setApprovalStatus(e.target.value as ApprovalStatus)}>
@@ -451,18 +451,18 @@ export default function DeliveryForm({ existing, onSaved }: { existing?: Deliver
       </div>
 
       <div className="card" style={{ padding: 14 }}>
-        <label style={{ display: 'flex', alignItems: 'center', gap: 10, fontWeight: 700, fontSize: 14 }}>
+        <label style={{ display: 'flex', alignItems: 'center', gap: 10, fontWeight: 700, fontSize: '0.875rem' }}>
           <input type="checkbox" checked={dueOnDelivery} onChange={(e) => setDueOnDelivery(e.target.checked)} style={{ width: 'auto' }} />
           Due on delivery
         </label>
         {dueOnDelivery && (
           <div style={{ display: 'grid', gap: 8, marginTop: 10 }}>
             <div style={{ display: 'flex', gap: 14 }}>
-              <label style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 13 }}>
+              <label style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: '0.8125rem' }}>
                 <input type="radio" name="dueType" checked={dueType === 'collection'} onChange={() => setDueType('collection')} style={{ width: 'auto' }} />
                 Collection from customer
               </label>
-              <label style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 13 }}>
+              <label style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: '0.8125rem' }}>
                 <input type="radio" name="dueType" checked={dueType === 'refund'} onChange={() => setDueType('refund')} style={{ width: 'auto' }} />
                 Refund to customer
               </label>
@@ -491,15 +491,15 @@ export default function DeliveryForm({ existing, onSaved }: { existing?: Deliver
       <div style={fieldLabel}>COLLECTION REQUIREMENTS</div>
       <div className="card" style={{ display: 'grid', gap: 8, padding: 14 }}>
         {templates.map((t) => (
-          <label key={t.id} style={{ display: 'flex', alignItems: 'center', gap: 10, fontSize: 14 }}>
+          <label key={t.id} style={{ display: 'flex', alignItems: 'center', gap: 10, fontSize: '0.875rem' }}>
             <input type="checkbox" checked={checkedTemplates.has(t.id)} onChange={() => toggleTemplate(t.id)} style={{ width: 'auto' }} />
             {t.label}
           </label>
         ))}
         {customReqs.map((c, i) => (
-          <div key={c.id ?? `new-${i}`} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', fontSize: 14 }}>
+          <div key={c.id ?? `new-${i}`} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', fontSize: '0.875rem' }}>
             <span>• {c.label}</span>
-            <button type="button" className="btn secondary" style={{ padding: '2px 8px', fontSize: 11 }} onClick={() => removeCustomReq(i)}>Remove</button>
+            <button type="button" className="btn secondary" style={{ padding: '2px 8px', fontSize: '0.6875rem' }} onClick={() => removeCustomReq(i)}>Remove</button>
           </div>
         ))}
         <div style={{ display: 'flex', gap: 8, marginTop: 4 }}>
@@ -515,17 +515,17 @@ export default function DeliveryForm({ existing, onSaved }: { existing?: Deliver
         onChange={(e) => setFsmNotes(e.target.value)}
       />
 
-      {error && <div style={{ color: '#a3261b', fontSize: 13 }}>{error}</div>}
+      {error && <div style={{ color: '#a3261b', fontSize: '0.8125rem' }}>{error}</div>}
       {conflicts.length > 0 && (
         <div role="alert" className="conflict-panel">
-          <div style={{ fontWeight: 800, fontSize: 13.5, display: 'flex', alignItems: 'center', gap: 8 }}>
+          <div style={{ fontWeight: 800, fontSize: '0.84375rem', display: 'flex', alignItems: 'center', gap: 8 }}>
             <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M12 9v4M12 17h.01" /><path d="M10.3 3.9L1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0z" /></svg>
             Scheduling conflict{conflicts.length === 1 ? '' : 's'}
           </div>
           <ul style={{ margin: '6px 0 0', paddingLeft: 18, display: 'grid', gap: 4 }}>
-            {conflicts.map((c) => <li key={c.key} style={{ fontSize: 13, lineHeight: 1.45 }}>{c.text}</li>)}
+            {conflicts.map((c) => <li key={c.key} style={{ fontSize: '0.8125rem', lineHeight: 1.45 }}>{c.text}</li>)}
           </ul>
-          <div style={{ fontSize: 12, marginTop: 8, opacity: 0.85 }}>Pick another time if possible. You can still save — you'll be asked to confirm.</div>
+          <div style={{ fontSize: '0.75rem', marginTop: 8, opacity: 0.85 }}>Pick another time if possible. You can still save — you'll be asked to confirm.</div>
         </div>
       )}
 
@@ -536,7 +536,7 @@ export default function DeliveryForm({ existing, onSaved }: { existing?: Deliver
   );
 }
 
-const fieldLabel: React.CSSProperties = { color: 'var(--muted)', fontWeight: 800, fontSize: 12, letterSpacing: 1 };
+const fieldLabel: React.CSSProperties = { color: 'var(--muted)', fontWeight: 800, fontSize: '0.75rem', letterSpacing: 1 };
 
 function toLocalInput(iso: string): string {
   const d = new Date(iso);

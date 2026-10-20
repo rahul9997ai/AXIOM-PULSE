@@ -122,13 +122,13 @@ export default function Deliveries() {
     <div className="card-3d" style={{ padding: '18px 18px 16px', display: 'grid', gap: 14 }}>
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12 }}>
         <div style={{ minWidth: 0 }}>
-          <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--muted)', textTransform: 'uppercase', letterSpacing: '0.07em' }}>{dateLine} · {greeting}</div>
-          <div style={{ fontSize: 21, fontWeight: 800, marginTop: 2, color: 'var(--ink)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{profile?.name}</div>
+          <div style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--muted)', textTransform: 'uppercase', letterSpacing: '0.07em' }}>{dateLine} · {greeting}</div>
+          <div style={{ fontSize: '1.3125rem', fontWeight: 800, marginTop: 2, color: 'var(--ink)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{profile?.name}</div>
           {isMaster && effectiveRole && (
-            <div style={{ fontSize: 11.5, fontWeight: 700, color: 'var(--accent)', marginTop: 2 }}>Previewing · {ROLE_LABEL[effectiveRole]}</div>
+            <div style={{ fontSize: '0.71875rem', fontWeight: 700, color: 'var(--accent)', marginTop: 2 }}>Previewing · {ROLE_LABEL[effectiveRole]}</div>
           )}
         </div>
-        <span aria-hidden="true" style={{ width: 42, height: 42, borderRadius: '50%', background: 'var(--accent)', color: '#fff', fontWeight: 800, fontSize: 14, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+        <span aria-hidden="true" style={{ width: 42, height: 42, borderRadius: '50%', background: 'var(--accent)', color: '#fff', fontWeight: 800, fontSize: '0.875rem', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
           {initials(profile?.name)}
         </span>
       </div>
@@ -136,10 +136,10 @@ export default function Deliveries() {
         <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
           <ProgressRing percent={monthPercent} trackColor="var(--line)" fillColor="var(--accent)" textColor="var(--ink)" />
           <div style={{ display: 'grid', gap: 4 }}>
-            <div style={{ fontSize: 14, fontWeight: 700 }}>
+            <div style={{ fontSize: '0.875rem', fontWeight: 700 }}>
               {scheduledThisMonth.length ? `${deliveredThisMonth} of ${scheduledThisMonth.length} delivered this month` : 'No deliveries scheduled this month yet'}
             </div>
-            <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap', fontSize: 12.5, color: 'var(--muted)', fontWeight: 600 }}>
+            <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap', fontSize: '0.78125rem', color: 'var(--muted)', fontWeight: 600 }}>
               <span><strong style={{ color: 'var(--ink)' }}>{todayCount}</strong> today</span>
               <span><strong style={{ color: outstandingCount ? '#b45309' : 'var(--ink)' }}>{outstandingCount}</strong> outstanding</span>
               <span><strong style={{ color: overdueCount ? '#dc2626' : 'var(--ink)' }}>{overdueCount}</strong> overdue</span>
@@ -151,9 +151,9 @@ export default function Deliveries() {
   );
 
   const noticeCard = notice && (
-    <div className="card-3d tint-blue" role="status" style={{ fontSize: 13, display: 'flex', justifyContent: 'space-between', gap: 10, alignItems: 'flex-start' }}>
+    <div className="card-3d tint-blue" role="status" style={{ fontSize: '0.8125rem', display: 'flex', justifyContent: 'space-between', gap: 10, alignItems: 'flex-start' }}>
       <span>{notice}</span>
-      <button type="button" aria-label="Dismiss" onClick={() => setNotice(null)} style={{ background: 'none', border: 'none', color: 'var(--muted)', fontSize: 16, cursor: 'pointer', padding: 0, lineHeight: 1 }}>×</button>
+      <button type="button" aria-label="Dismiss" onClick={() => setNotice(null)} style={{ background: 'none', border: 'none', color: 'var(--muted)', fontSize: '1rem', cursor: 'pointer', padding: 0, lineHeight: 1 }}>×</button>
     </div>
   );
 
@@ -250,7 +250,7 @@ export default function Deliveries() {
         onChange={(e) => setSearch(e.target.value)}
         placeholder="Search customer, stock # or salesperson"
         aria-label="Search deliveries"
-        style={{ border: 'none', outline: 'none', background: 'transparent', padding: 0, fontSize: 14, flex: 1, minWidth: 0, boxShadow: 'none' }}
+        style={{ border: 'none', outline: 'none', background: 'transparent', padding: 0, fontSize: '0.875rem', flex: 1, minWidth: 0, boxShadow: 'none' }}
       />
     </label>
   );
@@ -270,7 +270,7 @@ export default function Deliveries() {
   );
 
   const clashBanner = clashSlots.length > 0 && chip !== 'delivered' && (
-    <div role="alert" style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: 10, background: 'var(--banner-warn-bg)', border: '1px solid var(--banner-warn-border)', borderRadius: 12, padding: '11px 14px', fontSize: 13, color: 'var(--banner-warn-fg)' }}>
+    <div role="alert" style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: 10, background: 'var(--banner-warn-bg)', border: '1px solid var(--banner-warn-border)', borderRadius: 12, padding: '11px 14px', fontSize: '0.8125rem', color: 'var(--banner-warn-fg)' }}>
       <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M12 9v4M12 17h.01" /><path d="M10.3 3.9L1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0z" /></svg>
       <span style={{ flex: 1, minWidth: 200 }}>
         <strong>Scheduling conflict:</strong> {clashSlots[0].map((d) => d.customer_name).join(' and ')} are booked within {CONFLICT_WINDOW_MIN} minutes for the same salesperson or Finance Manager ({timeLabel(atOf(clashSlots[0][0]), now)}).
@@ -287,7 +287,7 @@ export default function Deliveries() {
           type="button"
           disabled={nudging}
           onClick={nudge}
-          style={{ display: 'flex', alignItems: 'center', gap: 6, border: '1px solid var(--banner-warn-border)', background: 'var(--banner-warn-bg)', color: 'var(--banner-warn-fg)', borderRadius: 999, padding: '0 12px', height: 34, fontSize: 12.5, fontWeight: 800, cursor: 'pointer' }}
+          style={{ display: 'flex', alignItems: 'center', gap: 6, border: '1px solid var(--banner-warn-border)', background: 'var(--banner-warn-bg)', color: 'var(--banner-warn-fg)', borderRadius: 999, padding: '0 12px', height: 34, fontSize: '0.78125rem', fontWeight: 800, cursor: 'pointer' }}
         >
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" aria-hidden="true"><path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9" /><path d="M10.3 21a1.94 1.94 0 0 0 3.4 0" /></svg>
           {nudging ? 'Sending…' : `Nudge ${nudgeTargets.length} outstanding`}
@@ -301,7 +301,7 @@ export default function Deliveries() {
               type="button"
               aria-pressed={view === v}
               onClick={() => setViewPersist(v)}
-              style={{ border: 'none', borderRadius: 7, padding: '6px 12px', fontSize: 12.5, fontWeight: 700, cursor: 'pointer', background: view === v ? 'var(--accent)' : 'transparent', color: view === v ? '#fff' : 'var(--muted)' }}
+              style={{ border: 'none', borderRadius: 7, padding: '6px 12px', fontSize: '0.78125rem', fontWeight: 700, cursor: 'pointer', background: view === v ? 'var(--accent)' : 'transparent', color: view === v ? '#fff' : 'var(--muted)' }}
             >
               {v === 'board' ? 'Board' : 'List'}
             </button>
@@ -312,7 +312,7 @@ export default function Deliveries() {
   );
 
   const sectionTitle = (
-    <div style={{ fontSize: 12.5, fontWeight: 800, letterSpacing: '0.06em', textTransform: 'uppercase', color: 'var(--muted)' }}>
+    <div style={{ fontSize: '0.78125rem', fontWeight: 800, letterSpacing: '0.06em', textTransform: 'uppercase', color: 'var(--muted)' }}>
       {chipTitle} · {visible.length} deliver{visible.length === 1 ? 'y' : 'ies'}
     </div>
   );
@@ -364,7 +364,7 @@ export default function Deliveries() {
               <ProgressRing percent={monthPercent} trackColor="var(--line)" fillColor="var(--accent)" textColor="var(--ink)" />
               <div style={{ display: 'grid', gap: 3, minWidth: 0 }}>
                 <span className="stat-tile-label">This month</span>
-                <span style={{ fontSize: 15, fontWeight: 800 }}>{deliveredThisMonth} of {scheduledThisMonth.length} delivered</span>
+                <span style={{ fontSize: '0.9375rem', fontWeight: 800 }}>{deliveredThisMonth} of {scheduledThisMonth.length} delivered</span>
               </div>
             </div>
             {stat('Today', todayCount, 'var(--accent)', 'today', 'scheduled today')}

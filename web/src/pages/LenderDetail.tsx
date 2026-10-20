@@ -101,18 +101,18 @@ export default function LenderDetail() {
       <div className="card-3d tint-blue" style={{ display: 'grid', gap: 12 }}>
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12 }}>
           <span className={`pill ${lender.active ? 'pill-later' : 'pill-plain'}`}>{lender.active ? 'Active — offered on new deliveries' : 'Inactive — hidden from new deliveries'}</span>
-          <span style={{ fontSize: 12, fontWeight: 700, color: 'var(--muted)', minHeight: 16 }}>{saved ? '✓ Saved' : ''}</span>
+          <span style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--muted)', minHeight: 16 }}>{saved ? '✓ Saved' : ''}</span>
         </div>
         <label className="field-label">
           Name
-          <input value={name} onChange={(e) => setName(e.target.value)} onBlur={saveName} style={{ fontSize: 17, fontWeight: 800 }} />
+          <input value={name} onChange={(e) => setName(e.target.value)} onBlur={saveName} style={{ fontSize: '1.0625rem', fontWeight: 800 }} />
         </label>
         <label className="field-label">
           Address (shown to the salesperson)
           <input value={address} placeholder="Street, city" onChange={(e) => setAddress(e.target.value)} onBlur={saveAddress} />
         </label>
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap', borderTop: '1px solid var(--line)', paddingTop: 12 }}>
-          <label style={{ display: 'flex', alignItems: 'center', gap: 10, fontSize: 14, fontWeight: 700, cursor: 'pointer' }}>
+          <label style={{ display: 'flex', alignItems: 'center', gap: 10, fontSize: '0.875rem', fontWeight: 700, cursor: 'pointer' }}>
             <button
               type="button"
               role="switch"
@@ -132,12 +132,12 @@ export default function LenderDetail() {
       <div className="card-3d tint-blue" style={{ display: 'grid', gap: 12 }}>
         <div>
           <h3 style={{ margin: 0 }}>Standard requirements</h3>
-          <p style={{ color: 'var(--muted)', fontSize: 13, margin: '4px 0 0', lineHeight: 1.5 }}>
+          <p style={{ color: 'var(--muted)', fontSize: '0.8125rem', margin: '4px 0 0', lineHeight: 1.5 }}>
             Tap the requirements {lender.name} always needs. They're checked automatically when this lender is picked on a new delivery.
           </p>
         </div>
         {templates.length === 0 ? (
-          <div style={{ fontSize: 13, color: 'var(--muted)' }}>
+          <div style={{ fontSize: '0.8125rem', color: 'var(--muted)' }}>
             No requirements in the checklist yet. Add them under <Link to="/lenders">Collection requirements</Link>.
           </div>
         ) : (
@@ -166,12 +166,12 @@ export default function LenderDetail() {
             })}
           </div>
         )}
-        <div style={{ fontSize: 12.5, fontWeight: 700, color: 'var(--muted)' }}>
+        <div style={{ fontSize: '0.78125rem', fontWeight: 700, color: 'var(--muted)' }}>
           {templates.filter((t) => selected.has(t.id)).length} of {templates.length} selected
         </div>
       </div>
 
-      {error && <div className="card" style={{ fontSize: 13, color: '#a3261b' }}>{error}</div>}
+      {error && <div className="card" style={{ fontSize: '0.8125rem', color: '#a3261b' }}>{error}</div>}
     </div>
   );
 }

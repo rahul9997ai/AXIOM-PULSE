@@ -62,7 +62,7 @@ export default function RequirementTiles({
                   <TileIcon status={r.status} />
                   <span>{r.label}</span>
                   {delivery && r.status !== 'outstanding' && r.completed_by && r.completed_by !== delivery.salesperson_id && (
-                    <span style={{ fontSize: 9.5, fontWeight: 700, opacity: 0.85, letterSpacing: 0.2 }}>by Finance</span>
+                    <span style={{ fontSize: '0.59375rem', fontWeight: 700, opacity: 0.85, letterSpacing: 0.2 }}>by Finance</span>
                   )}
                 </span>
               </button>
@@ -79,7 +79,7 @@ export default function RequirementTiles({
                 >
                   <span style={{
                     width: 22, height: 22, borderRadius: '50%', background: '#fff', border: '1px solid #f0c98a',
-                    color: '#a3520a', fontSize: 12.5, fontWeight: 800, display: 'flex', alignItems: 'center', justifyContent: 'center',
+                    color: '#a3520a', fontSize: '0.78125rem', fontWeight: 800, display: 'flex', alignItems: 'center', justifyContent: 'center',
                     boxShadow: '0 2px 6px rgba(30,40,60,0.18)',
                   }}>!</span>
                 </button>
@@ -92,7 +92,7 @@ export default function RequirementTiles({
       {withReasons.length > 0 && (
         <div style={{ display: 'grid', gap: 3, marginTop: 10 }}>
           {withReasons.map((r) => (
-            <div key={r.id} style={{ fontSize: 11.5, color: 'var(--muted)' }}>
+            <div key={r.id} style={{ fontSize: '0.71875rem', color: 'var(--muted)' }}>
               <strong style={{ color: '#b45309' }}>{r.label}:</strong> {r.exception_reason}
             </div>
           ))}
@@ -101,7 +101,7 @@ export default function RequirementTiles({
 
       {flagging && (
         <div style={{ marginTop: 12, display: 'grid', gap: 8 }}>
-          <label style={{ fontSize: 12, fontWeight: 700, color: 'var(--muted)' }}>
+          <label style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--muted)' }}>
             Why couldn't "{flagging.label}" be completed?
             <textarea rows={2} value={reason} onChange={(e) => setReason(e.target.value)} style={{ marginTop: 6 }} />
           </label>

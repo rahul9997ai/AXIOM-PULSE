@@ -6,7 +6,7 @@ import { applyTheme, getStoredTheme } from '@/lib/theme';
 import App from './App';
 import './styles.css';
 
-applyTheme(getStoredTheme());
+applyTheme(getStoredTheme(), { persist: false });
 
 if ('serviceWorker' in navigator) {
   window.addEventListener('load', () => {

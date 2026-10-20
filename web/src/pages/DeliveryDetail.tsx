@@ -256,22 +256,22 @@ export default function DeliveryDetail() {
     }}>
       <div className="detail-layout">
       <div className="detail-main">
-        <Link to="/" style={{ fontSize: 13, color: 'var(--accent)', textDecoration: 'none', fontWeight: 700 }}>‹ Back to Deliveries</Link>
+        <Link to="/" style={{ fontSize: '0.8125rem', color: 'var(--accent)', textDecoration: 'none', fontWeight: 700 }}>‹ Back to Deliveries</Link>
 
         {ownsHattrickDecision && showHattrickChoice && !enteringDate && (
           <div style={{
             padding: '12px 14px', background: 'var(--banner-warn-bg)', border: '1px solid var(--banner-warn-border)',
             borderRadius: 12, color: 'var(--banner-warn-fg)',
           }}>
-            <div style={{ fontWeight: 800, fontSize: 13.5 }}>Was this part of a hat-trick?</div>
-            <div style={{ fontSize: 12, marginTop: 2, marginBottom: 10, opacity: 0.9 }}>
+            <div style={{ fontWeight: 800, fontSize: '0.84375rem' }}>Was this part of a hat-trick?</div>
+            <div style={{ fontSize: '0.75rem', marginTop: 2, marginBottom: 10, opacity: 0.9 }}>
               3+ vehicles sold the same day. Just a quick yes/no — you'll only need the exact date if it's a yes.
             </div>
             <div style={{ display: 'flex', gap: 8 }}>
               <button
                 type="button"
                 className="btn"
-                style={{ flex: 1, padding: '8px 0', fontSize: 13 }}
+                style={{ flex: 1, padding: '8px 0', fontSize: '0.8125rem' }}
                 disabled={savingHattrick}
                 onClick={chooseIsHattrick}
               >
@@ -280,7 +280,7 @@ export default function DeliveryDetail() {
               <button
                 type="button"
                 className="btn secondary"
-                style={{ flex: 1, padding: '8px 0', fontSize: 13 }}
+                style={{ flex: 1, padding: '8px 0', fontSize: '0.8125rem' }}
                 disabled={savingHattrick}
                 onClick={chooseNotHattrick}
               >
@@ -291,7 +291,7 @@ export default function DeliveryDetail() {
               <button
                 type="button"
                 onClick={() => setHattrickOpen(false)}
-                style={{ background: 'none', border: 'none', color: 'var(--banner-warn-fg)', fontSize: 12, fontWeight: 700, marginTop: 8, cursor: 'pointer', padding: 0 }}
+                style={{ background: 'none', border: 'none', color: 'var(--banner-warn-fg)', fontSize: '0.75rem', fontWeight: 700, marginTop: 8, cursor: 'pointer', padding: 0 }}
               >
                 Cancel
               </button>
@@ -304,8 +304,8 @@ export default function DeliveryDetail() {
             padding: '12px 14px', background: 'var(--banner-warn-bg)', border: '1px solid var(--banner-warn-border)',
             borderRadius: 12, color: 'var(--banner-warn-fg)',
           }}>
-            <div style={{ fontWeight: 800, fontSize: 13.5 }}>What date did it sell?</div>
-            <div style={{ fontSize: 12, marginTop: 2, marginBottom: 10, opacity: 0.9 }}>
+            <div style={{ fontWeight: 800, fontSize: '0.84375rem' }}>What date did it sell?</div>
+            <div style={{ fontSize: '0.75rem', marginTop: 2, marginBottom: 10, opacity: 0.9 }}>
               From memory is fine — this just groups same-day sales for the bonus.
             </div>
             <div style={{ display: 'flex', gap: 8 }}>
@@ -318,7 +318,7 @@ export default function DeliveryDetail() {
               <button
                 type="button"
                 className="btn"
-                style={{ padding: '8px 16px', fontSize: 13 }}
+                style={{ padding: '8px 16px', fontSize: '0.8125rem' }}
                 disabled={savingHattrick || !soldAtDraft}
                 onClick={confirmHattrickDate}
               >
@@ -328,7 +328,7 @@ export default function DeliveryDetail() {
             <button
               type="button"
               onClick={() => setEnteringDate(false)}
-              style={{ background: 'none', border: 'none', color: 'var(--banner-warn-fg)', fontSize: 12, fontWeight: 700, marginTop: 8, cursor: 'pointer', padding: 0 }}
+              style={{ background: 'none', border: 'none', color: 'var(--banner-warn-fg)', fontSize: '0.75rem', fontWeight: 700, marginTop: 8, cursor: 'pointer', padding: 0 }}
             >
               Back
             </button>
@@ -338,7 +338,7 @@ export default function DeliveryDetail() {
         {ownsHattrickDecision && !showHattrickChoice && (
           <div style={{
             display: 'flex', justifyContent: 'space-between', alignItems: 'center',
-            padding: '10px 14px', background: 'var(--surface)', border: '1px solid var(--line)', borderRadius: 12, fontSize: 12.5,
+            padding: '10px 14px', background: 'var(--surface)', border: '1px solid var(--line)', borderRadius: 12, fontSize: '0.78125rem',
           }}>
             <span>
               {d.sold_at
@@ -348,7 +348,7 @@ export default function DeliveryDetail() {
             <button
               type="button"
               onClick={() => setHattrickOpen(true)}
-              style={{ background: 'none', border: 'none', color: 'var(--accent)', fontSize: 12, fontWeight: 700, cursor: 'pointer', padding: 0 }}
+              style={{ background: 'none', border: 'none', color: 'var(--accent)', fontSize: '0.75rem', fontWeight: 700, cursor: 'pointer', padding: 0 }}
             >
               Change
             </button>
@@ -359,10 +359,10 @@ export default function DeliveryDetail() {
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 8 }}>
           <div style={{ minWidth: 0 }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
-              <span style={{ fontWeight: 800, fontSize: 20, lineHeight: 1.25 }}>{d.customer_name}</span>
+              <span style={{ fontWeight: 800, fontSize: '1.25rem', lineHeight: 1.25 }}>{d.customer_name}</span>
               {d.stock_number && (
                 <span style={{
-                  fontSize: 12, fontWeight: 800, letterSpacing: 0.3, color: 'var(--accent)',
+                  fontSize: '0.75rem', fontWeight: 800, letterSpacing: 0.3, color: 'var(--accent)',
                   background: 'var(--surface)', border: '1px solid var(--line)', borderRadius: 7, padding: '3px 8px',
                 }}>
                   Stock #{d.stock_number}
@@ -370,7 +370,7 @@ export default function DeliveryDetail() {
               )}
               {d.vehicle_condition && (
                 <span style={{
-                  fontSize: 12, fontWeight: 800, letterSpacing: 0.3, color: 'var(--muted)',
+                  fontSize: '0.75rem', fontWeight: 800, letterSpacing: 0.3, color: 'var(--muted)',
                   background: 'var(--surface)', border: '1px solid var(--line)', borderRadius: 7, padding: '3px 8px',
                 }}>
                   {d.vehicle_condition === 'new' ? 'New' : 'Used'}
@@ -378,14 +378,14 @@ export default function DeliveryDetail() {
               )}
             </div>
             {(d.vehicle || d.vin) && (
-              <div style={{ display: 'flex', alignItems: 'center', gap: 6, color: 'var(--muted)', marginTop: 3, fontSize: 13 }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 6, color: 'var(--muted)', marginTop: 3, fontSize: '0.8125rem' }}>
                 <CarIcon size={13} />
                 {[d.vehicle, d.vin ? `VIN ${d.vin}` : null].filter(Boolean).join(' · ')}
               </div>
             )}
           </div>
           <span style={{
-            flexShrink: 0, fontSize: 10, fontWeight: 800, letterSpacing: 0.3, textTransform: 'uppercase',
+            flexShrink: 0, fontSize: '0.625rem', fontWeight: 800, letterSpacing: 0.3, textTransform: 'uppercase',
             background: sc.bg, color: sc.fg, padding: '4px 9px', borderRadius: 999,
           }}>
             {STATUS_LABEL[d.status]}
@@ -399,7 +399,7 @@ export default function DeliveryDetail() {
               <button
                 type="button"
                 onClick={() => downloadDeliveryIcs(d)}
-                style={{ border: 'none', color: 'var(--pill-green-fg)', background: 'var(--card)', borderRadius: 9, padding: '4px 9px', fontSize: 11, fontWeight: 700, cursor: 'pointer', boxShadow: '0 2px 5px rgba(21,128,61,0.18)' }}
+                style={{ border: 'none', color: 'var(--pill-green-fg)', background: 'var(--card)', borderRadius: 9, padding: '4px 9px', fontSize: '0.6875rem', fontWeight: 700, cursor: 'pointer', boxShadow: '0 2px 5px rgba(21,128,61,0.18)' }}
               >
                 + Calendar
               </button>
@@ -407,12 +407,12 @@ export default function DeliveryDetail() {
           />
         </div>
         {d.status === 'delivered' && d.delivered_at && (
-          <div style={{ color: '#15803d', fontSize: 12.5, fontWeight: 700, marginTop: 6 }}>
+          <div style={{ color: '#15803d', fontSize: '0.78125rem', fontWeight: 700, marginTop: 6 }}>
             Delivered {new Date(d.delivered_at).toLocaleString()}
           </div>
         )}
 
-        <div style={{ display: 'grid', gap: 6, marginTop: 12, fontSize: 13.5 }}>
+        <div style={{ display: 'grid', gap: 6, marginTop: 12, fontSize: '0.84375rem' }}>
           <div style={{ display: 'flex', alignItems: 'flex-start', gap: 7 }}>
             <span style={{ color: 'var(--muted)', marginTop: 2, flexShrink: 0 }}><PinIcon size={13} /></span>
             <div style={{ color: 'var(--text)' }}>
@@ -421,7 +421,7 @@ export default function DeliveryDetail() {
                 <a
                   href={`https://maps.google.com/?q=${encodeURIComponent(d.lenders.address)}`}
                   target="_blank" rel="noreferrer"
-                  style={{ display: 'block', color: 'var(--accent)', fontSize: 12.5, marginTop: 1, textDecoration: 'none' }}
+                  style={{ display: 'block', color: 'var(--accent)', fontSize: '0.78125rem', marginTop: 1, textDecoration: 'none' }}
                 >
                   {d.lenders.address}
                 </a>
@@ -438,7 +438,7 @@ export default function DeliveryDetail() {
         </div>
 
         {d.fsm_notes && (
-          <div style={{ marginTop: 10, fontSize: 13, fontStyle: 'italic', color: 'var(--muted)' }}>“{d.fsm_notes}”</div>
+          <div style={{ marginTop: 10, fontSize: '0.8125rem', fontStyle: 'italic', color: 'var(--muted)' }}>“{d.fsm_notes}”</div>
         )}
 
         {isManager && (
@@ -465,14 +465,14 @@ export default function DeliveryDetail() {
         )}
       </div>
 
-      {notice && <div className="card-3d tint-blue" style={{ fontSize: 13 }}>{notice}</div>}
+      {notice && <div className="card-3d tint-blue" style={{ fontSize: '0.8125rem' }}>{notice}</div>}
 
       {d.status === 'delivered' && <ThankYouCard delivery={d} />}
 
       {requirements.length > 0 && (
         <div className="card-3d tint-blue">
-          <h3 style={{ marginTop: 0, fontSize: 14 }}>Requirements</h3>
-          <p style={{ color: 'var(--muted)', fontSize: 12, marginTop: -6, marginBottom: 14 }}>
+          <h3 style={{ marginTop: 0, fontSize: '0.875rem' }}>Requirements</h3>
+          <p style={{ color: 'var(--muted)', fontSize: '0.75rem', marginTop: -6, marginBottom: 14 }}>
             {canActOnBehalf
               ? 'Tap to complete on the salesperson\'s behalf, tap again to undo — they\'re notified of each change. Tap the ! badge to record an exception.'
               : 'Tap to mark complete, tap again to undo. Tap the ! badge to flag an exception instead.'}
@@ -499,25 +499,25 @@ export default function DeliveryDetail() {
       {/* Comments sit beside the delivery on desktop, below it on phones. */}
       <div className="detail-side">
       <div className="card-3d tint-blue">
-        <h3 style={{ marginTop: 0, fontSize: 14 }}>Comments</h3>
-        <p style={{ color: 'var(--muted)', fontSize: 12.5, marginTop: -6 }}>
+        <h3 style={{ marginTop: 0, fontSize: '0.875rem' }}>Comments</h3>
+        <p style={{ color: 'var(--muted)', fontSize: '0.78125rem', marginTop: -6 }}>
           A comment flagged "Needs approval" gets a Finance Manager decision — approve or deny (with a reason).
         </p>
         <div style={{ display: 'grid', gap: 10, marginBottom: 12 }}>
-          {comments.length === 0 && <div style={{ color: 'var(--muted)', fontSize: 13 }}>No comments yet.</div>}
+          {comments.length === 0 && <div style={{ color: 'var(--muted)', fontSize: '0.8125rem' }}>No comments yet.</div>}
           {comments.map((c) => (
             <div key={c.id} style={{ borderBottom: '1px solid var(--line)', paddingBottom: 9 }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 12, color: 'var(--muted)' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.75rem', color: 'var(--muted)' }}>
                 <span style={{ fontWeight: 700, color: 'var(--text)' }}>{c.author_name} <span style={{ fontWeight: 500, color: 'var(--muted)' }}>· {c.author_role}</span></span>
                 <span>{new Date(c.created_at).toLocaleString([], { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' })}</span>
               </div>
-              <div style={{ fontSize: 13.5, marginTop: 3, color: 'var(--text)' }}>{c.body}</div>
+              <div style={{ fontSize: '0.84375rem', marginTop: 3, color: 'var(--text)' }}>{c.body}</div>
 
               {c.requires_decision ? (
                 <div style={{ marginTop: 6 }}>
                   {c.status === 'pending' && (
                     <span style={{
-                      fontSize: 9.5, fontWeight: 800, letterSpacing: 0.3, textTransform: 'uppercase',
+                      fontSize: '0.59375rem', fontWeight: 800, letterSpacing: 0.3, textTransform: 'uppercase',
                       color: '#92400e', background: 'var(--banner-warn-bg)', border: '1px solid var(--banner-warn-border)',
                       padding: '3px 8px', borderRadius: 6,
                     }}>
@@ -525,17 +525,17 @@ export default function DeliveryDetail() {
                     </span>
                   )}
                   {c.status === 'approved' && (
-                    <span style={{ fontSize: 11, fontWeight: 700, color: '#15803d' }}>✓ Approved by {c.decided_by_name}</span>
+                    <span style={{ fontSize: '0.6875rem', fontWeight: 700, color: '#15803d' }}>✓ Approved by {c.decided_by_name}</span>
                   )}
                   {c.status === 'denied' && (
-                    <div style={{ fontSize: 11.5, fontWeight: 700, color: '#a3261b' }}>
+                    <div style={{ fontSize: '0.71875rem', fontWeight: 700, color: '#a3261b' }}>
                       ✕ Denied by {c.decided_by_name}{c.decision_reason ? ` — ${c.decision_reason}` : ''}
                     </div>
                   )}
                 </div>
               ) : (
                 <span style={{
-                  display: 'inline-block', marginTop: 6, fontSize: 9.5, fontWeight: 800, letterSpacing: 0.3, textTransform: 'uppercase',
+                  display: 'inline-block', marginTop: 6, fontSize: '0.59375rem', fontWeight: 800, letterSpacing: 0.3, textTransform: 'uppercase',
                   color: 'var(--muted)', background: 'var(--surface)', border: '1px solid var(--line)',
                   padding: '3px 8px', borderRadius: 6,
                 }}>
@@ -549,14 +549,14 @@ export default function DeliveryDetail() {
                     <div style={{ display: 'grid', gap: 6 }}>
                       <textarea placeholder="Reason for denial" value={denyReason} onChange={(e) => setDenyReason(e.target.value)} rows={2} />
                       <div style={{ display: 'flex', gap: 6 }}>
-                        <button className="btn" style={{ padding: '5px 10px', fontSize: 12, flex: 1 }} disabled={!denyReason.trim()} onClick={() => decide(c, 'denied', denyReason.trim())}>Confirm denial</button>
-                        <button className="btn secondary" style={{ padding: '5px 10px', fontSize: 12 }} onClick={() => { setDenyFor(null); setDenyReason(''); }}>Cancel</button>
+                        <button className="btn" style={{ padding: '5px 10px', fontSize: '0.75rem', flex: 1 }} disabled={!denyReason.trim()} onClick={() => decide(c, 'denied', denyReason.trim())}>Confirm denial</button>
+                        <button className="btn secondary" style={{ padding: '5px 10px', fontSize: '0.75rem' }} onClick={() => { setDenyFor(null); setDenyReason(''); }}>Cancel</button>
                       </div>
                     </div>
                   ) : (
                     <div style={{ display: 'flex', gap: 6 }}>
-                      <button className="btn secondary" style={{ padding: '4px 10px', fontSize: 12, borderColor: '#15803d', color: '#15803d' }} onClick={() => decide(c, 'approved')}>Approve</button>
-                      <button className="btn secondary" style={{ padding: '4px 10px', fontSize: 12, borderColor: '#dc2626', color: '#dc2626' }} onClick={() => setDenyFor(c.id)}>Deny</button>
+                      <button className="btn secondary" style={{ padding: '4px 10px', fontSize: '0.75rem', borderColor: '#15803d', color: '#15803d' }} onClick={() => decide(c, 'approved')}>Approve</button>
+                      <button className="btn secondary" style={{ padding: '4px 10px', fontSize: '0.75rem', borderColor: '#dc2626', color: '#dc2626' }} onClick={() => setDenyFor(c.id)}>Deny</button>
                     </div>
                   )}
                 </div>
@@ -576,7 +576,7 @@ export default function DeliveryDetail() {
                     type="button"
                     onClick={() => setCommentNeedsApproval(needsApproval)}
                     style={{
-                      flex: 1, border: 'none', borderRadius: 9, padding: '8px 0', fontSize: 12.5, fontWeight: 700,
+                      flex: 1, border: 'none', borderRadius: 9, padding: '8px 0', fontSize: '0.78125rem', fontWeight: 700,
                       cursor: 'pointer',
                       background: commentNeedsApproval === needsApproval ? 'var(--card)' : 'transparent',
                       color: commentNeedsApproval === needsApproval
@@ -589,7 +589,7 @@ export default function DeliveryDetail() {
                   </button>
                 ))}
               </div>
-              <p style={{ color: 'var(--muted)', fontSize: 11.5, margin: '-2px 0 0' }}>
+              <p style={{ color: 'var(--muted)', fontSize: '0.71875rem', margin: '-2px 0 0' }}>
                 {commentNeedsApproval
                   ? 'This pushes an approval request to the Finance Manager and shows Approve/Deny until they decide.'
                   : 'This just posts and notifies the Finance Manager — no decision required.'}
@@ -639,7 +639,7 @@ function AvatarBadge({ name, from, to, dark }: { name: string; from: string; to:
   return (
     <span style={{
       width: 22, height: 22, borderRadius: '50%', flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center',
-      fontSize: 9.5, fontWeight: 800, color: dark ?? '#fff',
+      fontSize: '0.59375rem', fontWeight: 800, color: dark ?? '#fff',
       background: `radial-gradient(circle at 35% 30%, ${from}, ${to})`,
       boxShadow: `0 2px 5px ${to}66`,
     }}>

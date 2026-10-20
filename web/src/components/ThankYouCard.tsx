@@ -47,32 +47,32 @@ export default function ThankYouCard({ delivery }: { delivery: Delivery }) {
     <div className="card-3d tint-blue thankyou-card">
       <button type="button" className="thankyou-head" aria-expanded={open} onClick={() => setOpen((v) => !v)}>
         <div style={{ minWidth: 0, textAlign: 'left' }}>
-          <h3 style={{ margin: 0, fontSize: 14 }}>Customer thank-you email</h3>
-          <div style={{ fontSize: 12, color: 'var(--muted)', marginTop: 3 }}>
+          <h3 style={{ margin: 0, fontSize: '0.875rem' }}>Customer thank-you email</h3>
+          <div style={{ fontSize: '0.75rem', color: 'var(--muted)', marginTop: 3 }}>
             {used ? 'Pre-owned · asks for a Google review and referrals' : 'New vehicle · asks them to complete the survey'}
           </div>
         </div>
-        <span aria-hidden="true" style={{ fontSize: 18, color: 'var(--muted)', transform: open ? 'rotate(90deg)' : 'none', transition: 'transform .15s' }}>›</span>
+        <span aria-hidden="true" style={{ fontSize: '1.125rem', color: 'var(--muted)', transform: open ? 'rotate(90deg)' : 'none', transition: 'transform .15s' }}>›</span>
       </button>
 
       {open && (
         <div style={{ display: 'grid', gap: 10, marginTop: 12 }}>
-          <p style={{ fontSize: 12.5, color: 'var(--muted)', margin: 0, lineHeight: 1.5 }}>
+          <p style={{ fontSize: '0.78125rem', color: 'var(--muted)', margin: 0, lineHeight: 1.5 }}>
             Send this to {input.customerName.split(' ')[0]} from your own work email — copy it, or open it straight in your email app.
           </p>
           <div className="thankyou-subject">
-            <span style={{ fontSize: 11.5, fontWeight: 700, color: 'var(--muted)' }}>Subject</span>
-            <span style={{ fontWeight: 700, fontSize: 13.5, minWidth: 0, flex: 1 }}>{message.subject}</span>
-            <button type="button" className="btn-3d" style={{ fontSize: 11.5, padding: '4px 10px' }} onClick={() => copy('subject')}>
+            <span style={{ fontSize: '0.71875rem', fontWeight: 700, color: 'var(--muted)' }}>Subject</span>
+            <span style={{ fontWeight: 700, fontSize: '0.84375rem', minWidth: 0, flex: 1 }}>{message.subject}</span>
+            <button type="button" className="btn-3d" style={{ fontSize: '0.71875rem', padding: '4px 10px' }} onClick={() => copy('subject')}>
               {copied === 'subject' ? '✓ Copied' : 'Copy'}
             </button>
           </div>
           <div className="thankyou-body" dangerouslySetInnerHTML={{ __html: customerMessageHtml(input) }} />
           <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
-            <button type="button" className="btn" style={{ flex: '1 1 140px', fontSize: 14 }} onClick={() => copy('message')}>
+            <button type="button" className="btn" style={{ flex: '1 1 140px', fontSize: '0.875rem' }} onClick={() => copy('message')}>
               {copied === 'message' ? '✓ Message copied' : 'Copy message'}
             </button>
-            <a className="btn secondary" style={{ flex: '1 1 140px', fontSize: 14, textAlign: 'center', textDecoration: 'none', display: 'flex', alignItems: 'center', justifyContent: 'center' }} href={mailtoHref(input)}>
+            <a className="btn secondary" style={{ flex: '1 1 140px', fontSize: '0.875rem', textAlign: 'center', textDecoration: 'none', display: 'flex', alignItems: 'center', justifyContent: 'center' }} href={mailtoHref(input)}>
               Open in my email app
             </a>
           </div>

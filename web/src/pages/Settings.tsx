@@ -54,7 +54,7 @@ export default function Settings() {
   const [reportDealership, setReportDealership] = useState<DealershipDetails | null>(null);
   const [dealershipReportRows, setDealershipReportRows] = useState<DealershipReportRow[]>([]);
 
-  const onSetTheme = (t: Theme) => { setTheme(t); applyTheme(t); };
+  const onSetTheme = (t: Theme) => { setTheme(t); applyTheme(t, { animate: true }); };
 
   const [dealerships, setDealerships] = useState<Dealership[]>([]);
   const [selectedDealershipId, setSelectedDealershipId] = useState(actingDealershipId);
@@ -306,13 +306,13 @@ export default function Settings() {
       <div className="card">
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
           <div>
-            <div style={{ fontWeight: 700, fontSize: 15 }}>{profile?.name}</div>
-            <div style={{ color: 'var(--muted)', fontSize: 13 }}>{profile?.role}</div>
+            <div style={{ fontWeight: 700, fontSize: '0.9375rem' }}>{profile?.name}</div>
+            <div style={{ color: 'var(--muted)', fontSize: '0.8125rem' }}>{profile?.role}</div>
           </div>
           <button
             type="button"
             className="btn secondary"
-            style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '8px 14px', fontSize: 13 }}
+            style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '8px 14px', fontSize: '0.8125rem' }}
             onClick={() => supabase.auth.signOut()}
           >
             <LogOutIcon size={16} /> Sign out
@@ -323,7 +323,7 @@ export default function Settings() {
       <NotifyEmailCard />
 
       <div className="card">
-        <div style={{ color: 'var(--muted)', fontWeight: 800, fontSize: 12, letterSpacing: 1, marginBottom: 10 }}>APPEARANCE</div>
+        <div style={{ color: 'var(--muted)', fontWeight: 800, fontSize: '0.75rem', letterSpacing: 1, marginBottom: 10 }}>APPEARANCE</div>
         <div style={{ display: 'flex', gap: 8 }}>
           {(['light', 'dark'] as const).map((t) => (
             <button
@@ -341,8 +341,8 @@ export default function Settings() {
 
       {isSalesperson && (
         <div className="card">
-          <div style={{ color: 'var(--muted)', fontWeight: 800, fontSize: 12, letterSpacing: 1, marginBottom: 6 }}>MONTHLY REPORT</div>
-          <p style={{ color: 'var(--muted)', fontSize: 13, marginTop: 0, marginBottom: 12 }}>
+          <div style={{ color: 'var(--muted)', fontWeight: 800, fontSize: '0.75rem', letterSpacing: 1, marginBottom: 6 }}>MONTHLY REPORT</div>
+          <p style={{ color: 'var(--muted)', fontSize: '0.8125rem', marginTop: 0, marginBottom: 12 }}>
             A PDF of every delivery completed for the selected month — customer name, Finance Manager and delivery date.
             {isMaster && ` Viewing ${reportSalespersonName}'s report.`}
           </p>
@@ -356,17 +356,17 @@ export default function Settings() {
             ))}
           </select>
 
-          {reportLoading && <div style={{ color: 'var(--muted)', fontSize: 12.5, marginBottom: 10 }}>Loading deliveries…</div>}
+          {reportLoading && <div style={{ color: 'var(--muted)', fontSize: '0.78125rem', marginBottom: 10 }}>Loading deliveries…</div>}
 
           {!reportLoading && completedThisMonth.length > 0 && (
             <div style={{
               marginBottom: 12, padding: 10, borderRadius: 10,
               background: 'var(--banner-ok-bg)', border: '1px solid var(--banner-ok-border)',
             }}>
-              <div style={{ fontWeight: 800, fontSize: 12.5, color: 'var(--banner-ok-fg)' }}>
+              <div style={{ fontWeight: 800, fontSize: '0.78125rem', color: 'var(--banner-ok-fg)' }}>
                 {completedThisMonth.length === 1 ? '1 hat-trick bonus' : `${completedThisMonth.length} hat-trick bonuses`} complete this month
               </div>
-              <div style={{ fontSize: 11.5, color: 'var(--banner-ok-fg)', marginTop: 3, opacity: 0.9 }}>
+              <div style={{ fontSize: '0.71875rem', color: 'var(--banner-ok-fg)', marginTop: 3, opacity: 0.9 }}>
                 Detected automatically from sold dates — included on the PDF below.
               </div>
             </div>
@@ -380,14 +380,14 @@ export default function Settings() {
               {reportBusy === 'share' ? 'Preparing…' : 'Share / Email'}
             </button>
           </div>
-          {reportNotice && <p style={{ color: 'var(--muted)', fontSize: 12.5, marginTop: 10, marginBottom: 0 }}>{reportNotice}</p>}
+          {reportNotice && <p style={{ color: 'var(--muted)', fontSize: '0.78125rem', marginTop: 10, marginBottom: 0 }}>{reportNotice}</p>}
         </div>
       )}
 
       {isSalesperson && pendingHattricks.length > 0 && (
         <div className="card">
-          <div style={{ color: 'var(--muted)', fontWeight: 800, fontSize: 12, letterSpacing: 1, marginBottom: 6 }}>PENDING HAT-TRICKS</div>
-          <p style={{ color: 'var(--muted)', fontSize: 13, marginTop: 0, marginBottom: 10 }}>
+          <div style={{ color: 'var(--muted)', fontWeight: 800, fontSize: '0.75rem', letterSpacing: 1, marginBottom: 6 }}>PENDING HAT-TRICKS</div>
+          <p style={{ color: 'var(--muted)', fontSize: '0.8125rem', marginTop: 0, marginBottom: 10 }}>
             3+ vehicles sold the same day — included on the PDF as a status snapshot, and the bonus itself moves into the report once every one of them is delivered.
           </p>
           <div style={{ display: 'grid', gap: 10 }}>
@@ -395,10 +395,10 @@ export default function Settings() {
               const outstanding = g.members.filter((m) => m.status !== 'delivered');
               return (
                 <div key={g.soldAt} style={{ borderBottom: '1px solid var(--line)', paddingBottom: 8 }}>
-                  <div style={{ fontWeight: 700, fontSize: 13 }}>
+                  <div style={{ fontWeight: 700, fontSize: '0.8125rem' }}>
                     Sold {new Date(`${g.soldAt}T00:00:00`).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' })} · {g.members.length} vehicles
                   </div>
-                  <div style={{ fontSize: 12, color: 'var(--muted)', marginTop: 2 }}>
+                  <div style={{ fontSize: '0.75rem', color: 'var(--muted)', marginTop: 2 }}>
                     Still waiting on: {outstanding.map((m) => m.customer_name).join(', ')}
                   </div>
                 </div>
@@ -410,8 +410,8 @@ export default function Settings() {
 
       {isSalesManager && (
         <div className="card">
-          <div style={{ color: 'var(--muted)', fontWeight: 800, fontSize: 12, letterSpacing: 1, marginBottom: 6 }}>DEALERSHIP DELIVERY REPORT</div>
-          <p style={{ color: 'var(--muted)', fontSize: 13, marginTop: 0, marginBottom: 12 }}>
+          <div style={{ color: 'var(--muted)', fontWeight: 800, fontSize: '0.75rem', letterSpacing: 1, marginBottom: 6 }}>DEALERSHIP DELIVERY REPORT</div>
+          <p style={{ color: 'var(--muted)', fontSize: '0.8125rem', marginTop: 0, marginBottom: 12 }}>
             A PDF of every delivery completed dealership-wide for the selected month — customer name, salesperson, Finance Manager and delivery date.
           </p>
           <select
@@ -424,7 +424,7 @@ export default function Settings() {
             ))}
           </select>
 
-          {reportLoading && <div style={{ color: 'var(--muted)', fontSize: 12.5, marginBottom: 10 }}>Loading deliveries…</div>}
+          {reportLoading && <div style={{ color: 'var(--muted)', fontSize: '0.78125rem', marginBottom: 10 }}>Loading deliveries…</div>}
 
           <div style={{ display: 'flex', gap: 8 }}>
             <button type="button" className="btn secondary" style={{ flex: 1 }} disabled={reportBusy !== null} onClick={runDownloadDealershipReport}>
@@ -434,7 +434,7 @@ export default function Settings() {
               {reportBusy === 'share' ? 'Preparing…' : 'Share / Email'}
             </button>
           </div>
-          {reportNotice && <p style={{ color: 'var(--muted)', fontSize: 12.5, marginTop: 10, marginBottom: 0 }}>{reportNotice}</p>}
+          {reportNotice && <p style={{ color: 'var(--muted)', fontSize: '0.78125rem', marginTop: 10, marginBottom: 0 }}>{reportNotice}</p>}
         </div>
       )}
 
@@ -444,7 +444,7 @@ export default function Settings() {
 
       {canManageLists && isMaster && (
         <div className="card">
-          <div style={{ color: 'var(--muted)', fontWeight: 800, fontSize: 12, letterSpacing: 1, marginBottom: 8 }}>DEALERSHIP</div>
+          <div style={{ color: 'var(--muted)', fontWeight: 800, fontSize: '0.75rem', letterSpacing: 1, marginBottom: 8 }}>DEALERSHIP</div>
           <select value={selectedDealershipId} onChange={(e) => setSelectedDealershipId(e.target.value)}>
             {dealerships.length === 0 && <option value="">No dealerships yet</option>}
             {dealerships.map((d) => <option key={d.id} value={d.id}>{d.name}</option>)}
@@ -456,15 +456,15 @@ export default function Settings() {
 
       {(isMaster || profile?.role === 'General Manager') && dealershipId && <ThankYouSettingsPanel dealershipId={dealershipId} />}
 
-      {error && <div className="card" style={{ fontSize: 13, color: '#a3261b' }}>{error}</div>}
+      {error && <div className="card" style={{ fontSize: '0.8125rem', color: '#a3261b' }}>{error}</div>}
 
       {canManageLists && (
         <Link to="/lenders" className="card settings-link">
           <div>
-            <div style={{ fontWeight: 700, fontSize: 15 }}>Lenders &amp; requirements</div>
-            <div style={{ color: 'var(--muted)', fontSize: 13, marginTop: 2 }}>Lenders, lessors and the requirement checklist offered on new deliveries.</div>
+            <div style={{ fontWeight: 700, fontSize: '0.9375rem' }}>Lenders &amp; requirements</div>
+            <div style={{ color: 'var(--muted)', fontSize: '0.8125rem', marginTop: 2 }}>Lenders, lessors and the requirement checklist offered on new deliveries.</div>
           </div>
-          <span aria-hidden="true" style={{ fontSize: 20, color: 'var(--muted)' }}>›</span>
+          <span aria-hidden="true" style={{ fontSize: '1.25rem', color: 'var(--muted)' }}>›</span>
         </Link>
       )}
     </div>

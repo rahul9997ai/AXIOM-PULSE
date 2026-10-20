@@ -81,16 +81,16 @@ function FsmClosePanel() {
 
   return (
     <div style={{ display: 'grid', gap: 14, maxWidth: 640, margin: '0 auto' }}>
-      <Link to="/" style={{ fontSize: 13, color: 'var(--accent)', textDecoration: 'none', fontWeight: 700 }}>‹ Back to Deliveries</Link>
-      <h1 style={{ fontSize: 22, fontWeight: 700, letterSpacing: '-0.02em', margin: 0 }}>Close {label}</h1>
+      <Link to="/" style={{ fontSize: '0.8125rem', color: 'var(--accent)', textDecoration: 'none', fontWeight: 700 }}>‹ Back to Deliveries</Link>
+      <h1 style={{ fontSize: '1.375rem', fontWeight: 700, letterSpacing: '-0.02em', margin: 0 }}>Close {label}</h1>
 
       {loading && <div style={{ color: 'var(--muted)' }}>Loading…</div>}
 
       {!loading && closed && (
         <div className="card" style={{ textAlign: 'center', padding: 24 }}>
-          <div style={{ fontSize: 32 }}>✓</div>
-          <div style={{ fontWeight: 800, fontSize: 17, marginTop: 6 }}>{label} is closed</div>
-          <div style={{ color: 'var(--muted)', fontSize: 13, marginTop: 4 }}>
+          <div style={{ fontSize: '2rem' }}>✓</div>
+          <div style={{ fontWeight: 800, fontSize: '1.0625rem', marginTop: 6 }}>{label} is closed</div>
+          <div style={{ color: 'var(--muted)', fontSize: '0.8125rem', marginTop: 4 }}>
             Closed by {closed.fsm_name ?? 'a Finance Manager'} on {new Date(closed.closed_at).toLocaleString()}. Salespeople now see this reflected on their dashboard.
           </div>
         </div>
@@ -99,8 +99,8 @@ function FsmClosePanel() {
       {!loading && !closed && (
         <>
           <div className="card">
-            <h3 style={{ marginTop: 0, fontSize: 14 }}>Summary</h3>
-            <p style={{ color: 'var(--muted)', fontSize: 13, marginTop: -4 }}>
+            <h3 style={{ marginTop: 0, fontSize: '0.875rem' }}>Summary</h3>
+            <p style={{ color: 'var(--muted)', fontSize: '0.8125rem', marginTop: -4 }}>
               Review what's still open from {label} before closing it. Closing doesn't change or lock any
               records — it's a confirmation that you've reviewed the month.
             </p>
@@ -112,22 +112,22 @@ function FsmClosePanel() {
 
           {undelivered.length > 0 && (
             <div className="card">
-              <h3 style={{ marginTop: 0, fontSize: 14 }}>Still not delivered</h3>
+              <h3 style={{ marginTop: 0, fontSize: '0.875rem' }}>Still not delivered</h3>
               <div style={{ display: 'grid', gap: 10 }}>
                 {undelivered.map((d) => {
                   const open = (d.delivery_requirements || []).filter((r) => r.status === 'outstanding');
                   return (
                     <Link key={d.id} to={`/delivery/${d.id}`} style={{ textDecoration: 'none', color: 'inherit', borderBottom: '1px solid var(--line)', paddingBottom: 8 }}>
                       <div style={{ display: 'flex', justifyContent: 'space-between', gap: 8 }}>
-                        <span style={{ fontWeight: 700, fontSize: 13.5 }}>
+                        <span style={{ fontWeight: 700, fontSize: '0.84375rem' }}>
                           {d.customer_name}{d.stock_number ? ` · Stock #${d.stock_number}` : ''}
                         </span>
-                        <span style={{ color: 'var(--muted)', fontSize: 12 }}>
+                        <span style={{ color: 'var(--muted)', fontSize: '0.75rem' }}>
                           {new Date(d.delivery_at).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}
                         </span>
                       </div>
                       {open.length > 0 && (
-                        <div style={{ color: '#b45309', fontSize: 12, marginTop: 2 }}>
+                        <div style={{ color: '#b45309', fontSize: '0.75rem', marginTop: 2 }}>
                           Open: {open.map((r) => r.label).join(', ')}
                         </div>
                       )}
@@ -138,7 +138,7 @@ function FsmClosePanel() {
             </div>
           )}
 
-          {error && <div className="card" style={{ fontSize: 13, color: '#a3261b' }}>{error}</div>}
+          {error && <div className="card" style={{ fontSize: '0.8125rem', color: '#a3261b' }}>{error}</div>}
 
           <button className="btn" disabled={closing} onClick={closeMonth}>
             {closing ? 'Closing…' : `Close ${label}`}
@@ -182,22 +182,22 @@ function ReopenPanel() {
 
   return (
     <div style={{ display: 'grid', gap: 14, maxWidth: 640, margin: '0 auto' }}>
-      <Link to="/" style={{ fontSize: 13, color: 'var(--accent)', textDecoration: 'none', fontWeight: 700 }}>‹ Back to Deliveries</Link>
-      <h1 style={{ fontSize: 22, fontWeight: 700, letterSpacing: '-0.02em', margin: 0 }}>Closed Months</h1>
-      {notice && <div className="card" style={{ fontSize: 13 }}>{notice}</div>}
+      <Link to="/" style={{ fontSize: '0.8125rem', color: 'var(--accent)', textDecoration: 'none', fontWeight: 700 }}>‹ Back to Deliveries</Link>
+      <h1 style={{ fontSize: '1.375rem', fontWeight: 700, letterSpacing: '-0.02em', margin: 0 }}>Closed Months</h1>
+      {notice && <div className="card" style={{ fontSize: '0.8125rem' }}>{notice}</div>}
       <div className="card">
-        {loading && <div style={{ color: 'var(--muted)', fontSize: 13 }}>Loading…</div>}
-        {!loading && rows.length === 0 && <div style={{ color: 'var(--muted)', fontSize: 13 }}>No months have been closed yet.</div>}
+        {loading && <div style={{ color: 'var(--muted)', fontSize: '0.8125rem' }}>Loading…</div>}
+        {!loading && rows.length === 0 && <div style={{ color: 'var(--muted)', fontSize: '0.8125rem' }}>No months have been closed yet.</div>}
         <div style={{ display: 'grid', gap: 10 }}>
           {rows.map((c) => (
             <div key={c.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid var(--line)', paddingBottom: 8 }}>
               <div>
-                <div style={{ fontWeight: 700, fontSize: 14 }}>{monthLabel(c.year, c.month)}</div>
-                <div style={{ color: 'var(--muted)', fontSize: 12 }}>
+                <div style={{ fontWeight: 700, fontSize: '0.875rem' }}>{monthLabel(c.year, c.month)}</div>
+                <div style={{ color: 'var(--muted)', fontSize: '0.75rem' }}>
                   Closed by {c.fsm_name ?? 'Unknown FSM'} on {new Date(c.closed_at).toLocaleDateString()}
                 </div>
               </div>
-              <button type="button" className="btn secondary" style={{ padding: '4px 10px', fontSize: 12 }} disabled={reopeningId === c.id} onClick={() => reopen(c)}>
+              <button type="button" className="btn secondary" style={{ padding: '4px 10px', fontSize: '0.75rem' }} disabled={reopeningId === c.id} onClick={() => reopen(c)}>
                 {reopeningId === c.id ? 'Reopening…' : 'Reopen'}
               </button>
             </div>
@@ -212,8 +212,8 @@ function SummaryTile({ label, value, tone }: { label: string; value: number; ton
   const color = tone === 'warn' && value > 0 ? '#b45309' : '#15803d';
   return (
     <div className="card" style={{ flex: 1, padding: '12px 10px', textAlign: 'center' }}>
-      <div style={{ fontSize: 22, fontWeight: 800, color }}>{value}</div>
-      <div style={{ fontSize: 11, color: 'var(--muted)', fontWeight: 700, textTransform: 'uppercase', letterSpacing: 0.4, marginTop: 2 }}>{label}</div>
+      <div style={{ fontSize: '1.375rem', fontWeight: 800, color }}>{value}</div>
+      <div style={{ fontSize: '0.6875rem', color: 'var(--muted)', fontWeight: 700, textTransform: 'uppercase', letterSpacing: 0.4, marginTop: 2 }}>{label}</div>
     </div>
   );
 }

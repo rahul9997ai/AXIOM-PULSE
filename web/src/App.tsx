@@ -52,7 +52,7 @@ function NoPulseAccess() {
     <div style={{ display: 'grid', placeItems: 'center', minHeight: '100vh', padding: 16 }}>
       <div className="card" style={{ maxWidth: 380, textAlign: 'center' }}>
         <h3 style={{ marginTop: 0 }}>No Mahanex Pulse access</h3>
-        <p style={{ color: 'var(--muted)', fontSize: 13 }}>
+        <p style={{ color: 'var(--muted)', fontSize: '0.8125rem' }}>
           Your account doesn't have access to Mahanex Pulse. Contact your administrator if you think this is a mistake.
         </p>
         <button className="btn" onClick={() => supabase.auth.signOut()}>Sign out</button>

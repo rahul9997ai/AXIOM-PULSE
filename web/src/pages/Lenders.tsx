@@ -121,7 +121,7 @@ export default function LendersPage() {
 
       {isMaster && (
         <div className="card">
-          <div style={{ color: 'var(--muted)', fontWeight: 800, fontSize: 12, letterSpacing: 1, marginBottom: 8 }}>DEALERSHIP</div>
+          <div style={{ color: 'var(--muted)', fontWeight: 800, fontSize: '0.75rem', letterSpacing: 1, marginBottom: 8 }}>DEALERSHIP</div>
           <select value={selectedDealershipId} onChange={(e) => setSelectedDealershipId(e.target.value)}>
             {dealerships.length === 0 && <option value="">No dealerships yet</option>}
             {dealerships.map((d) => <option key={d.id} value={d.id}>{d.name}</option>)}
@@ -129,7 +129,7 @@ export default function LendersPage() {
         </div>
       )}
 
-      {error && <div className="card" style={{ fontSize: 13, color: '#a3261b' }}>{error}</div>}
+      {error && <div className="card" style={{ fontSize: '0.8125rem', color: '#a3261b' }}>{error}</div>}
 
       <section className="lr-section" aria-labelledby="req-title">
         <div className="lr-head">

@@ -65,7 +65,7 @@ export default function SalespersonHome({
       {tab === 'today' && (
         <>
           {itemsLeft > 0 && (
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 10, fontSize: 12, fontWeight: 700, color: 'var(--muted)' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 10, fontSize: '0.75rem', fontWeight: 700, color: 'var(--muted)' }}>
               <span>{itemsLeft} item{itemsLeft === 1 ? '' : 's'} left today</span>
               <span style={{ display: 'flex', gap: 10 }}>
                 <Legend color="var(--accent)" label="Done" />
@@ -88,14 +88,14 @@ export default function SalespersonHome({
               <div key={d.id} className="card-3d tint-blue" style={{ display: 'grid', gap: 14, padding: 14 }}>
                 <Link to={`/delivery/${d.id}`} style={{ textDecoration: 'none', color: 'inherit', display: 'flex', justifyContent: 'space-between', gap: 10 }}>
                   <div style={{ display: 'grid', gap: 5, minWidth: 0 }}>
-                    <div style={{ fontWeight: 800, fontSize: 16 }}>{d.customer_name}</div>
+                    <div style={{ fontWeight: 800, fontSize: '1rem' }}>{d.customer_name}</div>
                     <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
                       {d.stock_number && <span className="pill pill-stock">#{d.stock_number}</span>}
                       {d.vehicle_condition && <span className="pill pill-plain">{d.vehicle_condition === 'new' ? 'New' : 'Used'}</span>}
                     </div>
                   </div>
                   <div style={{ display: 'grid', justifyItems: 'end', gap: 4, flexShrink: 0 }}>
-                    <div style={{ fontWeight: 800, fontSize: 14.5 }}>{timeLabel(new Date(d.delivery_at), now)}</div>
+                    <div style={{ fontWeight: 800, fontSize: '0.90625rem' }}>{timeLabel(new Date(d.delivery_at), now)}</div>
                     <span className={`pill pill-${due.tone}`}>{due.label}</span>
                   </div>
                 </Link>
@@ -174,22 +174,22 @@ function BonusTracker({ rows, now }: { rows: Delivery[]; now: Date }) {
     <section aria-label={`${month} bonus tracker`} style={{ background: '#1e3a8a', color: '#fff', borderRadius: 18, padding: 18, display: 'grid', gap: 14, boxShadow: '0 1px 0 rgba(255,255,255,0.2) inset, 0 10px 24px rgba(30,58,138,0.3)' }}>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 10 }}>
         <div style={{ display: 'grid', gap: 2 }}>
-          <div style={{ fontSize: 12, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', color: '#c9d6f2' }}>{month} bonus tracker</div>
+          <div style={{ fontSize: '0.75rem', fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', color: '#c9d6f2' }}>{month} bonus tracker</div>
           <div style={{ display: 'flex', alignItems: 'baseline', gap: 8 }}>
-            <span style={{ fontSize: 44, fontWeight: 800, letterSpacing: '-0.03em', lineHeight: 1 }}>{count}</span>
-            <span style={{ fontSize: 14, fontWeight: 600, color: '#dbe4f7' }}>delivered</span>
+            <span style={{ fontSize: '2.75rem', fontWeight: 800, letterSpacing: '-0.03em', lineHeight: 1 }}>{count}</span>
+            <span style={{ fontSize: '0.875rem', fontWeight: 600, color: '#dbe4f7' }}>delivered</span>
           </div>
         </div>
         <div style={{ textAlign: 'right', display: 'grid', gap: 2 }}>
-          <div style={{ fontSize: 12, color: '#c9d6f2', fontWeight: 600 }}>Earned so far</div>
-          <div style={{ fontSize: 20, fontWeight: 800 }}>{dollars(earned)}</div>
+          <div style={{ fontSize: '0.75rem', color: '#c9d6f2', fontWeight: 600 }}>Earned so far</div>
+          <div style={{ fontSize: '1.25rem', fontWeight: 800 }}>{dollars(earned)}</div>
         </div>
       </div>
       <div style={{ display: 'grid', gap: 7 }}>
         <div style={{ height: 10, background: '#34509b', borderRadius: 999, overflow: 'hidden' }}>
           <div style={{ height: '100%', width: `${pct}%`, background: '#fff', borderRadius: 999 }} />
         </div>
-        <div style={{ display: 'flex', justifyContent: 'space-between', gap: 10, fontSize: 12.5, fontWeight: 600, color: '#dbe4f7' }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', gap: 10, fontSize: '0.78125rem', fontWeight: 600, color: '#dbe4f7' }}>
           <span>
             {next
               ? <><strong style={{ color: '#fff' }}>{next.count - count} more</strong> {volume ? `to reach the ${dollars(next.cents)} tier` : `to unlock the ${dollars(next.cents)} volume bonus`}</>
@@ -302,9 +302,9 @@ function EmailSetupBanner() {
     <Link to="/settings#email" className="email-setup-banner">
       <span style={{ minWidth: 0 }}>
         <strong>Add your work email</strong>
-        <span style={{ display: 'block', fontSize: 12.5, marginTop: 2, opacity: 0.85 }}>Get a ready-to-send thank-you email for every customer you deliver.</span>
+        <span style={{ display: 'block', fontSize: '0.78125rem', marginTop: 2, opacity: 0.85 }}>Get a ready-to-send thank-you email for every customer you deliver.</span>
       </span>
-      <span aria-hidden="true" style={{ fontSize: 20 }}>›</span>
+      <span aria-hidden="true" style={{ fontSize: '1.25rem' }}>›</span>
     </Link>
   );
 }

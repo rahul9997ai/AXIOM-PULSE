@@ -55,14 +55,14 @@ export default function Layout({ children }: { children: ReactNode }) {
     <div style={{
       display: 'flex', flexWrap: 'wrap', gap: 8, alignItems: 'center',
       padding: '8px 14px', background: isAdminMode ? 'transparent' : 'var(--banner-warn-bg)',
-      borderBottom: isAdminMode ? 'none' : '1px solid var(--banner-warn-border)', fontSize: 12.5,
+      borderBottom: isAdminMode ? 'none' : '1px solid var(--banner-warn-border)', fontSize: '0.78125rem',
       color: isAdminMode ? undefined : 'var(--banner-warn-fg)',
     }}>
       <span style={{ fontWeight: 700, color: 'var(--muted)' }}>Viewing as</span>
       <select
         value={actingRole}
         onChange={(e) => setActingRole(e.target.value as typeof actingRole)}
-        style={{ padding: '3px 6px', fontSize: 12.5, width: 'auto' }}
+        style={{ padding: '3px 6px', fontSize: '0.78125rem', width: 'auto' }}
       >
         <option value="Master Administrator">Master Administrator (Admin home)</option>
         {ACTABLE_ROLES.map((r) => <option key={r} value={r}>{r}</option>)}
@@ -71,7 +71,7 @@ export default function Layout({ children }: { children: ReactNode }) {
         <select
           value={actingDealershipId}
           onChange={(e) => setActingDealershipId(e.target.value)}
-          style={{ padding: '3px 6px', fontSize: 12.5, width: 'auto' }}
+          style={{ padding: '3px 6px', fontSize: '0.78125rem', width: 'auto' }}
         >
           {dealerships.map((d) => <option key={d.id} value={d.id}>{d.name}</option>)}
         </select>
@@ -80,7 +80,7 @@ export default function Layout({ children }: { children: ReactNode }) {
         <select
           value={actingSalespersonId}
           onChange={(e) => setActingSalespersonId(e.target.value)}
-          style={{ padding: '3px 6px', fontSize: 12.5, width: 'auto' }}
+          style={{ padding: '3px 6px', fontSize: '0.78125rem', width: 'auto' }}
         >
           {salespeople.length === 0 && <option value="">No salespeople in this dealership</option>}
           {salespeople.map((s) => <option key={s.id} value={s.id}>{s.name}</option>)}
@@ -90,7 +90,7 @@ export default function Layout({ children }: { children: ReactNode }) {
         <button
           type="button"
           className="btn secondary"
-          style={{ padding: '3px 10px', fontSize: 11.5 }}
+          style={{ padding: '3px 10px', fontSize: '0.71875rem' }}
           onClick={() => setActingRole('Master Administrator')}
         >
           Back to Admin

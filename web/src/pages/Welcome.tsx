@@ -124,7 +124,7 @@ export default function Welcome() {
                 }}>
                   <step.icon size={24} />
                 </div>
-                <h2 style={{ fontSize: 19 }}>{step.title}</h2>
+                <h2 style={{ fontSize: '1.1875rem' }}>{step.title}</h2>
                 <p className="landing-sub" style={{ lineHeight: 1.5, marginBottom: 4 }}>{step.body}</p>
               </>
             ) : null}
@@ -162,7 +162,7 @@ export default function Welcome() {
                 type="button"
                 onClick={finish}
                 disabled={busy}
-                style={{ background: 'none', border: 'none', color: 'var(--muted)', fontSize: 12.5, marginTop: 12, cursor: 'pointer' }}
+                style={{ background: 'none', border: 'none', color: 'var(--muted)', fontSize: '0.78125rem', marginTop: 12, cursor: 'pointer' }}
               >
                 Skip
               </button>

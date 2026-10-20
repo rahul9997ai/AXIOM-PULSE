@@ -84,13 +84,13 @@ export default function CalendarPage() {
       <div className="card">
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10 }}>
           <button type="button" aria-label="Previous month" className="btn secondary" style={{ padding: '4px 10px' }} onClick={() => setCursor((c) => new Date(c.getFullYear(), c.getMonth() - 1, 1))}>‹</button>
-          <div style={{ fontWeight: 700, fontSize: 15 }}>{monthLabel}</div>
+          <div style={{ fontWeight: 700, fontSize: '0.9375rem' }}>{monthLabel}</div>
           <button type="button" aria-label="Next month" className="btn secondary" style={{ padding: '4px 10px' }} onClick={() => setCursor((c) => new Date(c.getFullYear(), c.getMonth() + 1, 1))}>›</button>
         </div>
 
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', gap: 4, marginBottom: 4 }}>
           {WEEKDAY_LABELS.map((w, i) => (
-            <div key={i} style={{ textAlign: 'center', fontSize: 11, fontWeight: 700, color: 'var(--muted)' }}>{w}</div>
+            <div key={i} style={{ textAlign: 'center', fontSize: '0.6875rem', fontWeight: 700, color: 'var(--muted)' }}>{w}</div>
           ))}
         </div>
 
@@ -110,7 +110,7 @@ export default function CalendarPage() {
                 style={{
                   aspectRatio: '1', border: isToday ? '1.5px solid var(--accent)' : '1.5px solid transparent',
                   borderRadius: 8, background: isSelected ? 'var(--accent)' : 'var(--surface)',
-                  color: isSelected ? '#fff' : 'var(--ink)', fontSize: 13, fontWeight: isToday ? 800 : 600,
+                  color: isSelected ? '#fff' : 'var(--ink)', fontSize: '0.8125rem', fontWeight: isToday ? 800 : 600,
                   cursor: 'pointer', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 2,
                 }}
               >
@@ -128,12 +128,12 @@ export default function CalendarPage() {
       </div>
 
       <div>
-        <div style={{ fontWeight: 700, fontSize: 14, marginBottom: 8 }}>
+        <div style={{ fontWeight: 700, fontSize: '0.875rem', marginBottom: 8 }}>
           {new Date(`${selected}T00:00:00`).toLocaleDateString(undefined, { weekday: 'long', month: 'long', day: 'numeric' })}
         </div>
         {loading && <div style={{ color: 'var(--muted)' }}>Loading…</div>}
         {!loading && selectedDeliveries.length === 0 && (
-          <div style={{ color: 'var(--muted)', fontSize: 13.5 }}>No deliveries this day.</div>
+          <div style={{ color: 'var(--muted)', fontSize: '0.84375rem' }}>No deliveries this day.</div>
         )}
         {selectedDeliveries.map((d) => {
           const sc = STATUS_COLOR[d.status];
@@ -146,21 +146,21 @@ export default function CalendarPage() {
             >
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
-                  <span style={{ fontWeight: 800, fontSize: 15 }}>{d.customer_name}</span>
+                  <span style={{ fontWeight: 800, fontSize: '0.9375rem' }}>{d.customer_name}</span>
                   {d.stock_number && (
                     <span style={{
-                      fontSize: 10.5, fontWeight: 800, color: 'var(--accent)',
+                      fontSize: '0.65625rem', fontWeight: 800, color: 'var(--accent)',
                       background: 'var(--surface)', border: '1px solid var(--line)', borderRadius: 6, padding: '1px 6px',
                     }}>
                       #{d.stock_number}
                     </span>
                   )}
                 </div>
-                <div style={{ fontWeight: 700, fontSize: 13, color: '#15803d' }}>
+                <div style={{ fontWeight: 700, fontSize: '0.8125rem', color: '#15803d' }}>
                   {new Date(d.delivery_at).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })}
                 </div>
               </div>
-              <div style={{ fontSize: 12.5, color: 'var(--muted)', marginTop: 3 }}>
+              <div style={{ fontSize: '0.78125rem', color: 'var(--muted)', marginTop: 3 }}>
                 {d.lenders?.name || 'Lender / lessor not selected'}
               </div>
             </Link>

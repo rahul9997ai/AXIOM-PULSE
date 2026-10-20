@@ -51,8 +51,8 @@ export default function NotifyEmailCard() {
 
   return (
     <div className="card" id="email" ref={cardRef}>
-      <div style={{ color: 'var(--muted)', fontWeight: 800, fontSize: 12, letterSpacing: 1, marginBottom: 6 }}>WORK EMAIL</div>
-      <p style={{ color: 'var(--muted)', fontSize: 13, marginTop: 0, marginBottom: 12, lineHeight: 1.5 }}>
+      <div style={{ color: 'var(--muted)', fontWeight: 800, fontSize: '0.75rem', letterSpacing: 1, marginBottom: 6 }}>WORK EMAIL</div>
+      <p style={{ color: 'var(--muted)', fontSize: '0.8125rem', marginTop: 0, marginBottom: 12, lineHeight: 1.5 }}>
         {profile.role === 'Salesperson'
           ? 'Where Pulse sends your ready-to-send customer thank-you emails after each delivery. This doesn\'t change how you sign in.'
           : 'Where Pulse sends your emails. This doesn\'t change how you sign in.'}
@@ -78,7 +78,7 @@ export default function NotifyEmailCard() {
         ) : null}
       </div>
       {message && (
-        <p style={{ fontSize: 12.5, marginTop: 10, marginBottom: 0, color: message.ok ? 'var(--banner-ok-fg)' : '#a3261b', fontWeight: 600 }}>{message.text}</p>
+        <p style={{ fontSize: '0.78125rem', marginTop: 10, marginBottom: 0, color: message.ok ? 'var(--banner-ok-fg)' : '#a3261b', fontWeight: 600 }}>{message.text}</p>
       )}
     </div>
   );

@@ -153,42 +153,42 @@ export default function AdminHome() {
   return (
     <div style={{ display: 'grid', gap: 14, maxWidth: 640, margin: '0 auto' }}>
       <div>
-        <h1 style={{ fontSize: 22, fontWeight: 700, letterSpacing: '-0.02em', margin: 0 }}>Admin</h1>
-        <div style={{ color: 'var(--accent)', fontWeight: 700, fontSize: 12, letterSpacing: '0.08em', textTransform: 'uppercase', marginTop: 2 }}>
+        <h1 style={{ fontSize: '1.375rem', fontWeight: 700, letterSpacing: '-0.02em', margin: 0 }}>Admin</h1>
+        <div style={{ color: 'var(--accent)', fontWeight: 700, fontSize: '0.75rem', letterSpacing: '0.08em', textTransform: 'uppercase', marginTop: 2 }}>
           Master Administrator
         </div>
       </div>
 
-      <p style={{ color: 'var(--muted)', fontSize: 13, margin: 0 }}>
+      <p style={{ color: 'var(--muted)', fontSize: '0.8125rem', margin: 0 }}>
         Create dealerships and invite General Managers, FSMs and Salespeople. To preview or test any
         of it as a delivery, use the "Viewing as" switcher at the top of the screen.
       </p>
 
       <Link to="/month-close" className="card" style={{ display: 'block', textDecoration: 'none', color: 'inherit' }}>
-        <div style={{ fontWeight: 700, fontSize: 14 }}>Closed Months</div>
-        <div style={{ color: 'var(--muted)', fontSize: 12.5, marginTop: 2 }}>
+        <div style={{ fontWeight: 700, fontSize: '0.875rem' }}>Closed Months</div>
+        <div style={{ color: 'var(--muted)', fontSize: '0.78125rem', marginTop: 2 }}>
           See which Finance Managers have closed which months, and reopen one if needed.
         </div>
       </Link>
 
       {notice && (
-        <div className="card" style={{ fontSize: 13, color: notice.tone === 'err' ? '#a3261b' : '#15803d' }}>
+        <div className="card" style={{ fontSize: '0.8125rem', color: notice.tone === 'err' ? '#a3261b' : '#15803d' }}>
           {notice.text}
         </div>
       )}
 
       <div className="card">
         <h3 style={{ marginTop: 0 }}>Dealerships</h3>
-        {loadingDealerships && <div style={{ color: 'var(--muted)', fontSize: 13 }}>Loading…</div>}
+        {loadingDealerships && <div style={{ color: 'var(--muted)', fontSize: '0.8125rem' }}>Loading…</div>}
         {!loadingDealerships && dealerships.length === 0 && (
-          <div style={{ color: 'var(--muted)', fontSize: 13, marginBottom: 10 }}>No dealerships yet.</div>
+          <div style={{ color: 'var(--muted)', fontSize: '0.8125rem', marginBottom: 10 }}>No dealerships yet.</div>
         )}
         {dealerships.length > 0 && (
           <div style={{ display: 'grid', gap: 6, marginBottom: 12 }}>
             {dealerships.map((d) => (
-              <div key={d.id} style={{ display: 'flex', justifyContent: 'space-between', fontSize: 13.5 }}>
+              <div key={d.id} style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.84375rem' }}>
                 <span>{d.name}</span>
-                <span style={{ color: d.active ? '#15803d' : '#a3261b', fontWeight: 700, fontSize: 11 }}>
+                <span style={{ color: d.active ? '#15803d' : '#a3261b', fontWeight: 700, fontSize: '0.6875rem' }}>
                   {d.active ? 'Active' : 'Inactive'}
                 </span>
               </div>
@@ -231,7 +231,7 @@ export default function AdminHome() {
             {inviting ? 'Inviting…' : 'Send invite'}
           </button>
         </div>
-        <p style={{ color: 'var(--muted)', fontSize: 12, marginTop: 10, marginBottom: 0 }}>
+        <p style={{ color: 'var(--muted)', fontSize: '0.75rem', marginTop: 10, marginBottom: 0 }}>
           No email verification needed — share the temporary password directly. A Salesperson signs in
           with their username and password right here in Pulse. Everyone chooses their own password on
           first sign-in.
@@ -240,9 +240,9 @@ export default function AdminHome() {
 
       <div className="card">
         <h3 style={{ marginTop: 0 }}>Users</h3>
-        {loadingUsers && <div style={{ color: 'var(--muted)', fontSize: 13 }}>Loading…</div>}
+        {loadingUsers && <div style={{ color: 'var(--muted)', fontSize: '0.8125rem' }}>Loading…</div>}
         {!loadingUsers && users.length === 0 && (
-          <div style={{ color: 'var(--muted)', fontSize: 13 }}>No General Managers, FSMs or Salespeople yet.</div>
+          <div style={{ color: 'var(--muted)', fontSize: '0.8125rem' }}>No General Managers, FSMs or Salespeople yet.</div>
         )}
         {users.length > 0 && (
           <div style={{ display: 'grid', gap: 8 }}>
@@ -252,16 +252,16 @@ export default function AdminHome() {
                 <div key={u.id} style={{ borderBottom: '1px solid var(--line)', paddingBottom: 8, display: 'grid', gap: 8 }}>
                   <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8 }}>
                     <div>
-                      <div style={{ fontWeight: 700, fontSize: 14 }}>
-                        {u.name} {!u.pulse_enabled && <span style={{ color: '#a3261b', fontSize: 11, fontWeight: 700 }}>· No Pulse access</span>}
+                      <div style={{ fontWeight: 700, fontSize: '0.875rem' }}>
+                        {u.name} {!u.pulse_enabled && <span style={{ color: '#a3261b', fontSize: '0.6875rem', fontWeight: 700 }}>· No Pulse access</span>}
                       </div>
-                      <div style={{ color: 'var(--muted)', fontSize: 12 }}>{u.role} · {dealership?.name ?? 'No dealership'}</div>
+                      <div style={{ color: 'var(--muted)', fontSize: '0.75rem' }}>{u.role} · {dealership?.name ?? 'No dealership'}</div>
                     </div>
                     <div style={{ display: 'flex', gap: 6, flexShrink: 0 }}>
                       <button
                         type="button"
                         className="btn secondary"
-                        style={{ padding: '4px 10px', fontSize: 12 }}
+                        style={{ padding: '4px 10px', fontSize: '0.75rem' }}
                         onClick={() => { setResetId(resetId === u.id ? null : u.id); setResetPassword(''); }}
                       >
                         Reset password
@@ -269,7 +269,7 @@ export default function AdminHome() {
                       <button
                         type="button"
                         className="btn secondary"
-                        style={{ padding: '4px 10px', fontSize: 12, borderColor: '#dc2626', color: '#dc2626' }}
+                        style={{ padding: '4px 10px', fontSize: '0.75rem', borderColor: '#dc2626', color: '#dc2626' }}
                         disabled={deletingId === u.id}
                         onClick={() => deleteUser(u)}
                       >
@@ -296,7 +296,7 @@ export default function AdminHome() {
         )}
       </div>
 
-      <p style={{ color: 'var(--muted)', fontSize: 12, textAlign: 'center' }}>
+      <p style={{ color: 'var(--muted)', fontSize: '0.75rem', textAlign: 'center' }}>
         For full dealership settings (brand, tax, finance defaults), use Mahanex Dealership Command.
       </p>
     </div>

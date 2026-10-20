@@ -14,10 +14,10 @@ export default function DateTimePill({ date, action }: { date: Date; action?: Re
     }}>
       <div style={{ display: 'flex', alignItems: 'center', gap: 7 }}>
         <span style={{ color: 'var(--pill-green-fg)', display: 'flex' }}><CalendarIcon size={16} /></span>
-        <span style={{ fontSize: 14.5, fontWeight: 700, color: 'var(--pill-green-fg)' }}>
+        <span style={{ fontSize: '0.90625rem', fontWeight: 700, color: 'var(--pill-green-fg)' }}>
           {date.toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric' })}
         </span>
-        <span style={{ fontSize: 14.5, fontWeight: 700, color: 'var(--pill-green-fg)' }}>
+        <span style={{ fontSize: '0.90625rem', fontWeight: 700, color: 'var(--pill-green-fg)' }}>
           {date.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })}
         </span>
       </div>

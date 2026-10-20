@@ -47,17 +47,17 @@ export default function InstallPrompt() {
       >
         <div style={{ color: 'var(--blue)', display: 'flex', flexShrink: 0 }}><DownloadIcon size={22} /></div>
         <div style={{ flex: 1, minWidth: 0 }}>
-          <div style={{ fontWeight: 700, fontSize: 13.5 }}>Install Mahanex Pulse</div>
-          <div style={{ color: 'var(--muted)', fontSize: 11.5, marginTop: 1 }}>One-tap access &amp; delivery alerts</div>
+          <div style={{ fontWeight: 700, fontSize: '0.84375rem' }}>Install Mahanex Pulse</div>
+          <div style={{ color: 'var(--muted)', fontSize: '0.71875rem', marginTop: 1 }}>One-tap access &amp; delivery alerts</div>
         </div>
-        <button type="button" className="btn" style={{ padding: '8px 14px', fontSize: 12.5, flexShrink: 0 }} onClick={onInstallClick}>
+        <button type="button" className="btn" style={{ padding: '8px 14px', fontSize: '0.78125rem', flexShrink: 0 }} onClick={onInstallClick}>
           Install
         </button>
         <button
           type="button"
           aria-label="Dismiss install prompt"
           onClick={dismiss}
-          style={{ border: 'none', background: 'transparent', color: 'var(--muted)', fontSize: 18, lineHeight: 1, cursor: 'pointer', padding: 4, flexShrink: 0 }}
+          style={{ border: 'none', background: 'transparent', color: 'var(--muted)', fontSize: '1.125rem', lineHeight: 1, cursor: 'pointer', padding: 4, flexShrink: 0 }}
         >
           ×
         </button>

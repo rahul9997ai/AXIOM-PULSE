@@ -13,8 +13,8 @@ export default function InstallAppCard() {
         <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
           <div style={{ color: '#15803d' }}><DownloadIcon /></div>
           <div>
-            <div style={{ fontWeight: 700, fontSize: 14 }}>Mahanex Pulse is installed</div>
-            <div style={{ color: 'var(--muted)', fontSize: 13 }}>You're using the installed app.</div>
+            <div style={{ fontWeight: 700, fontSize: '0.875rem' }}>Mahanex Pulse is installed</div>
+            <div style={{ color: 'var(--muted)', fontSize: '0.8125rem' }}>You're using the installed app.</div>
           </div>
         </div>
       </div>
@@ -31,9 +31,9 @@ export default function InstallAppCard() {
       <div className="card">
         <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 8 }}>
           <div style={{ color: 'var(--blue)' }}><DownloadIcon /></div>
-          <div style={{ fontWeight: 700, fontSize: 15 }}>Install Mahanex Pulse</div>
+          <div style={{ fontWeight: 700, fontSize: '0.9375rem' }}>Install Mahanex Pulse</div>
         </div>
-        <p style={{ color: 'var(--muted)', fontSize: 13, marginTop: 0 }}>
+        <p style={{ color: 'var(--muted)', fontSize: '0.8125rem', marginTop: 0 }}>
           Add it to your home screen for one-tap access and background delivery notifications, even
           when the app isn't open.
         </p>
@@ -41,7 +41,7 @@ export default function InstallAppCard() {
           Install app
         </button>
         {!canPromptInstall && !isIOS && (
-          <p style={{ color: 'var(--muted)', fontSize: 12, marginTop: 8, marginBottom: 0 }}>
+          <p style={{ color: 'var(--muted)', fontSize: '0.75rem', marginTop: 8, marginBottom: 0 }}>
             If nothing happens, open your browser menu and choose <strong>Install app</strong> — some
             browsers don't support installing from a button yet.
           </p>

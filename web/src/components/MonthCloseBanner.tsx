@@ -82,7 +82,7 @@ export default function MonthCloseBanner() {
     return (
       <div style={{
         padding: '9px 14px', background: 'var(--banner-warn-bg)', borderBottom: '1px solid var(--banner-warn-border)',
-        fontSize: 12.5, color: 'var(--banner-warn-fg)',
+        fontSize: '0.78125rem', color: 'var(--banner-warn-fg)',
       }}>
         <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, alignItems: 'center', justifyContent: 'space-between' }}>
           <span>
@@ -93,7 +93,7 @@ export default function MonthCloseBanner() {
           <button
             type="button"
             onClick={() => setExpanded((v) => !v)}
-            style={{ background: 'none', border: 'none', color: 'var(--banner-warn-fg)', fontWeight: 700, fontSize: 12, cursor: 'pointer' }}
+            style={{ background: 'none', border: 'none', color: 'var(--banner-warn-fg)', fontWeight: 700, fontSize: '0.75rem', cursor: 'pointer' }}
           >
             {expanded ? 'Hide' : 'Show'}
           </button>
@@ -118,10 +118,10 @@ export default function MonthCloseBanner() {
       <div style={{
         display: 'flex', flexWrap: 'wrap', gap: 8, alignItems: 'center', justifyContent: 'space-between',
         padding: '9px 14px', background: 'var(--banner-warn-bg)', borderBottom: '1px solid var(--banner-warn-border)',
-        fontSize: 12.5, color: 'var(--banner-warn-fg)',
+        fontSize: '0.78125rem', color: 'var(--banner-warn-fg)',
       }}>
         <span><strong>{label}</strong> is ready to close — review and confirm.</span>
-        <Link to="/month-close" className="btn" style={{ padding: '4px 12px', fontSize: 12 }}>Review &amp; Close</Link>
+        <Link to="/month-close" className="btn" style={{ padding: '4px 12px', fontSize: '0.75rem' }}>Review &amp; Close</Link>
       </div>
     );
   }
@@ -131,10 +131,10 @@ export default function MonthCloseBanner() {
       <div style={{
         display: 'flex', flexWrap: 'wrap', gap: 8, alignItems: 'center', justifyContent: 'space-between',
         padding: '9px 14px', background: 'var(--banner-ok-bg)', borderBottom: '1px solid var(--banner-ok-border)',
-        fontSize: 12.5, color: 'var(--banner-ok-fg)',
+        fontSize: '0.78125rem', color: 'var(--banner-ok-fg)',
       }}>
         <span>{label} closed by {salespersonClosedBy}.</span>
-        <button type="button" onClick={dismiss} style={{ background: 'none', border: 'none', color: 'var(--banner-ok-fg)', fontWeight: 700, fontSize: 12, cursor: 'pointer' }}>Got it</button>
+        <button type="button" onClick={dismiss} style={{ background: 'none', border: 'none', color: 'var(--banner-ok-fg)', fontWeight: 700, fontSize: '0.75rem', cursor: 'pointer' }}>Got it</button>
       </div>
     );
   }

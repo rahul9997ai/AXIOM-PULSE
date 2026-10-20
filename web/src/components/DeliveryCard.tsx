@@ -29,7 +29,7 @@ export default function DeliveryCard({
     >
       <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 10 }}>
         <div style={{ display: 'grid', gap: 5, minWidth: 0 }}>
-          <div style={{ fontWeight: 800, fontSize: compact ? 14.5 : 16, lineHeight: 1.25, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+          <div style={{ fontWeight: 800, fontSize: compact ? '0.90625rem' : '1rem', lineHeight: 1.25, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
             {d.customer_name}
           </div>
           <div style={{ display: 'flex', gap: 6, alignItems: 'center', flexWrap: 'wrap' }}>
@@ -41,7 +41,7 @@ export default function DeliveryCard({
           </div>
         </div>
         <div style={{ display: 'grid', justifyItems: 'end', gap: 4, flexShrink: 0 }}>
-          <div style={{ fontSize: compact ? 13.5 : 14.5, fontWeight: 800, textAlign: 'right' }}>{timeLabel(at, now)}</div>
+          <div style={{ fontSize: compact ? '0.84375rem' : '0.90625rem', fontWeight: 800, textAlign: 'right' }}>{timeLabel(at, now)}</div>
           <span className={`pill pill-${due.tone}`}>{due.label}</span>
         </div>
       </div>
@@ -51,13 +51,13 @@ export default function DeliveryCard({
           <div className="progress-track">
             <div className={`progress-fill${done === total ? ' is-complete' : ''}`} style={{ width: `${Math.round((done / total) * 100)}%` }} />
           </div>
-          <span style={{ fontSize: 12, fontWeight: 700, color: 'var(--muted)' }}>{done}/{total} ready</span>
+          <span style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--muted)' }}>{done}/{total} ready</span>
         </div>
       )}
 
       {(showSalesperson || showFsm || d.lenders?.name || clashWith?.length) && (
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8, flexWrap: 'wrap' }}>
-          <div style={{ display: 'flex', alignItems: 'center', flexWrap: 'wrap', columnGap: 8, rowGap: 4, minWidth: 0, fontSize: 12.5, color: 'var(--muted)', fontWeight: 600 }}>
+          <div style={{ display: 'flex', alignItems: 'center', flexWrap: 'wrap', columnGap: 8, rowGap: 4, minWidth: 0, fontSize: '0.78125rem', color: 'var(--muted)', fontWeight: 600 }}>
             {showSalesperson && d.salesperson_name && (
               <span style={{ display: 'flex', alignItems: 'center', gap: 8, whiteSpace: 'nowrap', color: 'var(--text)' }}>
                 <span className="avatar" aria-hidden="true">{initials(d.salesperson_name)}</span>
@@ -68,7 +68,7 @@ export default function DeliveryCard({
             {!compact && d.lenders?.name && <span style={{ whiteSpace: 'nowrap' }}>· {d.lenders.name}</span>}
           </div>
           {clashWith && clashWith.length > 0 && (
-            <span style={{ fontSize: 11.5, fontWeight: 800, color: '#b45309' }}>
+            <span style={{ fontSize: '0.71875rem', fontWeight: 800, color: '#b45309' }}>
               Conflicts with {clashWith.map((o) => o.customer_name.split(' ')[0]).join(', ')}
             </span>
           )}

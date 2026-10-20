@@ -85,7 +85,7 @@ export default function ReminderSettings({ dealershipId }: { dealershipId: strin
     return (
       <div className="card">
         <h3 style={{ marginTop: 0 }}>Finance Manager reminders</h3>
-        <div style={{ color: 'var(--muted)', fontSize: 13 }}>Loading…</div>
+        <div style={{ color: 'var(--muted)', fontSize: '0.8125rem' }}>Loading…</div>
       </div>
     );
   }
@@ -94,7 +94,7 @@ export default function ReminderSettings({ dealershipId }: { dealershipId: strin
     <div className="card" id="reminders" style={{ display: 'grid', gap: 14 }}>
       <div>
         <h3 style={{ margin: 0 }}>Finance Manager reminders</h3>
-        <p style={{ color: 'var(--muted)', fontSize: 13, margin: '6px 0 0', lineHeight: 1.5 }}>
+        <p style={{ color: 'var(--muted)', fontSize: '0.8125rem', margin: '6px 0 0', lineHeight: 1.5 }}>
           A daily reminder to enter every delivery from that day's CDK 180 work orders in Pulse. Choose when each is sent and who receives it. Times are Eastern.
         </p>
       </div>
@@ -106,8 +106,8 @@ export default function ReminderSettings({ dealershipId }: { dealershipId: strin
           <div key={c} className="reminder-panel">
             <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 12 }}>
               <div style={{ minWidth: 0 }}>
-                <div style={{ fontWeight: 800, fontSize: 14.5 }}>{CHANNEL_COPY[c].title}</div>
-                <div style={{ color: 'var(--muted)', fontSize: 12.5, marginTop: 2, lineHeight: 1.45 }}>{CHANNEL_COPY[c].blurb}</div>
+                <div style={{ fontWeight: 800, fontSize: '0.90625rem' }}>{CHANNEL_COPY[c].title}</div>
+                <div style={{ color: 'var(--muted)', fontSize: '0.78125rem', marginTop: 2, lineHeight: 1.45 }}>{CHANNEL_COPY[c].blurb}</div>
               </div>
               <button
                 type="button"
@@ -123,7 +123,7 @@ export default function ReminderSettings({ dealershipId }: { dealershipId: strin
 
             <fieldset disabled={!s.enabled} style={{ border: 'none', padding: 0, margin: 0, display: 'grid', gap: 12, opacity: s.enabled ? 1 : 0.5 }}>
               <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: 10 }}>
-                <label style={{ fontSize: 12, fontWeight: 700, color: 'var(--muted)', display: 'flex', alignItems: 'center', gap: 8 }}>
+                <label style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--muted)', display: 'flex', alignItems: 'center', gap: 8 }}>
                   Send at
                   <input
                     type="time"
@@ -136,7 +136,7 @@ export default function ReminderSettings({ dealershipId }: { dealershipId: strin
               </div>
 
               <div>
-                <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--muted)', marginBottom: 6 }}>On these days</div>
+                <div style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--muted)', marginBottom: 6 }}>On these days</div>
                 <div className="chip-row" role="group" aria-label={`${CHANNEL_COPY[c].title} days`}>
                   {WEEKDAYS.map((d) => {
                     const on = s.days.includes(d.iso);
@@ -157,10 +157,10 @@ export default function ReminderSettings({ dealershipId }: { dealershipId: strin
               </div>
 
               <div>
-                <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--muted)', marginBottom: 6 }}>
+                <div style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--muted)', marginBottom: 6 }}>
                   Who receives it · {recipients} of {fsms.length}
                 </div>
-                {fsms.length === 0 && <div style={{ fontSize: 13, color: 'var(--muted)' }}>No Finance Managers at this dealership.</div>}
+                {fsms.length === 0 && <div style={{ fontSize: '0.8125rem', color: 'var(--muted)' }}>No Finance Managers at this dealership.</div>}
                 <div style={{ display: 'grid', gap: 6 }}>
                   {fsms.map((f) => {
                     const on = !s.excluded_ids.includes(f.id);
@@ -180,14 +180,14 @@ export default function ReminderSettings({ dealershipId }: { dealershipId: strin
               </div>
             </fieldset>
 
-            <div style={{ fontSize: 12, fontWeight: 600, color: 'var(--muted)', minHeight: 16 }}>
+            <div style={{ fontSize: '0.75rem', fontWeight: 600, color: 'var(--muted)', minHeight: 16 }}>
               {saving === c ? 'Saving…' : savedAt[c] ? '✓ Saved' : summary(s, recipients)}
             </div>
           </div>
         );
       })}
 
-      {error && <div style={{ fontSize: 13, color: '#a3261b' }}>{error}</div>}
+      {error && <div style={{ fontSize: '0.8125rem', color: '#a3261b' }}>{error}</div>}
     </div>
   );
 }

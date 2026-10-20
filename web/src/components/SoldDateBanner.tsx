@@ -34,7 +34,7 @@ export default function SoldDateBanner() {
   return (
     <div style={{
       padding: '9px 14px', background: 'var(--banner-warn-bg)', borderBottom: '1px solid var(--banner-warn-border)',
-      fontSize: 12.5, color: 'var(--banner-warn-fg)',
+      fontSize: '0.78125rem', color: 'var(--banner-warn-fg)',
     }}>
       <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, alignItems: 'center', justifyContent: 'space-between' }}>
         <span>
@@ -45,7 +45,7 @@ export default function SoldDateBanner() {
         <button
           type="button"
           onClick={() => setExpanded((v) => !v)}
-          style={{ background: 'none', border: 'none', color: 'var(--banner-warn-fg)', fontWeight: 700, fontSize: 12, cursor: 'pointer' }}
+          style={{ background: 'none', border: 'none', color: 'var(--banner-warn-fg)', fontWeight: 700, fontSize: '0.75rem', cursor: 'pointer' }}
         >
           {expanded ? 'Hide' : 'Show'}
         </button>

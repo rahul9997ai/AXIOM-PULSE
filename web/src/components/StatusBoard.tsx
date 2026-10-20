@@ -36,12 +36,12 @@ export default function StatusBoard({
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '2px 4px' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
               <span style={{ width: 9, height: 9, borderRadius: '50%', background: STATUS_COLOR[col.status].solid }} />
-              <h2 style={{ margin: 0, fontSize: 12.5, fontWeight: 800, letterSpacing: '0.06em', textTransform: 'uppercase', color: 'var(--muted)' }}>{col.title}</h2>
+              <h2 style={{ margin: 0, fontSize: '0.78125rem', fontWeight: 800, letterSpacing: '0.06em', textTransform: 'uppercase', color: 'var(--muted)' }}>{col.title}</h2>
             </div>
-            <span style={{ fontSize: 12, fontWeight: 800, color: 'var(--text)', background: 'var(--focus-bg)', borderRadius: 999, padding: '2px 9px' }}>{col.cards.length}</span>
+            <span style={{ fontSize: '0.75rem', fontWeight: 800, color: 'var(--text)', background: 'var(--focus-bg)', borderRadius: 999, padding: '2px 9px' }}>{col.cards.length}</span>
           </div>
           {col.cards.length === 0 && (
-            <div style={{ fontSize: 12.5, color: 'var(--muted)', textAlign: 'center', padding: '14px 0' }}>Nothing here</div>
+            <div style={{ fontSize: '0.78125rem', color: 'var(--muted)', textAlign: 'center', padding: '14px 0' }}>Nothing here</div>
           )}
           {col.cards.map((d) => (
             <DeliveryCard key={d.id} d={d} now={now} clashWith={clashes.get(d.id)} showSalesperson showFsm={showFsm} youId={youId} compact />
