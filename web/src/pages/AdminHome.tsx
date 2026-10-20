@@ -50,7 +50,7 @@ export default function AdminHome() {
     setLoadingUsers(true);
     const { data, error } = await supabase
       .from('profiles')
-      .select('id,name,role,dealership_id,active')
+      .select('id,name,role,dealership_id,active,pulse_enabled')
       .neq('role', 'Master Administrator')
       .order('name');
     if (error) { setNotice({ text: error.message, tone: 'err' }); setLoadingUsers(false); return; }
