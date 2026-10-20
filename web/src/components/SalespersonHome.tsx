@@ -8,6 +8,7 @@ import { completeDelivery } from '@/lib/deliveryActions';
 import { countdown, isActive, isSameDay, requirementProgress, timeLabel } from '@/lib/schedule';
 import { monthLabel } from '@/lib/monthClose';
 import RequirementTiles from './RequirementTiles';
+import CountUp, { useCountUp } from './CountUp';
 import DeliveryCard from './DeliveryCard';
 
 type Tab = 'today' | 'upcoming' | 'delivered';
@@ -168,6 +169,7 @@ function BonusTracker({ rows, now }: { rows: Delivery[]; now: Date }) {
   const toggle = (p: 'earned' | 'pending') => setOpenPanel((cur) => (cur === p ? null : p));
   const earned = (volume?.cents ?? 0) + earnedGroups.length * HATTRICK_BONUS_CENTS;
   const pct = next ? Math.min(100, Math.round((count / next.count) * 100)) : 100;
+  const barPct = useCountUp(pct, 'bonus-bar');
   const month = now.toLocaleDateString([], { month: 'long' });
 
   return (
@@ -176,18 +178,18 @@ function BonusTracker({ rows, now }: { rows: Delivery[]; now: Date }) {
         <div style={{ display: 'grid', gap: 2 }}>
           <div style={{ fontSize: '0.75rem', fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', color: '#c9d6f2' }}>{month} bonus tracker</div>
           <div style={{ display: 'flex', alignItems: 'baseline', gap: 8 }}>
-            <span style={{ fontSize: '2.75rem', fontWeight: 800, letterSpacing: '-0.03em', lineHeight: 1 }}>{count}</span>
+            <span style={{ fontSize: '2.75rem', fontWeight: 800, letterSpacing: '-0.03em', lineHeight: 1 }}><CountUp value={count} id="bonus-count" /></span>
             <span style={{ fontSize: '0.875rem', fontWeight: 600, color: '#dbe4f7' }}>delivered</span>
           </div>
         </div>
         <div style={{ textAlign: 'right', display: 'grid', gap: 2 }}>
           <div style={{ fontSize: '0.75rem', color: '#c9d6f2', fontWeight: 600 }}>Earned so far</div>
-          <div style={{ fontSize: '1.25rem', fontWeight: 800 }}>{dollars(earned)}</div>
+          <div style={{ fontSize: '1.25rem', fontWeight: 800 }}><CountUp value={earned} id="bonus-earned" format={dollars} /></div>
         </div>
       </div>
       <div style={{ display: 'grid', gap: 7 }}>
         <div style={{ height: 10, background: '#34509b', borderRadius: 999, overflow: 'hidden' }}>
-          <div style={{ height: '100%', width: `${pct}%`, background: '#fff', borderRadius: 999 }} />
+          <div style={{ height: '100%', width: `${barPct}%`, background: '#fff', borderRadius: 999 }} />
         </div>
         <div style={{ display: 'flex', justifyContent: 'space-between', gap: 10, fontSize: '0.78125rem', fontWeight: 600, color: '#dbe4f7' }}>
           <span>

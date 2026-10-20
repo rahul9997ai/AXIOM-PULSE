@@ -1,5 +1,9 @@
+import { useCountUp } from '@/components/CountUp';
+
 interface Props {
   percent: number;
+  // Remembers the last value shown so the ring only animates when it changes.
+  animateKey?: string;
   size?: number;
   stroke?: number;
   trackColor?: string;
@@ -7,10 +11,11 @@ interface Props {
   textColor?: string;
 }
 
-export default function ProgressRing({ percent, size = 64, stroke = 6, trackColor = 'rgba(255,255,255,0.28)', fillColor = '#ffffff', textColor = '#ffffff' }: Props) {
+export default function ProgressRing({ percent, animateKey, size = 64, stroke = 6, trackColor = 'rgba(255,255,255,0.28)', fillColor = '#ffffff', textColor = '#ffffff' }: Props) {
   const r = (size - stroke) / 2;
   const c = r * 2 * Math.PI;
-  const clamped = Math.max(0, Math.min(100, percent));
+  const animated = useCountUp(percent, animateKey);
+  const clamped = Math.max(0, Math.min(100, animated));
   const offset = c * (1 - clamped / 100);
   const center = size / 2;
   return (

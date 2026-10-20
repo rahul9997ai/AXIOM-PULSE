@@ -586,7 +586,37 @@ input::placeholder, textarea::placeholder { color: var(--mut); opacity: 1; }
     radial-gradient(circle at 15% 10%, rgba(148, 163, 184, 0.16), transparent 45%),
     radial-gradient(circle at 90% 25%, rgba(30, 58, 138, 0.12), transparent 50%);
   pointer-events: none;
+  overflow: hidden;
 }
+/* Two soft glows in the logo's cyan and amber drift slowly behind the page.
+   Only transforms are animated (cheap on a phone), and with reduced motion
+   they sit still. */
+.landing-bg::before, .landing-bg::after {
+  content: '';
+  position: absolute;
+  width: 70vmax;
+  height: 70vmax;
+  border-radius: 50%;
+  will-change: transform;
+}
+.landing-bg::before {
+  left: -22vmax; top: -30vmax;
+  background: radial-gradient(circle, rgba(82, 228, 255, 0.2), transparent 62%);
+  animation: glowDriftA 26s ease-in-out infinite alternate;
+}
+.landing-bg::after {
+  right: -26vmax; bottom: -34vmax;
+  background: radial-gradient(circle, rgba(255, 179, 36, 0.17), transparent 62%);
+  animation: glowDriftB 32s ease-in-out infinite alternate;
+}
+:root[data-theme="dark"] .landing-bg::before { background: radial-gradient(circle, rgba(82, 228, 255, 0.14), transparent 62%); }
+:root[data-theme="dark"] .landing-bg::after { background: radial-gradient(circle, rgba(255, 179, 36, 0.12), transparent 62%); }
+@keyframes glowDriftA { from { transform: translate3d(0, 0, 0) scale(1); } to { transform: translate3d(14vmax, 10vmax, 0) scale(1.15); } }
+@keyframes glowDriftB { from { transform: translate3d(0, 0, 0) scale(1.1); } to { transform: translate3d(-12vmax, -9vmax, 0) scale(0.95); } }
+@media (prefers-reduced-motion: reduce) {
+  .landing-bg::before, .landing-bg::after { animation: none; }
+}
+.sr-only { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0, 0, 0, 0); white-space: nowrap; border: 0; }
 .landing-head { position: relative; z-index: 1; padding-top: 28px; text-align: center; display: flex; flex-direction: column; align-items: center; }
 .landing-head .mx-lockup { justify-content: center; }
 

@@ -11,6 +11,7 @@ import { monthKeyOf } from '@/lib/bonus';
 import { CONFLICT_WINDOW_MIN, findClashes, initials, isActive, requirementProgress, timeLabel } from '@/lib/schedule';
 import { useIsDesktop } from '@/lib/useIsDesktop';
 import ProgressRing from '@/components/ProgressRing';
+import CountUp from '@/components/CountUp';
 import DeliveryCard from '@/components/DeliveryCard';
 import StatusBoard from '@/components/StatusBoard';
 import SalespersonHome from '@/components/SalespersonHome';
@@ -136,7 +137,7 @@ export default function Deliveries() {
       </div>
       {isManager && (
         <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
-          <ProgressRing percent={monthPercent} trackColor="var(--line)" fillColor="var(--accent)" textColor="var(--ink)" />
+          <ProgressRing animateKey="month-ring" percent={monthPercent} trackColor="var(--line)" fillColor="var(--accent)" textColor="var(--ink)" />
           <div style={{ display: 'grid', gap: 4 }}>
             <div style={{ fontSize: '0.875rem', fontWeight: 700 }}>
               {scheduledThisMonth.length ? `${deliveredThisMonth} of ${scheduledThisMonth.length} delivered this month` : 'No deliveries scheduled this month yet'}
@@ -351,7 +352,7 @@ export default function Deliveries() {
     const stat = (label: string, value: number, tone: string, target: Chip, hint: string, highlight = true) => (
       <button type="button" className={`stat-tile${highlight && chip === target ? ' is-active' : ''}`} onClick={() => setChip(target)}>
         <span className="stat-tile-label">{label}</span>
-        <span className="stat-tile-value" style={{ color: value ? tone : 'var(--ink)' }}>{value}</span>
+        <span className="stat-tile-value" style={{ color: value ? tone : 'var(--ink)' }}><CountUp value={value} id={`stat-${label}`} duration={650} /></span>
         <span className="stat-tile-hint">{hint}</span>
       </button>
     );
@@ -368,10 +369,10 @@ export default function Deliveries() {
         {isManager && (
           <div className="stat-strip">
             <div className="stat-tile stat-tile-month">
-              <ProgressRing percent={monthPercent} trackColor="var(--line)" fillColor="var(--accent)" textColor="var(--ink)" />
+              <ProgressRing animateKey="month-ring" percent={monthPercent} trackColor="var(--line)" fillColor="var(--accent)" textColor="var(--ink)" />
               <div style={{ display: 'grid', gap: 3, minWidth: 0 }}>
                 <span className="stat-tile-label">This month</span>
-                <span style={{ fontSize: '0.9375rem', fontWeight: 800 }}>{deliveredThisMonth} of {scheduledThisMonth.length} delivered</span>
+                <span style={{ fontSize: '0.9375rem', fontWeight: 800 }}><CountUp value={deliveredThisMonth} id="month-delivered" /> of {scheduledThisMonth.length} delivered</span>
               </div>
             </div>
             {stat('Today', todayCount, 'var(--accent)', 'today', 'scheduled today')}
