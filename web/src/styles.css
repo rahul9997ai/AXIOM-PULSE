@@ -913,3 +913,9 @@ a.card-3d:active, .switch:active, .lr-icon-btn:active { transition-duration: 0.0
 .legal-powered { margin: 0; display: grid; gap: 2px; }
 .legal-slogan-small { font-size: 0.6875rem; letter-spacing: 0.03em; }
 @media (max-width: 520px) { .legal-link-row { grid-template-columns: minmax(0, 1fr) auto; } .legal-link-row code { grid-column: 1 / -1; order: 3; } .legal-title { font-size: 1.5rem; } }
+
+/* Lien-payoff prompt on the delivery form */
+.lien-banner { display: grid; gap: 10px; padding: 14px; border: 1px solid #e0a82e; background: color-mix(in srgb, #f5b73b 14%, var(--card, #fff)); animation: lien-in .45s var(--spring, ease-out) both; }
+@keyframes lien-in { from { opacity: 0; transform: translateY(-8px) scale(.98); } to { opacity: 1; transform: none; } }
+.lien-card { display: grid; gap: 10px; }
+.card-3d.tint-amber { background: color-mix(in srgb, #f5b73b 12%, var(--card)); border-color: #e0a82e; }

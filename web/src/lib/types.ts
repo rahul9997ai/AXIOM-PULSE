@@ -89,6 +89,12 @@ export interface Delivery {
   // still shows, independent of sold_at being null for either reason.
   hattrick_decided: boolean;
   vehicle_condition: VehicleCondition | null;
+  // Payoff of a lien on the trade-in. Null until a trade requirement is
+  // selected; 'pending' triggers three reminders once the delivery is delivered.
+  lien_status: 'none' | 'pending' | 'paid' | null;
+  lien_paid_at: string | null;
+  lien_reminders_sent: number;
+  lien_last_reminder_at: string | null;
   lenders?: Lender | null;
   delivery_requirements?: DeliveryRequirement[];
 }

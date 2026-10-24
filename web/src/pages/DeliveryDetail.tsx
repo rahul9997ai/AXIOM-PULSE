@@ -1,4 +1,5 @@
 import { useConfirm } from '@/components/Feedback';
+import LienCard from '@/components/LienCard';
 import { useEffect, useState, useCallback } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import { supabase } from '@/lib/supabase';
@@ -476,6 +477,8 @@ export default function DeliveryDetail() {
       </div>
 
       {notice && <div className="card-3d tint-blue" style={{ fontSize: '0.8125rem' }}>{notice}</div>}
+
+      {isManager && d.status !== 'cancelled' && <LienCard delivery={d} onChanged={load} />}
 
       {d.status === 'delivered' && <ThankYouCard delivery={d} />}
 

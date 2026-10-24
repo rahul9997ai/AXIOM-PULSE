@@ -20,6 +20,7 @@
 import { createClient } from 'jsr:@supabase/supabase-js@2';
 import webpush from 'npm:web-push@3.6.7';
 import { reminderEmailHtml, reminderEmailSubject, reminderEmailText } from './reminderEmail.ts';
+import { lienEmailHtml, lienEmailSubject, lienEmailText } from './lienReminderEmail.ts';
 import { testEmailHtml, thankYouEmailHtml, thankYouEmailSubject, thankYouEmailText, type ThankYouInput } from './thankYouEmail.ts';
 
 webpush.setVapidDetails(
@@ -431,6 +432,81 @@ async function runThankYous() {
   }
 }
 
+// ---------------------------------------------------------------------------
+// Trade-in lien payoff: when a finance manager said "yes, there's a lien",
+// they get 3 reminders (push + email) after the delivery is delivered —
+// 2 hours after, 9 AM the next day, and 9 AM three days after. They stop
+// the moment the lien is marked paid (or "no lien after all").
+
+const LIEN_MAX_REMINDERS = 3;
+const LIEN_MIN_GAP_HOURS = 6;
+const LIEN_WINDOW_DAYS = 30;
+
+// 9:00 AM local, `days` calendar days after the local date of `from`.
+function lienNineAm(from: Date, days: number): Date {
+  const [y, m, d] = localDateKey(from).split('-').map(Number);
+  const guess = Date.UTC(y, m - 1, d + days, 9);
+  return new Date(guess - tzOffsetMs(new Date(guess + 4 * HOUR_MS)));
+}
+
+function lienDueAt(deliveredAt: Date, sent: number): Date {
+  if (sent === 0) return new Date(deliveredAt.getTime() + 2 * HOUR_MS);
+  return lienNineAm(deliveredAt, sent === 1 ? 1 : 3);
+}
+
+async function runLienReminders() {
+  const now = new Date();
+  if (isQuietHours(now)) return;
+  const since = new Date(now.getTime() - LIEN_WINDOW_DAYS * 24 * HOUR_MS).toISOString();
+  const { data: rows } = await admin
+    .from('deliveries')
+    .select('id, fsm_id, customer_name, stock_number, vehicle, delivered_at, lien_reminders_sent, lien_last_reminder_at')
+    .eq('status', 'delivered')
+    .eq('lien_status', 'pending')
+    .lt('lien_reminders_sent', LIEN_MAX_REMINDERS)
+    .gte('delivered_at', since);
+  if (!rows?.length) return;
+
+  const { data: people } = await admin.from('profiles').select('id, name, email, notify_email').in('id', [...new Set(rows.map((r) => r.fsm_id))]);
+
+  for (const r of rows) {
+    const sent = Number(r.lien_reminders_sent);
+    const deliveredAt = new Date(r.delivered_at);
+    if (now < lienDueAt(deliveredAt, sent)) continue;
+    if (r.lien_last_reminder_at && now.getTime() - new Date(r.lien_last_reminder_at).getTime() < LIEN_MIN_GAP_HOURS * HOUR_MS) continue;
+
+    // Claim this reminder first so overlapping ticks can't double-send.
+    const { data: claimed } = await admin
+      .from('deliveries')
+      .update({ lien_reminders_sent: sent + 1, lien_last_reminder_at: now.toISOString() })
+      .eq('id', r.id).eq('lien_reminders_sent', sent).eq('lien_status', 'pending')
+      .select('id');
+    if (!claimed?.length) continue;
+
+    const n = (sent + 1) as 1 | 2 | 3;
+    const person = (people || []).find((p) => p.id === r.fsm_id);
+    const url = `${APP_URL}/delivery/${r.id}`;
+    const title = `Lien reminder ${n} of 3`;
+    const body = n === 3
+      ? `Final reminder: pay off the lien on ${r.customer_name}'s trade-in.`
+      : n === 2
+        ? `The lien on ${r.customer_name}'s trade-in is still open.`
+        : `Don't forget to pay off the lien on ${r.customer_name}'s trade-in.`;
+    await pushToProfile(r.fsm_id, title, body, { url: `/delivery/${r.id}`, type: 'lien_reminder' });
+    const to = deliverable(person?.notify_email) ?? deliverable(person?.email);
+    const input = {
+      firstName: (person?.name ?? '').split(' ')[0] || 'there',
+      customerName: r.customer_name,
+      stockNumber: r.stock_number,
+      vehicle: r.vehicle,
+      deliveredLabel: localDateTime(deliveredAt),
+      n,
+      url,
+    };
+    await sendRawEmail(to, lienEmailSubject(input), lienEmailHtml(input), lienEmailText(input));
+  }
+}
+
 // Sends a signed-in person a test email at their notification address, so
 // a typo is caught the moment they save it.
 async function sendTestEmail(req: Request): Promise<Response> {
@@ -458,6 +534,7 @@ Deno.serve(async (req) => {
   if (body?.action === 'test_email') return sendTestEmail(req);
   await runReminders();
   await runFsmReminders().catch((e) => console.error(`[delivery-reminders] FSM reminders failed: ${(e as Error).message}`));
+  await runLienReminders().catch((e) => console.error(`[delivery-reminders] lien reminders failed: ${(e as Error).message}`));
   await runThankYous().catch((e) => console.error(`[delivery-reminders] thank-yous failed: ${(e as Error).message}`));
   return new Response(JSON.stringify({ ok: true }), { headers: { 'Content-Type': 'application/json' } });
 });

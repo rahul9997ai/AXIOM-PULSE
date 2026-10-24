@@ -1,11 +1,12 @@
 import { useConfirm } from '@/components/Feedback';
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '@/lib/supabase';
 import { CONFLICT_WINDOW_MIN } from '@/lib/schedule';
 import { useSession } from '@/lib/session';
 import { inputToCents, centsToInput, formatCents } from '@/lib/money';
 import { capitalizeWords } from '@/lib/text';
+import { isTradeRelated, type LienStatus } from '@/lib/lien';
 import { useActingRole } from '@/lib/actingRole';
 import type { ApprovalStatus, Delivery, DueOnDeliveryType, Lender, RequirementTemplate, VehicleCondition } from '@/lib/types';
 
@@ -86,6 +87,8 @@ export default function DeliveryForm({ existing, onSaved }: { existing?: Deliver
   const [checkedTemplates, setCheckedTemplates] = useState<Set<string>>(new Set());
   const [customReqs, setCustomReqs] = useState<CustomRequirement[]>([]);
   const [newCustomReq, setNewCustomReq] = useState('');
+  const [lienStatus, setLienStatus] = useState<LienStatus | null>(existing?.lien_status ?? null);
+  const lienRef = useRef<HTMLDivElement>(null);
   const [salespeople, setSalespeople] = useState<Salesperson[]>([]);
   const [financeManagers, setFinanceManagers] = useState<FinanceManager[]>([]);
 
@@ -214,6 +217,9 @@ export default function DeliveryForm({ existing, onSaved }: { existing?: Deliver
     setCustomReqs((prev) => prev.filter((_, i) => i !== index));
   };
 
+  const tradeSelected = templates.some((t) => checkedTemplates.has(t.id) && isTradeRelated(t.label))
+    || customReqs.some((c) => isTradeRelated(c.label));
+
   const save = async () => {
     if (!effectiveDealershipId) {
       setError(isMaster ? 'Select a dealership first.' : 'Your account has no dealership assigned.');
@@ -229,6 +235,11 @@ export default function DeliveryForm({ existing, onSaved }: { existing?: Deliver
     }
     if (dueOnDelivery && (!dueAmount || inputToCents(dueAmount) <= 0)) {
       setError('Enter an amount for the due-on-delivery collection or refund.');
+      return;
+    }
+    if (tradeSelected && !lienStatus) {
+      setError('Answer whether there is a lien on the trade-in.');
+      lienRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' });
       return;
     }
     if (conflicts.length && !(await confirm({
@@ -266,6 +277,11 @@ export default function DeliveryForm({ existing, onSaved }: { existing?: Deliver
       due_on_delivery_type: dueOnDelivery ? dueType : null,
       due_on_delivery_amount_cents: dueOnDelivery ? inputToCents(dueAmount) : null,
       fsm_notes: fsmNotes.trim() || null,
+      // Without a trade there is no lien to track; a paid lien stays on record.
+      lien_status: tradeSelected ? lienStatus : (existing?.lien_status === 'paid' ? 'paid' : null),
+      // A fresh "yes" starts the three reminders from scratch.
+      ...(tradeSelected && lienStatus === 'pending' && existing?.lien_status !== 'pending'
+        ? { lien_reminders_sent: 0, lien_last_reminder_at: null } : {}),
     };
 
     // Compare against the original so the salesperson's push names what
@@ -520,6 +536,19 @@ export default function DeliveryForm({ existing, onSaved }: { existing?: Deliver
           <button type="button" className="btn secondary" onClick={addCustomReq}>Add</button>
         </div>
       </div>
+
+      {tradeSelected && (
+        <div ref={lienRef} className="card lien-banner" role="group" aria-labelledby="lien-q">
+          <div id="lien-q" style={{ fontWeight: 700, fontSize: '0.875rem' }}>Is there a lien on the trade-in that needs to be paid off?</div>
+          <div style={{ fontSize: '0.75rem', color: 'var(--muted)', lineHeight: 1.5 }}>
+            If yes, you'll get 3 reminders (push and email) after this delivery is marked delivered, until you mark the lien paid.
+          </div>
+          <div style={{ display: 'flex', gap: 8 }}>
+            <button type="button" aria-pressed={lienStatus === 'pending' || lienStatus === 'paid'} className={`btn${lienStatus === 'pending' || lienStatus === 'paid' ? '' : ' secondary'}`} style={{ flex: 1 }} onClick={() => setLienStatus(lienStatus === 'paid' ? 'paid' : 'pending')}>Yes, lien to pay off</button>
+            <button type="button" aria-pressed={lienStatus === 'none'} className={`btn${lienStatus === 'none' ? '' : ' secondary'}`} style={{ flex: 1 }} onClick={() => setLienStatus('none')}>No lien</button>
+          </div>
+        </div>
+      )}
 
       <textarea
         rows={3}
