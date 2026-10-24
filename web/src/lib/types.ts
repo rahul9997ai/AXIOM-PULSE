@@ -16,6 +16,8 @@ export interface Profile {
   // Where Pulse emails this person (thank-you drafts, reminders) — separate
   // from the sign-in, which for salespeople is a placeholder address.
   notify_email?: string | null;
+  // Telegram chat for lien reminders; set when they connect the Pulse bot.
+  telegram_chat_id?: number | null;
 }
 
 export type RequirementStatus = 'outstanding' | 'completed' | 'exception';

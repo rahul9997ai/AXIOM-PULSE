@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import ReminderSettings from '@/components/ReminderSettings';
 import ThankYouSettingsPanel from '@/components/ThankYouSettingsPanel';
 import NotifyEmailCard from '@/components/NotifyEmailCard';
+import TelegramCard from '@/components/TelegramCard';
 import LegalSettingsPanel from '@/components/LegalSettingsPanel';
 import LegalLinks from '@/components/LegalLinks';
 import { supabase } from '@/lib/supabase';
@@ -323,6 +324,7 @@ export default function Settings() {
       </div>
 
       <NotifyEmailCard />
+      <TelegramCard />
 
       <div className="card">
         <div style={{ color: 'var(--muted)', fontWeight: 800, fontSize: '0.75rem', letterSpacing: 1, marginBottom: 10 }}>APPEARANCE</div>

@@ -219,6 +219,22 @@ const EMAIL_FROM = EMAIL_FROM_RAW
   : undefined;
 const APP_URL = 'https://pulse.rahulchamp.ca';
 
+// Optional third channel: a Telegram message, for people who connected the bot.
+const TELEGRAM_BOT_TOKEN = Deno.env.get('TELEGRAM_BOT_TOKEN');
+async function sendTelegram(chatId: number | null | undefined, text: string, buttonLabel: string, url: string) {
+  if (!TELEGRAM_BOT_TOKEN || !chatId) return;
+  try {
+    const res = await fetch(`https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ chat_id: chatId, text, reply_markup: { inline_keyboard: [[{ text: buttonLabel, url }]] } }),
+    });
+    if (!res.ok) console.error(`[delivery-reminders] telegram FAIL chat=${chatId} status=${res.status} body=${await res.text()}`);
+  } catch (e) {
+    console.error(`[delivery-reminders] telegram FAIL chat=${chatId} message=${(e as Error).message}`);
+  }
+}
+
 async function sendRawEmail(to: string | null | undefined, subject: string, html: string, text: string) {
   if (!RESEND_API_KEY || !EMAIL_FROM || !to) return false;
   try {
@@ -467,7 +483,7 @@ async function runLienReminders() {
     .gte('delivered_at', since);
   if (!rows?.length) return;
 
-  const { data: people } = await admin.from('profiles').select('id, name, email, notify_email').in('id', [...new Set(rows.map((r) => r.fsm_id))]);
+  const { data: people } = await admin.from('profiles').select('id, name, email, notify_email, telegram_chat_id').in('id', [...new Set(rows.map((r) => r.fsm_id))]);
 
   for (const r of rows) {
     const sent = Number(r.lien_reminders_sent);
@@ -493,6 +509,7 @@ async function runLienReminders() {
         ? `The lien on ${r.customer_name}'s trade-in is still open.`
         : `Don't forget to pay off the lien on ${r.customer_name}'s trade-in.`;
     await pushToProfile(r.fsm_id, title, body, { url: `/delivery/${r.id}`, type: 'lien_reminder' });
+    await sendTelegram(person?.telegram_chat_id, `${title}\n${body}\nTap "Lien paid off" in Pulse once it's done to stop these reminders.`, 'Open delivery', url);
     const to = deliverable(person?.notify_email) ?? deliverable(person?.email);
     const input = {
       firstName: (person?.name ?? '').split(' ')[0] || 'there',
