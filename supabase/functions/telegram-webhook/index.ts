@@ -23,7 +23,7 @@ Deno.serve(async (req) => {
 
   if (req.method === 'GET') {
     if (url.searchParams.get('register') === SECRET) {
-      const res = await api('setWebhook', { url: `${url.origin}${url.pathname}`, secret_token: SECRET, allowed_updates: ['message'] });
+      const res = await api('setWebhook', { url: `${Deno.env.get('SUPABASE_URL')}/functions/v1/telegram-webhook`, secret_token: SECRET, allowed_updates: ['message'] });
       return json(await res.json());
     }
     const me = await (await api('getMe')).json();
