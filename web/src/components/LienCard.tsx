@@ -3,6 +3,8 @@ import { supabase } from '@/lib/supabase';
 import { useConfirm, useToast } from '@/components/Feedback';
 import type { Delivery } from '@/lib/types';
 
+const COMMAND_URL = 'https://finance.rahulchamp.ca';
+
 // Lien payoff on the trade-in, shown to finance managers. While it's pending,
 // Pulse sends 3 reminders (push + email) once the delivery is delivered.
 export default function LienCard({ delivery, onChanged }: { delivery: Delivery; onChanged: () => void }) {
@@ -38,6 +40,11 @@ export default function LienCard({ delivery, onChanged }: { delivery: Delivery; 
   };
 
   const sent = delivery.lien_reminders_sent ?? 0;
+  // Opens Dealership Command's Trade Lien Payout with this delivery already filled in. When
+  // accounting marks that request paid there, Command marks this lien paid too.
+  const payoutUrl = `${COMMAND_URL}/#/${encodeURIComponent(delivery.dealership_id)}/payout-request?${new URLSearchParams({
+    pulse: delivery.id, stk: delivery.stock_number ?? '', cust: delivery.customer_name, veh: delivery.vehicle ?? '', vin: delivery.vin ?? '',
+  })}`;
   const delivered = delivery.status === 'delivered';
 
   return (
@@ -56,7 +63,8 @@ export default function LienCard({ delivery, onChanged }: { delivery: Delivery; 
             </span>
           </div>
           <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
-            <button type="button" className="btn" style={{ flex: '1 1 140px' }} disabled={busy} onClick={markPaid}>Lien paid off</button>
+            <a className="btn" style={{ flex: '1 1 100%', textAlign: 'center', textDecoration: 'none' }} href={payoutUrl} target="_blank" rel="noopener">Request payout in Dealership Command</a>
+            <button type="button" className="btn secondary" style={{ flex: '1 1 140px' }} disabled={busy} onClick={markPaid}>Lien paid off</button>
             <button type="button" className="btn secondary" style={{ flex: '1 1 140px' }} disabled={busy} onClick={noLien}>No lien after all</button>
           </div>
         </>
